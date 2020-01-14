@@ -23,7 +23,10 @@ class ATMConfiguration:
 
     def __init__(self):
         """Constructor."""
-        import jstyleson as json
+        try:
+            import jstyleson as json
+        except ImportError:
+            import json
 
         self.config = {}
         config_file_name = os.path.join("config", "global_config.json")
@@ -977,13 +980,14 @@ def pytest_configure(config):
     logger.propagate = False
 
 
-@pytest.hookimpl(trylast=True)
-def pytest_configure_node(node):
-    """This is called in case of using xdist to pass data to worker nodes."""
-    node.workerinput["options"] = {
-        "dist": node.config.option.dist,
-        "numprocesses": node.config.option.numprocesses
-    }
+if import_module("xdist"):
+    @pytest.hookimpl(trylast=True)
+    def pytest_configure_node(node):
+        """This is called in case of using xdist to pass data to worker nodes."""
+        node.workerinput["options"] = {
+            "dist": node.config.option.dist,
+            "numprocesses": node.config.option.numprocesses
+        }
 
 
 @pytest.hookimpl(trylast=True)
