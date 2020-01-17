@@ -346,6 +346,9 @@ def setup_item_collection(items, collected_project_keys, collected_items):
 def apply_test_case_range(collected_items, test_case_range):
     """Apply test case range(s) by skipping excluded test cases."""
 
+    if not collected_items or not test_case_range:
+        return collected_items
+
     len_of_range = len(test_case_range)
     out_of_range = len_of_range > 0
     i = 0
@@ -389,10 +392,11 @@ def create_item_collection(items, collected_project_keys, collected_items):
             pytest.test_case_order = test_cases if pytest.test_run_key else pytest.test_case_keys
 
         # order items and test cases
-        ordered_collected_items = apply_test_case_range(collected_items, pytest.test_case_range)
-        if pytest.test_case_order:
+        ordered_collected_items = collected_items
+        if pytest.test_case_order or pytest.test_case_range:
             ordered_collected_items = {key: collected_items[key] for key in pytest.test_case_order if key in collected_items}
             ordered_collected_items.update({key: collected_items[key] for key in collected_items if key not in ordered_collected_items})
+            ordered_collected_items = apply_test_case_range(ordered_collected_items, pytest.test_case_range)
             ordered_items = [item for sublist in ordered_collected_items.values() for item in sublist]
             ordered_items.extend([item for item in items if item not in ordered_items])
             items[:] = ordered_items
