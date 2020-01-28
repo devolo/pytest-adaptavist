@@ -580,14 +580,14 @@ def create_report(test_case_key, test_step_key, execute_time, skip_status, passe
                                                test_case_key=test_case_key,
                                                environment=pytest.test_environment,
                                                status=status,
-                                               comment=comments if not specs else ((test_result.get("comment", "") + (comments or "")) if index < 0 else (test_result.get("comment", "")[:index] + (comments or "") + test_result.get("comment", "")[index:])),
+                                               comment=(test_result.get("comment", "") + (comments or "")) if index < 0 else (test_result.get("comment", "")[:index] + (comments or "") + test_result.get("comment", "")[index:]),
                                                execute_time=execute_time)
 
         else:
             # change parent test result status only if blocked or failed or if there was no previous failure
-            if test_result.get("status", "Not Executed") == "Blocked" and skip_status:
-                # no need to proceed here, info about blocked steps is enough
-                return
+            # if test_result.get("status", "Not Executed") == "Blocked" and skip_status:
+            #    # no need to proceed here, info about blocked steps is enough
+            #    return
             status = test_result.get("status", "Not Executed")
             if status == "Not Executed" and skip_status:
                 status = "Blocked" if skip_status.name == "block" else "Not Executed"
@@ -619,7 +619,7 @@ def html_row(condition, message):
 def is_unexpected_exception(exc_type):
     """Check if exception type is unexpected (any exception except AssertionError, pytest.block.Exception, pytest.skip.Exception)."""
 
-    if isinstance(exc_type, Exception):
+    if exc_type and (isinstance(exc_type, (Exception, BaseException)) or issubclass(exc_type, (Exception, BaseException))):
         # the following lines are necessary to support 2.x versions of pytest-assume which raise FailedAssumption exceptions on failed assumptions
         pytest_assume = import_module("pytest_assume")
         FailedAssumption = pytest_assume.plugin.FailedAssumption if pytest_assume and hasattr(pytest_assume, "plugin") and hasattr(pytest_assume.plugin, "FailedAssumption") else None
@@ -678,6 +678,7 @@ def build_report_description(item, call, report, skip_status):
                     report.description = "<br>".join((report.description, f"{key}{' blocked' if pytest.test_result_data[key].get('blocked', None) is True else ''}:".format(key), pytest.test_result_data[key].get("comment", None) or ""))
 
         key = get_item_nodeid(item)
+
         outcome = report.outcome if not skip_status else ("blocked" if skip_status.name == "block" else "skipped")
 
         pytest.report[key] = {"test_case_key": test_case_key, "test_case_name": test_case_name, "priority": priority, "status": outcome, "duration": report.duration, "details": report.description or "",
@@ -1168,7 +1169,7 @@ def pytest_runtest_makereport(item, call):
     # if method was blocked dynamically (during call) an appropriate marker is used
     # to handle the reporting in the same way as for statically blocked methods
     # (status will be reported as "Blocked" with given comment in Adaptavist)
-    if not skip_status and ((call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)) or pytest.test_result_data[item.fullname].get("blocked", None) is True):
+    if not skip_status and ((call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)) or (not call.excinfo and pytest.test_result_data[item.fullname].get("blocked", None) is True)):
         reason = pytest.test_result_data[item.fullname].get("comment", None) or (str(call.excinfo.value).partition("\n")[0] if call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception) else None)
         skip_status = pytest.mark.block(reason=reason) if ((call.excinfo and call.excinfo.type is pytest.block.Exception) or pytest.test_result_data[item.fullname].get("blocked", None) is True) else pytest.mark.skip(reason=reason)
         if report.outcome != "skipped":
@@ -1265,7 +1266,7 @@ class MetaBlock():
         self.step = step
         self.start = datetime.now().timestamp()
         self.stop = datetime.now().timestamp()
-        self.data = pytest.test_result_data[self.item.fullname + ("_" + str(step) if step else "")] = {"comment": None, "attachment": None}
+        self.data = pytest.test_result_data.setdefault(self.item.fullname + ("_" + str(step) if step else ""), {"comment": None, "attachment": None})
         self.failed_assumptions = getattr(pytest, "_failed_assumptions", [])[:]
 
     def __enter__(self):
@@ -1282,7 +1283,7 @@ class MetaBlock():
         # if method was blocked dynamically (during call) an appropriate marker is used
         # to handle the reporting in the same way as for statically blocked methods
         # (status will be reported as "Blocked" with given comment in Adaptavist)
-        if not skip_status and ((exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception)) or self.data.get("blocked", None) is True):
+        if not skip_status and ((exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception)) or (exc_type in (None, MetaBlockAborted) and self.data.get("blocked", None) is True)):
             reason = self.data.get("comment", None) or (str(exc_value).partition("\n")[0] if exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception) else None)
             skip_status = pytest.mark.block(reason=reason) if ((exc_type and exc_type is pytest.block.Exception) or self.data.get("blocked", None) is True) else pytest.mark.skip(reason=reason)
 
@@ -1295,7 +1296,6 @@ class MetaBlock():
                     self.data["comment"] = "".join((self.data.get("comment", None) or "", html_row(False, exc_info)))
 
         passed = not exc_type and (len(getattr(pytest, "_failed_assumptions", [])) <= len(self.failed_assumptions))
-
         status = ("passed" if passed else "failed") if not skip_status else ("blocked" if (skip_status.name == "block" or self.data.get("blocked", None)) else "skipped")
 
         # custom item callback
@@ -1323,9 +1323,10 @@ class MetaBlock():
             test_case_key = marker.kwargs["test_case_key"]
             test_step_key = marker.kwargs["test_step_key"]
 
-            if test_step_key:
-                # it's a test step method, we should not be here
-                # pytest_runtest_makereport takes care about reporting in this case
+            if test_step_key or not self.step:
+                # if it's a test step method, we should not be here
+                # if it's the test case context, we can return here as well
+                # pytest_runtest_makereport takes care about reporting in both cases
                 return exc_type is MetaBlockAborted  # suppress MetaBlockAborted exception
 
             _, specs = get_item_name_and_spec(get_item_nodeid(self.item))
