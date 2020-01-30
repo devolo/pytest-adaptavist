@@ -457,7 +457,7 @@ def setup_report(worker_input):
                     # mark test case key to be able to decide whether to use existing test result or to create a new one
                     for test_case_key in pytest.test_case_keys or []:
                         # only mark the first one (e.g. in case of parametrized or repeated methods)
-                        key = next((key for key in pytest.test_refresh_info if key.startswith(test_case_key)), test_case_key)
+                        key = next((key for key in pytest.test_refresh_info if re.search(test_case_key + r"[ \[\b]", key)), test_case_key)
                         pytest.test_refresh_info[key] = pytest.test_run_key
 
             elif worker_input and (worker_input.get("workerid", "gw0") not in [None, "gw0"]):
@@ -519,7 +519,7 @@ def create_report(test_case_key, test_step_key, execute_time, skip_status, passe
 
         # touch parametrized/repeated items
         for key in pytest.test_refresh_info:
-            if key.startswith(test_case_key):
+            if re.search(test_case_key + r"[ \[\b]", key):
                 pytest.test_refresh_info[key] = pytest.test_run_key
 
         # get optional meta data (comments, attachments) of test case method
