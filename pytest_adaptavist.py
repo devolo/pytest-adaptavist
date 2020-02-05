@@ -1042,11 +1042,11 @@ def pytest_sessionfinish(session, exitstatus):
 
     report = getattr(pytest, "report", {}) or {}
 
-    not_build = True
+    not_built = True
     for key in report:
         exceptions_raised += 1 if report[key]["exc_info"] else 0
         high_prios_failed += 1 if report[key]["status"] == "failed" and report[key]["priority"] == "High" else 0
-        not_build = not_build and report[key]["status"] not in ["passed", "failed"]
+        not_built = not_built and report[key]["status"] not in ["passed", "failed"]
 
     if exceptions_raised or high_prios_failed or exitstatus in (3, 4):
         status = "FAILURE"
@@ -1054,8 +1054,8 @@ def pytest_sessionfinish(session, exitstatus):
         status = "UNSTABLE"
     elif exitstatus == 2:
         status = "ABORTED"
-    elif exitstatus == 5 or not_build:
-        status = "NOT_BUILD"
+    elif exitstatus == 5 or not_built:
+        status = "NOT_BUILT"
     else:
         status = "SUCCESS"
 
@@ -1064,7 +1064,7 @@ def pytest_sessionfinish(session, exitstatus):
 
     colormap = {"ABORTED": "white",
                 "FAILURE": "red",
-                "NOT_BUILD": "white",
+                "NOT_BUILT": "white",
                 "SUCCESS": "green",
                 "UNSTABLE": "yellow"}
 
