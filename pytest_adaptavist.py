@@ -1229,7 +1229,7 @@ def meta_block(request):
             pytest.assume(...)
         ```
     """
-    def get_meta_block(step=None, timeout=120):
+    def get_meta_block(step=None, timeout=600):
         """Return a meta block context to process single test blocks/steps."""
         return MetaBlock(request, step, timeout=timeout)
 
@@ -1262,7 +1262,7 @@ class MetaBlock():
         """if condition fails, skip execution of this block/test, set it to 'Blocked' and exit session"""
         EXIT_SESSION = -1
 
-    def __init__(self, request, step=None, timeout=120):
+    def __init__(self, request, step=None, timeout=600):
         self.item = request.node
         self.item_name = self.item.name + ("_" + str(step) if step else "")
         self.step = step
