@@ -18,6 +18,8 @@ import pytest
 
 from _pytest.terminal import TerminalReporter
 
+# const to change the default timeout for meta_blocks
+META_BLOCK_TIMEOUT=600
 
 class ATMConfiguration:
     """Configuration class to read config parameters (either from env or from "global_config.json")."""
@@ -1229,7 +1231,7 @@ def meta_block(request):
             pytest.assume(...)
         ```
     """
-    def get_meta_block(step=None, timeout=600):
+    def get_meta_block(step=None, timeout=META_BLOCK_TIMEOUT):
         """Return a meta block context to process single test blocks/steps."""
         return MetaBlock(request, step, timeout=timeout)
 
@@ -1262,7 +1264,7 @@ class MetaBlock():
         """if condition fails, skip execution of this block/test, set it to 'Blocked' and exit session"""
         EXIT_SESSION = -1
 
-    def __init__(self, request, step=None, timeout=600):
+    def __init__(self, request, step=None, timeout=META_BLOCK_TIMEOUT):
         self.item = request.node
         self.item_name = self.item.name + ("_" + str(step) if step else "")
         self.step = step
