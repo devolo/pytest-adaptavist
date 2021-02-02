@@ -8,6 +8,7 @@ import inspect
 import os
 import re
 import sys
+import signal
 import logging
 from datetime import datetime
 
@@ -17,6 +18,8 @@ import pytest
 
 from _pytest.terminal import TerminalReporter
 
+# const to change the default timeout for meta_blocks
+META_BLOCK_TIMEOUT=600
 
 class ATMConfiguration:
     """Configuration class to read config parameters (either from env or from "global_config.json")."""
@@ -1228,9 +1231,9 @@ def meta_block(request):
             pytest.assume(...)
         ```
     """
-    def get_meta_block(step=None):
+    def get_meta_block(step=None, timeout=META_BLOCK_TIMEOUT):
         """Return a meta block context to process single test blocks/steps."""
-        return MetaBlock(request, step)
+        return MetaBlock(request, step, timeout=timeout)
 
     return get_meta_block
 
@@ -1261,24 +1264,33 @@ class MetaBlock():
         """if condition fails, skip execution of this block/test, set it to 'Blocked' and exit session"""
         EXIT_SESSION = -1
 
-    def __init__(self, request, step=None):
+    def __init__(self, request, step=None, timeout=META_BLOCK_TIMEOUT):
         self.item = request.node
         self.item_name = self.item.name + ("_" + str(step) if step else "")
         self.step = step
         self.start = datetime.now().timestamp()
         self.stop = datetime.now().timestamp()
+        self.timeout = timeout
         self.data = pytest.test_result_data.setdefault(self.item.fullname + ("_" + str(step) if step else ""), {"comment": None, "attachment": None})
         self.failed_assumptions = getattr(pytest, "_failed_assumptions", [])[:]
+
+    def _timeout_handler(self, signum, frame):
+        raise TimeoutError("The test step exceeded its timewindow and timed out")
 
     def __enter__(self):
         if self.step:
             build_terminal_report(when="setup", item=self.item, step=self.step, level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)')
         self.start = datetime.now().timestamp()
+        signal.signal(signal.SIGALRM, self._timeout_handler)
+        signal.alarm(self.timeout)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        signal.alarm(0)
         self.stop = datetime.now().timestamp()
-
+        if exc_type is TimeoutError:
+            self.data["blocked"] = True
+            pytest.skip(msg="Blocked. {0} failed: The test step exceeded its timewindow and timed out".format(self.item_name))
         skip_status = get_marker(self.item, "block") or get_marker(self.item, "skip")
 
         # if method was blocked dynamically (during call) an appropriate marker is used
