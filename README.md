@@ -17,9 +17,7 @@ This [pytest](http://pytest.org) plugin generates test execution results within 
 
 To install pytest-adaptavist, you can use (one of) the following command(s):
 ```
-$ pip install git+https://github.com/devolo/pytest-adaptavist.git
-$ pip install git+https://github.com/devolo/pytest-adaptavist.git@v4.0.0
-$ pip install https://github.com/devolo/pytest-adaptavist/archive/v4.0.0/pytest-adaptavist.zip
+$ pip install pytest-adaptavist
 ```
 
 To uninstall pytest-adaptavist, you can use the following command:
