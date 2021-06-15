@@ -12,6 +12,7 @@ import logging
 from datetime import datetime
 
 from adaptavist import Adaptavist
+from adaptavist._helper import get_executor
 
 import pytest
 
@@ -518,15 +519,6 @@ def handle_failed_assumptions(item, call, report):
     # deleting the existing list and all its references
     del getattr(pytest, "_failed_assumptions", [])[:]
     del getattr(pytest, "_assumption_locals", [])[:]
-
-
-def get_executor():
-    """Get executor name."""
-
-    build_url = os.environ.get("BUILD_URL", None)
-    jenkins_url = os.environ.get("JENKINS_URL", None)
-    is_jenkins = build_url and jenkins_url and build_url.startswith(jenkins_url)
-    return "jenkins" if is_jenkins else getpass.getuser().lower()
 
 
 def atm_user_is_valid(user):

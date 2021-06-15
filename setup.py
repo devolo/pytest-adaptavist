@@ -14,7 +14,7 @@ setup(
     entry_points={"pytest11": ["adaptavist = pytest_adaptavist"]},
     platforms="any",
     python_requires=">=3.6",
-    install_requires=["adaptavist>=1.0.0", "pytest>=3.4.1"],
+    install_requires=["adaptavist>=2.0.0", "pytest>=3.4.1"],
     keywords="python pytest adaptavist kanoah tm4j jira test testmanagement report",
     classifiers=[
         "Framework :: Pytest",
