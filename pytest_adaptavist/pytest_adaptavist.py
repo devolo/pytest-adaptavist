@@ -151,13 +151,15 @@ def enable_terminal_report(config):
     config.pluginmanager.register(terminalreporter, "terminalreporter")
 
     # pretty terminal reporting needs capturing to be turned off ("-s") to function properly
-    if getattr(config.option, "pretty", False):
-        if getattr(config.option, "capture", None) != "no":
-            setattr(config.option, "capture", "no")
-            capturemanager = config.pluginmanager.getplugin("capturemanager")
-            capturemanager.stop_global_capturing()
-            setattr(capturemanager, "_method", getattr(config.option, "capture"))
-            capturemanager.start_global_capturing()
+    if (
+        getattr(config.option, "pretty", False)
+        and getattr(config.option, "capture", None) != "no"
+    ):
+        setattr(config.option, "capture", "no")
+        capturemanager = config.pluginmanager.getplugin("capturemanager")
+        capturemanager.stop_global_capturing()
+        setattr(capturemanager, "_method", getattr(config.option, "capture"))
+        capturemanager.start_global_capturing()
 
 
 def patch_terminal_size(config):
@@ -236,7 +238,7 @@ def setup_item_collection(items, collected_project_keys, collected_items):
         # if test case keys are specified as well, take the intersection of both (if empty then all methods are skipped)
         test_case_keys = intersection(pytest.test_case_keys, test_cases) or [None] if pytest.test_case_keys else test_cases
 
-    # run over all found test methods and collect the relevants
+    # run over all found test methods and collect the relevant
     for item in items:
         item.fullname = get_item_nodeid(item)
         # initialize item's status info
@@ -465,12 +467,14 @@ def build_report_description(item, call, report, skip_status):
                 test_case_name = test_case_info.get("name", None)
                 priority = test_case_info.get("priority", None)
 
-        if not (call.excinfo and call.excinfo.type is pytest.skip.Exception) and not skip_status:
-            # append info from test case steps (if existing)
-            if test_case_key:
-                subkeys = [key for key in pytest.test_result_data if key != item.fullname and key.startswith(item.fullname)]
-                for key in subkeys:
-                    report.description = "<br>".join((report.description, f"{key}{' blocked' if pytest.test_result_data[key].get('blocked', None) is True else ''}:".format(key), pytest.test_result_data[key].get("comment", None) or ""))
+        if (
+            not (call.excinfo and call.excinfo.type is pytest.skip.Exception)
+            and not skip_status
+            and test_case_key
+        ):
+            subkeys = [key for key in pytest.test_result_data if key != item.fullname and key.startswith(item.fullname)]
+            for key in subkeys:
+                report.description = "<br>".join((report.description, f"{key}{' blocked' if pytest.test_result_data[key].get('blocked', None) is True else ''}:".format(key), pytest.test_result_data[key].get("comment", None) or ""))
 
         key = get_item_nodeid(item)
 
