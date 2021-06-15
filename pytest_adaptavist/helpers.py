@@ -52,10 +52,8 @@ def build_exception_info(item_name, exc_type, exc_value, traceback):
     exc_info = None
 
     if exc_type and (exc_type, exc_value, traceback) != pytest.item_status_info[item_name].get("exc_info", None):
-        if exc_type is AssertionError:
+        if exc_type is AssertionError or exc_type is pytest.skip.Exception:
             # in case of assertion only report exception value (not line of code)
-            exc_info = str(exc_value).partition("\n")[0]
-        elif exc_type is pytest.skip.Exception:
             exc_info = str(exc_value).partition("\n")[0]
         else:
             exc_dict = {"path": os.path.relpath(traceback.tb_frame.f_code.co_filename), "line": traceback.tb_lineno, "info": str(exc_value).partition("\n")[0]}
@@ -143,7 +141,7 @@ def calc_test_result_status(step_results):
         return "Not Executed"
     status = 0xF
     for result in step_results:
-        status = status & status_map[result["status"]]
+        status &= status_map[result["status"]]
 
     return [k for k, v in status_map.items() if v == status][0]
 
@@ -158,11 +156,11 @@ def create_report(test_case_key, test_step_key, execute_time, skip_status, passe
         :param passed: True or False, depending on test result.
         :param test_result_data: additional data containing comments, attachments, etc.
     """
-    adaptavist = pytest.adaptavist
-
     test_run_key = pytest.test_run_key
 
     if test_run_key and test_case_key in (pytest.test_case_keys or []):
+
+        adaptavist = pytest.adaptavist
 
         test_result = adaptavist.get_test_result(test_run_key, test_case_key)
 
@@ -255,7 +253,7 @@ def create_report(test_case_key, test_step_key, execute_time, skip_status, passe
                 status = "Blocked" if skip_status.name == "block" else "Not Executed"
             elif status == "Fail" or (not passed and not skip_status):
                 status = "Fail"
-            elif status == "Not Executed" and not skip_status:
+            elif status == "Not Executed":
                 status = "Pass" if passed else "Fail"
 
             comments = ((header + "<br>" + "parameterization " + (specs or "") + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + ((description + "<br>") if description else "") + test_result.get("comment", "")
