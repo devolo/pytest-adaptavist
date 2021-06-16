@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 """This module provides a set of pytest hooks for generating Adaptavist test run results from test reports."""
 
-import getpass
 import inspect
 import logging
 import os
 import re
 import sys
+from contextlib import suppress
 from datetime import datetime
 
 import pytest
@@ -48,7 +48,7 @@ class ATMConfiguration:
                 try:
                     self.config.update(json.load(config_file))
                 except Exception as ex:
-                    raise ValueError("Failed to load config from file \"{0}\"!".format(config_file), ex)
+                    raise ValueError("Failed to load config from file \"{0}\"!".format(config_file), ex) from ex
 
     def get(self, key, default=None):
         """Get value either from environment or from config file."""
@@ -174,27 +174,26 @@ def patch_terminal_size(config):
     # this function tries to fix the layout issue related to jenkins console
     terminalreporter = config.pluginmanager.getplugin("terminalreporter")
 
-    if not terminalreporter:
-        return
+    if terminalreporter:
 
-    tw = getattr(terminalreporter, "_tw")
+        tw = getattr(terminalreporter, "_tw")
 
-    if not tw:
-        return
+        if not tw:
+            return
 
-    try:
-        # calculate terminal size from screen dimension (e.g. 1920 -> 192)
-        import tkinter
-        default_width = min(192, int((tkinter.Tk().winfo_screenwidth() + 9) / 10))
-        default_height = int((tkinter.Tk().winfo_screenheight() + 19) / 20)
-    except Exception:  # pylint: disable=broad-except
-        # tradeoff
-        default_width = 152
-        default_height = 24
+        try:
+            # calculate terminal size from screen dimension (e.g. 1920 -> 192)
+            import tkinter
+            default_width = min(192, int((tkinter.Tk().winfo_screenwidth() + 9) / 10))
+            default_height = int((tkinter.Tk().winfo_screenheight() + 19) / 20)
+        except Exception:  # pylint: disable=broad-except
+            # tradeoff
+            default_width = 152
+            default_height = 24
 
-    import shutil
-    width, _ = shutil.get_terminal_size((default_width, default_height))
-    tw.fullwidth = width
+        import shutil
+        width, _ = shutil.get_terminal_size((default_width, default_height))
+        tw.fullwidth = width
 
 
 def get_code_base_url():
@@ -202,10 +201,9 @@ def get_code_base_url():
 
     import subprocess
 
-    try:
+    code_base = None
+    with suppress(subprocess.CalledProcessError):
         code_base = subprocess.check_output("git config --get remote.origin.url".split()).decode("utf-8").strip()
-    except subprocess.CalledProcessError:
-        return None
 
     return code_base
 
@@ -434,9 +432,9 @@ def is_unexpected_exception(exc_type):
     if exc_type and (isinstance(exc_type, (Exception, BaseException)) or issubclass(exc_type, (Exception, BaseException))):
         # the following lines are necessary to support 2.x versions of pytest-assume which raise FailedAssumption exceptions on failed assumptions
         pytest_assume = import_module("pytest_assume")
-        FailedAssumption = pytest_assume.plugin.FailedAssumption if pytest_assume and hasattr(pytest_assume, "plugin") and hasattr(
+        failed_assumption = pytest_assume.plugin.FailedAssumption if pytest_assume and hasattr(pytest_assume, "plugin") and hasattr(
             pytest_assume.plugin, "FailedAssumption") else None
-        return exc_type not in (None, FailedAssumption, AssertionError, pytest.skip.Exception)
+        return exc_type not in (None, failed_assumption, AssertionError, pytest.skip.Exception)
     return False
 
 
