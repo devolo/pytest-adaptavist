@@ -1,27 +1,34 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """This module provides a set of pytest hooks for generating Adaptavist test run results from test reports."""
 
 import getpass
 import inspect
+import logging
 import os
 import re
 import sys
-import logging
 from datetime import datetime
 
+import pytest
+from _pytest.terminal import TerminalReporter
 from adaptavist import Adaptavist
 
-import pytest
-
-from _pytest.terminal import TerminalReporter
-
+from .helpers import (assume,
+                      build_exception_info,
+                      build_terminal_report,
+                      create_report,
+                      get_item_name_and_spec,
+                      get_item_nodeid,
+                      get_marker,
+                      get_status_color,
+                      html_row,
+                      import_module)
 from .metablock import MetaBlock
-from .helpers import build_terminal_report, create_report, get_item_name_and_spec, get_status_color, get_marker, get_item_nodeid, assume, html_row, import_module, build_exception_info
 
 # const to change the default timeout for meta_blocks
-META_BLOCK_TIMEOUT=600
+META_BLOCK_TIMEOUT = 600
+
 
 class ATMConfiguration:
     """Configuration class to read config parameters (either from env or from "global_config.json")."""
@@ -89,7 +96,8 @@ class ATMTerminalReporter(TerminalReporter):
 
         item_info = getattr(report, "item_info", {})
 
-        worker_node_suffix = f" [{' -> '.join(filter(None, (report.node.gateway.id, item_info['atmcfg'].get('test_environment', None))))}]" if getattr(self.config.option, "dist", None) == "each" and getattr(report, "node") else ""
+        worker_node_suffix = f" [{' -> '.join(filter(None, (report.node.gateway.id, item_info['atmcfg'].get('test_environment', None))))}]" if getattr(
+            self.config.option, "dist", None) == "each" and getattr(report, "node") else ""
 
         if item_info.get("atmcfg", None):
             pytest.project_key = item_info["atmcfg"].get("project_key", None)
@@ -151,10 +159,7 @@ def enable_terminal_report(config):
     config.pluginmanager.register(terminalreporter, "terminalreporter")
 
     # pretty terminal reporting needs capturing to be turned off ("-s") to function properly
-    if (
-        getattr(config.option, "pretty", False)
-        and getattr(config.option, "capture", None) != "no"
-    ):
+    if (getattr(config.option, "pretty", False) and getattr(config.option, "capture", None) != "no"):
         setattr(config.option, "capture", "no")
         capturemanager = config.pluginmanager.getplugin("capturemanager")
         capturemanager.stop_global_capturing()
@@ -204,9 +209,6 @@ def get_code_base_url():
     return code_base
 
 
-
-
-
 def intersection(list_a, list_b):
     """Return the intersection of two lists (maintaining the item order of the first list)."""
     result = []
@@ -214,15 +216,6 @@ def intersection(list_a, list_b):
         if (item in list_b) and (item not in result):
             result.append(item)
     return result
-
-
-
-
-
-
-
-
-
 
 
 def setup_item_collection(items, collected_project_keys, collected_items):
@@ -270,9 +263,7 @@ def setup_item_collection(items, collected_project_keys, collected_items):
             pytest.test_refresh_info[project_key + "-" + test_case_key + (specs or "")] = None
 
             # mark this item with appropriate info (easier to read from when creating test results)
-            item.add_marker(pytest.mark.testcase(project_key=project_key,
-                                                 test_case_key=project_key + "-" + test_case_key,
-                                                 test_step_key=test_step_key))
+            item.add_marker(pytest.mark.testcase(project_key=project_key, test_case_key=project_key + "-" + test_case_key, test_step_key=test_step_key))
 
             if test_case_keys:
                 # only add specified test cases (to be included in the report)
@@ -326,7 +317,8 @@ def create_item_collection(items, collected_project_keys, collected_items):
         if not pytest.test_run_key:
             # only include those test cases that are part of collected projects (including test database)
             search_mask = "projectKey IN (\"{0}\")".format("\", \"".join(collected_project_keys + ["TEST"]))
-            test_cases = [test_case["key"] for test_case in pytest.adaptavist.get_test_cases(search_mask=search_mask)] if items and getattr(items[0].config.option, "adaptavist") else collected_items.keys()
+            test_cases = [test_case["key"] for test_case in pytest.adaptavist.get_test_cases(
+                search_mask=search_mask)] if items and getattr(items[0].config.option, "adaptavist") else collected_items.keys()
         else:
             # only include those test cases that are part of this test run
             test_run = pytest.adaptavist.get_test_run(pytest.test_run_key)
@@ -375,10 +367,13 @@ def setup_report(worker_input):
             test_plan_name = "{0} {1}".format(pytest.project_key, pytest.test_plan_suffix)
             test_plans = pytest.adaptavist.get_test_plans("projectKey = \"{0}\"".format(pytest.project_key))
 
-            pytest.test_plan_key = ([test_plan["key"] for test_plan in test_plans if test_plan["name"] == test_plan_name] or [test_plan["key"] for test_plan in test_plans if test_plan["name"].endswith(pytest.test_plan_suffix)] or [None])[0]
+            pytest.test_plan_key = ([test_plan["key"] for test_plan in test_plans if test_plan["name"] == test_plan_name]
+                                    or [test_plan["key"] for test_plan in test_plans if test_plan["name"].endswith(pytest.test_plan_suffix)] or [None])[0]
 
             if not pytest.test_plan_key:
-                pytest.test_plan_key = pytest.adaptavist.create_test_plan(project_key=pytest.project_key, test_plan_name=test_plan_name, folder=pytest.test_plan_folder)
+                pytest.test_plan_key = pytest.adaptavist.create_test_plan(project_key=pytest.project_key,
+                                                                          test_plan_name=test_plan_name,
+                                                                          folder=pytest.test_plan_folder)
 
         if not pytest.test_run_key:
             test_plan_name = pytest.adaptavist.get_test_plan(test_plan_key=pytest.test_plan_key).get("name", None) if pytest.test_plan_key else None
@@ -388,7 +383,8 @@ def setup_report(worker_input):
             distribution = worker_input.get("options", {}).get("dist", None)
             if not worker_input or (worker_input.get("workerid", "gw0") in [None, "gw0"]) or (distribution == "each"):
                 pytest.test_run_key = pytest.adaptavist.get_test_run_by_name(test_run_name).get("key", None) if (distribution != "each") else None
-                test_run_name += f" {worker_input.get('workerid', 'gw0').split('gw')[1]}" if (distribution == "each" and (not pytest.test_environment or pytest.test_environment not in test_run_name)) else ""
+                test_run_name += f" {worker_input.get('workerid', 'gw0').split('gw')[1]}" if (
+                    distribution == "each" and (not pytest.test_environment or pytest.test_environment not in test_run_name)) else ""
 
                 if not pytest.test_run_key:
                     pytest.test_run_key = pytest.adaptavist.create_test_run(project_key=pytest.project_key,
@@ -431,18 +427,16 @@ def setup_report(worker_input):
             pytest.adaptavist.create_environment(project_key, pytest.test_environment)
 
 
-
-
 def is_unexpected_exception(exc_type):
     """Check if exception type is unexpected (any exception except AssertionError, pytest.block.Exception, pytest.skip.Exception)."""
 
     if exc_type and (isinstance(exc_type, (Exception, BaseException)) or issubclass(exc_type, (Exception, BaseException))):
         # the following lines are necessary to support 2.x versions of pytest-assume which raise FailedAssumption exceptions on failed assumptions
         pytest_assume = import_module("pytest_assume")
-        FailedAssumption = pytest_assume.plugin.FailedAssumption if pytest_assume and hasattr(pytest_assume, "plugin") and hasattr(pytest_assume.plugin, "FailedAssumption") else None
+        FailedAssumption = pytest_assume.plugin.FailedAssumption if pytest_assume and hasattr(pytest_assume, "plugin") and hasattr(
+            pytest_assume.plugin, "FailedAssumption") else None
         return exc_type not in (None, FailedAssumption, AssertionError, pytest.skip.Exception)
     return False
-
 
 
 def build_report_description(item, call, report, skip_status):
@@ -467,21 +461,26 @@ def build_report_description(item, call, report, skip_status):
                 test_case_name = test_case_info.get("name", None)
                 priority = test_case_info.get("priority", None)
 
-        if (
-            not (call.excinfo and call.excinfo.type is pytest.skip.Exception)
-            and not skip_status
-            and test_case_key
-        ):
+        if (not (call.excinfo and call.excinfo.type is pytest.skip.Exception) and not skip_status and test_case_key):
             subkeys = [key for key in pytest.test_result_data if key != item.fullname and key.startswith(item.fullname)]
             for key in subkeys:
-                report.description = "<br>".join((report.description, f"{key}{' blocked' if pytest.test_result_data[key].get('blocked', None) is True else ''}:".format(key), pytest.test_result_data[key].get("comment", None) or ""))
+                report.description = "<br>".join((report.description,
+                                                  f"{key}{' blocked' if pytest.test_result_data[key].get('blocked', None) is True else ''}:".format(key),
+                                                  pytest.test_result_data[key].get("comment", None) or ""))
 
         key = get_item_nodeid(item)
 
         outcome = report.outcome if not skip_status else ("blocked" if skip_status.name == "block" else "skipped")
 
-        pytest.report[key] = {"test_case_key": test_case_key, "test_case_name": test_case_name, "priority": priority, "status": outcome, "duration": report.duration, "details": report.description or "",
-                              "exc_info": is_unexpected_exception(pytest.item_status_info[item.fullname].get("exc_info", (None, None, None))[0])}
+        pytest.report[key] = {
+            "test_case_key": test_case_key,
+            "test_case_name": test_case_name,
+            "priority": priority,
+            "status": outcome,
+            "duration": report.duration,
+            "details": report.description or "",
+            "exc_info": is_unexpected_exception(pytest.item_status_info[item.fullname].get("exc_info", (None, None, None))[0])
+        }
 
 
 def handle_failed_assumptions(item, call, report):
@@ -593,11 +592,9 @@ def pytest_addoption(parser):
     """Add options to control plugin."""
 
     group = parser.getgroup("adaptavist", "adaptavist test reporting")
-    group.addoption("--adaptavist", action="store_true", default=False,
-                    help="Enable adaptavist reporting (default: False)")
+    group.addoption("--adaptavist", action="store_true", default=False, help="Enable adaptavist reporting (default: False)")
 
-    group.addoption("--pretty", action="store_true", dest="pretty", default=False,
-                    help="Make pytest terminal output more readable (default: False)")
+    group.addoption("--pretty", action="store_true", dest="pretty", default=False, help="Make pytest terminal output more readable (default: False)")
 
 
 @pytest.hookimpl(trylast=True)
@@ -687,7 +684,8 @@ def pytest_configure(config):
 
         pytest.reporter.line("build_usr: %s" % (build_usr or "unknown"))
         pytest.reporter.line("build_url: %s" % (build_url or "unknown"))
-        pytest.reporter.line("code_base: %s %s %s" % (code_base or "unknown", (branch or "unknown") if code_base else "", (commit or "unknown") if code_base and branch else ""))
+        pytest.reporter.line("code_base: %s %s %s" %
+                             (code_base or "unknown", (branch or "unknown") if code_base else "", (commit or "unknown") if code_base and branch else ""))
         pytest.reporter.line("reporting: %s" % ("enabled" if getattr(config.option, "adaptavist", False) else "disabled"))
 
     logger = logging.getLogger("pytest-adaptavist")
@@ -698,13 +696,11 @@ def pytest_configure(config):
 
 
 if import_module("xdist"):
+
     @pytest.hookimpl(trylast=True)
     def pytest_configure_node(node):
         """This is called in case of using xdist to pass data to worker nodes."""
-        node.workerinput["options"] = {
-            "dist": node.config.option.dist,
-            "numprocesses": node.config.option.numprocesses
-        }
+        node.workerinput["options"] = {"dist": node.config.option.dist, "numprocesses": node.config.option.numprocesses}
 
 
 @pytest.hookimpl(trylast=True)
@@ -775,11 +771,7 @@ def pytest_sessionfinish(session, exitstatus):
     line = f"final_status ({status}): {getattr(pytest, 'project_key', None)}, {getattr(pytest, 'test_plan_key', None)}, {', '.join(getattr(pytest, 'test_run_keys', []) or [str(getattr(pytest, 'test_run_key', None))])}, "
     line += f"{high_prios_failed} high prio tc(s) failed, {exceptions_raised} exception(s) raised, exitstatus={exitstatus}"
 
-    colormap = {"ABORTED": "white",
-                "FAILURE": "red",
-                "NOT_BUILT": "white",
-                "SUCCESS": "green",
-                "UNSTABLE": "yellow"}
+    colormap = {"ABORTED": "white", "FAILURE": "red", "NOT_BUILT": "white", "SUCCESS": "green", "UNSTABLE": "yellow"}
 
     markup = {colormap[status]: True, "bold": True}
 
@@ -861,7 +853,12 @@ def pytest_runtest_makereport(item, call):
     report = outcome.get_result()
 
     report.item_info = {}
-    report.item_info["atmcfg"] = {"project_key": pytest.project_key, "test_environment": pytest.test_environment, "test_plan_key": pytest.test_plan_key, "test_run_key": pytest.test_run_key}
+    report.item_info["atmcfg"] = {
+        "project_key": pytest.project_key,
+        "test_environment": pytest.test_environment,
+        "test_plan_key": pytest.test_plan_key,
+        "test_run_key": pytest.test_run_key
+    }
     report.item_info["nodeid"] = get_item_nodeid(item)
     report.item_info["docstr"] = inspect.cleandoc(item.obj.__doc__ or "")
 
@@ -882,12 +879,18 @@ def pytest_runtest_makereport(item, call):
     # if method was blocked dynamically (during call) an appropriate marker is used
     # to handle the reporting in the same way as for statically blocked methods
     # (status will be reported as "Blocked" with given comment in Adaptavist)
-    if not skip_status and ((call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)) or (not call.excinfo and pytest.test_result_data[item.fullname].get("blocked", None) is True)):
-        reason = pytest.test_result_data[item.fullname].get("comment", None) or (str(call.excinfo.value).partition("\n")[0] if call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception) else None)
-        skip_status = pytest.mark.block(reason=reason) if ((call.excinfo and call.excinfo.type is pytest.block.Exception) or pytest.test_result_data[item.fullname].get("blocked", None) is True) else pytest.mark.skip(reason=reason)
+    if not skip_status and ((call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)) or
+                            (not call.excinfo and pytest.test_result_data[item.fullname].get("blocked", None) is True)):
+        reason = pytest.test_result_data[item.fullname].get("comment", None) or (str(
+            call.excinfo.value).partition("\n")[0] if call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception) else None)
+        skip_status = pytest.mark.block(reason=reason) if ((call.excinfo and call.excinfo.type is pytest.block.Exception)
+                                                           or pytest.test_result_data[item.fullname].get("blocked", None) is True) else pytest.mark.skip(
+                                                               reason=reason)
         if report.outcome != "skipped":
             report.outcome = "skipped"  # to mark this as SKIPPED in pytest reports
-            report.longrepr = (__file__, getattr(sys, "_getframe")().f_lineno if hasattr(sys, "_getframe") else None, f"Skipped: {reason or 'blocked dynamically or partially'}")
+            report.longrepr = (__file__,
+                               getattr(sys, "_getframe")().f_lineno if hasattr(sys, "_getframe") else None,
+                               f"Skipped: {reason or 'blocked dynamically or partially'}")
 
     # report exceptions
     if call.excinfo:
@@ -896,7 +899,8 @@ def pytest_runtest_makereport(item, call):
         if exc_info and exc_info not in (pytest.test_result_data[item.fullname].get("comment", None) or ""):
 
             if (call.excinfo.type is not pytest.skip.Exception) and not skip_status:
-                pytest.test_result_data[item.fullname]["comment"] = "".join((pytest.test_result_data[item.fullname].get("comment", None) or "", html_row(False, exc_info)))
+                pytest.test_result_data[item.fullname]["comment"] = "".join(
+                    (pytest.test_result_data[item.fullname].get("comment", None) or "", html_row(False, exc_info)))
 
     # handling failed assumptions
     handle_failed_assumptions(item, call, report)
@@ -940,9 +944,9 @@ def meta_block(request):
             pytest.assume(...)
         ```
     """
+
     def get_meta_block(step=None, timeout=META_BLOCK_TIMEOUT):
         """Return a meta block context to process single test blocks/steps."""
         return MetaBlock(request, timeout=timeout, step=step)
 
     return get_meta_block
-

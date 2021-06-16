@@ -249,7 +249,7 @@ Having any test cases or steps that have been aborted or not executed marked as 
 
 #### Using markers
 
-Methods to skip or block test cases (methods) statically are provided by the markers ```pytest.mark.skip``` (part of pytest module) and 
+Methods to skip or block test cases (methods) statically are provided by the markers ```pytest.mark.skip``` (part of pytest module) and
 ```pytest.mark.block``` (defined in pytest-adaptavist):
    ```python
     class TestClass(object):
@@ -289,7 +289,7 @@ Methods to skip or block test cases (or steps) dynamically, e.g. depending on so
 
 #### Using pytest methods
 
-Another methods to skip or block test cases (or steps) dynamically, e.g. depending on some condition, are ```pytest.skip``` (part of pytest module) and 
+Another methods to skip or block test cases (or steps) dynamically, e.g. depending on some condition, are ```pytest.skip``` (part of pytest module) and
 ```pytest.block``` (defined in pytest-adaptavist):
    ```python
     def my_internal_function_1(...):

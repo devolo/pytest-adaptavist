@@ -1,8 +1,10 @@
-import pytest
-from datetime import datetime
 import signal
+from datetime import datetime
 
-from .helpers import build_exception_info, build_terminal_report, get_item_name_and_spec, get_marker, html_row, get_item_nodeid, assume, create_report
+import pytest
+
+from .helpers import assume, build_exception_info, build_terminal_report, create_report, get_item_name_and_spec, get_item_nodeid, get_marker, html_row
+
 
 class MetaBlockAborted(Exception):
     """Internal exception used to abort meta block execution."""
@@ -45,7 +47,8 @@ class MetaBlock:
 
     def __enter__(self):
         if self.step:
-            build_terminal_report(when="setup", item=self.item, step=self.step, level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)')
+            build_terminal_report(when="setup", item=self.item, step=self.step,
+                                  level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)')
         self.start = datetime.now().timestamp()
         signal.signal(signal.SIGALRM, self._timeout_handler)
         signal.alarm(self.timeout)
@@ -62,9 +65,12 @@ class MetaBlock:
         # if method was blocked dynamically (during call) an appropriate marker is used
         # to handle the reporting in the same way as for statically blocked methods
         # (status will be reported as "Blocked" with given comment in Adaptavist)
-        if not skip_status and ((exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception)) or (exc_type in (None, MetaBlockAborted) and self.data.get("blocked", None) is True)):
-            reason = self.data.get("comment", None) or (str(exc_value).partition("\n")[0] if exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception) else None)
-            skip_status = pytest.mark.block(reason=reason) if ((exc_type and exc_type is pytest.block.Exception) or self.data.get("blocked", None) is True) else pytest.mark.skip(reason=reason)
+        if not skip_status and ((exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception)) or
+                                (exc_type in (None, MetaBlockAborted) and self.data.get("blocked", None) is True)):
+            reason = self.data.get(
+                "comment", None) or (str(exc_value).partition("\n")[0] if exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception) else None)
+            skip_status = pytest.mark.block(reason=reason) if ((exc_type and exc_type is pytest.block.Exception)
+                                                               or self.data.get("blocked", None) is True) else pytest.mark.skip(reason=reason)
 
         # report exceptions
         if exc_type and exc_type is not MetaBlockAborted:
@@ -75,14 +81,18 @@ class MetaBlock:
                     self.data["comment"] = "".join((self.data.get("comment", None) or "", html_row(False, exc_info)))
 
         passed = not exc_type and (len(getattr(pytest, "_failed_assumptions", [])) <= len(self.failed_assumptions))
-        status = ("passed" if passed else "failed") if not skip_status else ("blocked" if (skip_status.name == "block" or self.data.get("blocked", None)) else "skipped")
+        status = ("passed" if passed else "failed") if not skip_status else ("blocked" if
+                                                                             (skip_status.name == "block" or self.data.get("blocked", None)) else "skipped")
 
         # custom item callback
-        prefix = getattr(self.item.config, "workerinput", {}).get("workerid", None) if getattr(self.item.config, "workerinput", {}).get("options", {}).get("dist", None) == "each" else None
-        getattr(self.item, "meta_block_cb", lambda **kwargs : None)(signature="_".join(filter(None, (prefix, self.item.name, str(self.step) if self.step else "x"))), status=status)
+        prefix = getattr(self.item.config, "workerinput", {}).get("workerid", None) if getattr(self.item.config, "workerinput", {}).get("options", {}).get(
+            "dist", None) == "each" else None
+        getattr(self.item, "meta_block_cb",
+                lambda **kwargs: None)(signature="_".join(filter(None, (prefix, self.item.name, str(self.step) if self.step else "x"))), status=status)
 
         if self.step:
-            build_terminal_report(when="call", item=self.item, status=status, step=self.step, level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)'))
+            build_terminal_report(when="call", item=self.item, status=status, step=self.step,
+                                  level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)'))
 
         # adjust parent's test result status if necessary (needed for makereport call later)
         if pytest.test_result_data[self.item.fullname].get("blocked", None) is True:
@@ -156,12 +166,13 @@ class MetaBlock:
             self.data["description"] = "<br>".join((self.data.get("description", None) or "", description))
 
         # custom item callback
-        prefix = getattr(self.item.config, "workerinput", {}).get("workerid", None) if getattr(self.item.config, "workerinput", {}).get("options", {}).get("dist", None) == "each" else None
+        prefix = getattr(self.item.config, "workerinput", {}).get("workerid", None) if getattr(self.item.config, "workerinput", {}).get("options", {}).get(
+            "dist", None) == "each" else None
         self.__dict__["numchecks"] = self.__dict__.get("numchecks", 0) + 1
-        getattr(self.item, "meta_block_condition_cb", lambda **kwargs : None)(
-            signature="_".join(filter(None, (prefix, self.item.name, str(self.step) if self.step else "x", str(self.__dict__["numchecks"])))),
-            condition=condition,
-            reference=message_on_pass if condition else message_on_fail)
+        getattr(self.item, "meta_block_condition_cb", lambda **kwargs: None)(signature="_".join(
+            filter(None, (prefix, self.item.name, str(self.step) if self.step else "x", str(self.__dict__["numchecks"])))),
+                                                                             condition=condition,
+                                                                             reference=message_on_pass if condition else message_on_fail)
 
         if condition:
             return
@@ -205,4 +216,3 @@ class MetaBlock:
         else:
             # CONTINUE: try to collect failed assumption, set result to 'Fail' and continue
             assume(expr=condition, msg=message_on_fail, level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of mb.check)
-

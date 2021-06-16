@@ -1,8 +1,10 @@
 import inspect
-import pytest
-import re
 import os
+import re
 from datetime import datetime
+
+import pytest
+
 
 def assume(expr, msg=None, level=1):
     """Assume expression.
@@ -57,7 +59,7 @@ def build_exception_info(item_name, exc_type, exc_value, traceback):
             exc_info = str(exc_value).partition("\n")[0]
         else:
             exc_dict = {"path": os.path.relpath(traceback.tb_frame.f_code.co_filename), "line": traceback.tb_lineno, "info": str(exc_value).partition("\n")[0]}
-            exc_info = exc_dict["info"] + " (" + exc_dict["path"] + ", line " + str(exc_dict["line"]) + ")"
+            exc_info = f'{exc_dict["info"]} ({exc_dict["path"]}, line {exc_dict["line"]} )'
 
         # avoid reporting this exception a second time
         pytest.item_status_info[item_name]["exc_info"] = (exc_type, exc_value, traceback)
@@ -132,10 +134,10 @@ def calc_test_result_status(step_results):
     # map representing status as binary/hex number to be used with & operator
     status_map = {
         "Not Executed": 0xB,  # 1011
-        "Pass": 0x7,          # 0111
-        "In Progress": 0x3,   # 0011
-        "Blocked": 0x1,       # 0001
-        "Fail": 0x0           # 0000
+        "Pass": 0x7,  # 0111
+        "In Progress": 0x3,  # 0011
+        "Blocked": 0x1,  # 0001
+        "Fail": 0x0  # 0000
     }
     if not step_results:
         return "Not Executed"
@@ -167,10 +169,7 @@ def create_report(test_case_key, test_step_key, execute_time, skip_status, passe
         if not test_result or pytest.test_refresh_info[test_case_key + (specs or "")] != test_run_key:
             # create new test result to prevent accumulation of data
             # when using an existing test run key multiple times
-            adaptavist.create_test_result(test_run_key=test_run_key,
-                                          test_case_key=test_case_key,
-                                          environment=pytest.test_environment,
-                                          status=None)
+            adaptavist.create_test_result(test_run_key=test_run_key, test_case_key=test_case_key, environment=pytest.test_environment, status=None)
 
             # refetch result
             test_result = adaptavist.get_test_result(test_run_key, test_case_key)
@@ -183,11 +182,11 @@ def create_report(test_case_key, test_step_key, execute_time, skip_status, passe
                 pytest.test_refresh_info[key] = pytest.test_run_key
 
         # get optional meta data (comments, attachments) of test case method
-        comment = skip_status.kwargs.get("reason", None) if skip_status else test_result_data.get("comment", None)
-        description = None if skip_status else test_result_data.get("description", None)
-        attachment = None if skip_status else test_result_data.get("attachment", None)
+        comment = skip_status.kwargs.get("reason") if skip_status else test_result_data.get("comment")
+        description = None if skip_status else test_result_data.get("description")
+        attachment = None if skip_status else test_result_data.get("attachment")
 
-        header = "---------------------------------------- " + datetime.now().strftime("%Y%m%d%H%M") + " ----------------------------------------" if specs else ""
+        header = f"---------------------------------------- {datetime.now().strftime('%Y%m%d%H%M')} ----------------------------------------" if specs else ""
 
         if not skip_status and not test_step_key:
             # update test case with CI related info
@@ -206,7 +205,8 @@ def create_report(test_case_key, test_step_key, execute_time, skip_status, passe
             else:
                 status = "Pass" if passed and last_result.get("status", None) != "Fail" else "Fail"
 
-            comments = ((header + "<br>" + "parameterization " + (specs or "") + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + ((description + "<br>") if description else "") + (last_result.get("comment", "") if specs else "")
+            comments = ((header + "<br>" + "parameterization " + (specs or "") + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
+                (description + "<br>") if description else "") + (last_result.get("comment", "") if specs else "")
 
             result_id = adaptavist.edit_test_script_status(test_run_key=test_run_key,
                                                            test_case_key=test_case_key,
@@ -228,7 +228,8 @@ def create_report(test_case_key, test_step_key, execute_time, skip_status, passe
             comments = None
             if skip_status:
                 # modify comment to add info about blocked or skipped script steps
-                comments = ("step {0} {1}:".format(test_step_key, "blocked" if skip_status.name == "block" else "skipped") + (("<br>" + comment + "<br>") if comment else ""))
+                comments = ("step {0} {1}:".format(test_step_key, "blocked" if skip_status.name == "block" else "skipped") +
+                            (("<br>" + comment + "<br>") if comment else ""))
             elif not passed:
                 # modify comment to add info about failure in script steps
                 comments = ("step {0} failed:".format(test_step_key) + (("<br>" + comment + "<br>") if comment else ""))
@@ -240,7 +241,8 @@ def create_report(test_case_key, test_step_key, execute_time, skip_status, passe
                                                test_case_key=test_case_key,
                                                environment=pytest.test_environment,
                                                status=status,
-                                               comment=(test_result.get("comment", "") + (comments or "")) if index < 0 else (test_result.get("comment", "")[:index] + (comments or "") + test_result.get("comment", "")[index:]),
+                                               comment=(test_result.get("comment", "") + (comments or "")) if index < 0 else
+                                               (test_result.get("comment", "")[:index] + (comments or "") + test_result.get("comment", "")[index:]),
                                                execute_time=execute_time)
 
         else:
@@ -256,7 +258,8 @@ def create_report(test_case_key, test_step_key, execute_time, skip_status, passe
             elif status == "Not Executed":
                 status = "Pass" if passed else "Fail"
 
-            comments = ((header + "<br>" + "parameterization " + (specs or "") + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + ((description + "<br>") if description else "") + test_result.get("comment", "")
+            comments = ((header + "<br>" + "parameterization " + (specs or "") + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
+                (description + "<br>") if description else "") + test_result.get("comment", "")
 
             result_id = adaptavist.edit_test_result_status(test_run_key=test_run_key,
                                                            test_case_key=test_case_key,
@@ -266,10 +269,7 @@ def create_report(test_case_key, test_step_key, execute_time, skip_status, passe
                                                            execute_time=execute_time)
 
             if attachment:
-                adaptavist.add_test_result_attachment(test_result_id=result_id,
-                                                      attachment=attachment,
-                                                      filename=test_result_data.get("filename", None))
-
+                adaptavist.add_test_result_attachment(test_result_id=result_id, attachment=attachment, filename=test_result_data.get("filename", None))
 
 
 def get_item_name_and_spec(nodeid):
@@ -293,10 +293,20 @@ def get_marker(item, name):
 
 def get_status_color(status):
     """Return (markup) color for test result status."""
-    colormap = {"passed": {"green": True, "bold": True},
-                "failed": {"red": True, "bold": True},
-                "blocked": {"blue": True, "bold": True},
-                "skipped": {"yellow": True, "bold": True}}
+    colormap = {
+        "passed": {
+            "green": True, "bold": True
+        },
+        "failed": {
+            "red": True, "bold": True
+        },
+        "blocked": {
+            "blue": True, "bold": True
+        },
+        "skipped": {
+            "yellow": True, "bold": True
+        }
+    }
 
     return colormap.get(status, {})
 
@@ -304,6 +314,7 @@ def get_status_color(status):
 def html_row(condition, message):
     """Generate an html status row to be displayed in test case results."""
     return f"<div style='padding: 2pt'><span style='width: auto; margin-right: 4pt; padding: 2pt; border-radius: 4px; background-color: {'rgb(58, 187, 75)' if condition else 'rgb(223, 47, 54)'}; color: white; font-family: monospace; font-size: 10pt; font-weight: bold;'>{'PASS' if condition else 'FAIL'}</span>{message}</div>" if message else None
+
 
 def import_module(module_name):
     """Import and return module if existing."""
