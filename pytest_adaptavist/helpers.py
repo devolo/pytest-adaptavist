@@ -13,39 +13,41 @@ def assume(expr, msg=None, level=1):
         :param msg: The message in the case of failure.
         :param level: The stack trace level (1 = the caller's level, 2 = the caller's caller level, 3 = ...).
     """
-    if not expr:
-        entry = None
+    if expr:
+        return
+
+    entry = None
+    pretty_locals = None
+
+    (frame, filename, line, _, contextlist) = inspect.stack()[max(1, level)][0:5]
+    # get filename, line, and context
+    path = os.path.relpath(filename)
+    context = msg or contextlist[0].lstrip()
+    if path and line and context:
+        entry = u"{path}:{line}: AssumptionFailure\n\t{context}".format(**locals())
+
+    if getattr(pytest, "_showlocals", False):
+        try:
+            from py.io import saferepr
+        except ImportError:
+            saferepr = repr
+
+        # Debatable whether we should display locals for
+        # every failed assertion, or just the final one.
+        # I'm defaulting to per-assumption, just because vars
+        # can easily change between assumptions.
+        pretty_locals = ["%-10s = %s" % (name, saferepr(val)) for name, val in frame.f_locals.items()]
+        getattr(pytest, "_assumption_locals", []).append(pretty_locals)
+
+    # the following lines are necessary to support both 1.x and 2.x versions of pytest-assume
+    pytest_assume = import_module("pytest_assume")
+    if pytest_assume and hasattr(pytest_assume, "plugin") and hasattr(pytest_assume.plugin, "Assumption"):
         exc_tb = None
-        pretty_locals = None
-
-        (frame, filename, line, _, contextlist) = inspect.stack()[max(1, level)][0:5]
-        # get filename, line, and context
-        path = os.path.relpath(filename)
-        context = msg or contextlist[0].lstrip()
-        if path and line and context:
-            entry = u"{path}:{line}: AssumptionFailure\n\t{context}".format(**locals())
-
-        if getattr(pytest, "_showlocals", False):
-            try:
-                from py.io import saferepr
-            except ImportError:
-                saferepr = repr
-
-            # Debatable whether we should display locals for
-            # every failed assertion, or just the final one.
-            # I'm defaulting to per-assumption, just because vars
-            # can easily change between assumptions.
-            pretty_locals = ["%-10s = %s" % (name, saferepr(val)) for name, val in frame.f_locals.items()]
-            getattr(pytest, "_assumption_locals", []).append(pretty_locals)
-
-        # the following lines are necessary to support both 1.x and 2.x versions of pytest-assume
-        pytest_assume = import_module("pytest_assume")
-        if pytest_assume and hasattr(pytest_assume, "plugin") and hasattr(pytest_assume.plugin, "Assumption"):
-            # 2.x
-            getattr(pytest, "_failed_assumptions", []).append(pytest_assume.plugin.Assumption(entry, exc_tb, pretty_locals))
-        else:
-            # 1.x
-            getattr(pytest, "_failed_assumptions", []).append(entry)
+        # 2.x
+        getattr(pytest, "_failed_assumptions", []).append(pytest_assume.plugin.Assumption(entry, exc_tb, pretty_locals))
+    else:
+        # 1.x
+        getattr(pytest, "_failed_assumptions", []).append(entry)
 
 
 def build_exception_info(item_name, exc_type, exc_value, traceback):
