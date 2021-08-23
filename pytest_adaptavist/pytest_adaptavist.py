@@ -1,77 +1,32 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """This module provides a set of pytest hooks for generating Adaptavist test run results from test reports."""
 
 import inspect
 import logging
 import os
 import re
+import shutil
+import subprocess
 import sys
+import time
 from contextlib import suppress
-from datetime import datetime
 
 import pytest
 from _pytest.terminal import TerminalReporter
-from adaptavist import Adaptavist
 from adaptavist._helper import get_executor
 
-from .helpers import (assume,
-                      build_exception_info,
-                      build_terminal_report,
-                      create_report,
-                      get_item_name_and_spec,
-                      get_item_nodeid,
-                      get_marker,
-                      get_status_color,
-                      html_row,
-                      import_module)
+from . import META_BLOCK_TIMEOUT
+from ._atm_configuration import ATMConfiguration, atm_configure, atm_user_is_valid
+from ._helpers import (assume,
+                       build_exception_info,
+                       build_terminal_report,
+                       create_report,
+                       get_item_name_and_spec,
+                       get_item_nodeid,
+                       get_marker,
+                       get_status_color,
+                       html_row,
+                       import_module)
 from .metablock import MetaBlock
-
-# const to change the default timeout for meta_blocks
-META_BLOCK_TIMEOUT = 600
-
-
-class ATMConfiguration:
-    """Configuration class to read config parameters (either from env or from "global_config.json")."""
-
-    def __init__(self):
-        """Constructor."""
-        try:
-            import jstyleson as json
-        except ImportError:
-            import json
-
-        self.config = {}
-        config_file_name = os.path.join("config", "global_config.json")
-        if os.path.exists(os.path.abspath(config_file_name)):
-            with open(config_file_name, "r") as config_file:
-                try:
-                    self.config.update(json.load(config_file))
-                except Exception as ex:
-                    raise ValueError("Failed to load config from file \"{0}\"!".format(config_file), ex) from ex
-
-    def get(self, key, default=None):
-        """Get value either from environment or from config file."""
-
-        if key.lower().startswith("cfg_"):
-            return self.config.get(key, None) or default
-        return os.environ.get(key) or os.environ.get(key.upper()) or self.config.get("cfg_" + key, None) or self.config.get(key, None) or default
-
-    def get_bool(self, key, default=None):
-        """Get boolean value either from environment or from config file."""
-
-        result = self.get(key=key, default=default)
-
-        if isinstance(result, bool) or result is None:
-            return result
-
-        if result.lower() in ["true", "1", "yes"]:
-            return True
-
-        if result.lower() in ["false", "0", "no"]:
-            return False
-
-        raise ValueError(f"Invalid bool result: {result}")
 
 
 class ATMTerminalReporter(TerminalReporter):
@@ -97,20 +52,20 @@ class ATMTerminalReporter(TerminalReporter):
 
         item_info = getattr(report, "item_info", {})
 
-        worker_node_suffix = f" [{' -> '.join(filter(None, (report.node.gateway.id, item_info['atmcfg'].get('test_environment', None))))}]" if getattr(
+        worker_node_suffix = f" [{' -> '.join(filter(None, (report.node.gateway.id, item_info['atmcfg'].get('test_environment'))))}]" if getattr(
             self.config.option, "dist", None) == "each" and getattr(report, "node") else ""
 
-        if item_info.get("atmcfg", None):
-            pytest.project_key = item_info["atmcfg"].get("project_key", None)
-            pytest.test_plan_key = item_info["atmcfg"].get("test_plan_key", None)
-            pytest.test_run_key = item_info["atmcfg"].get("test_run_key", None)
+        if item_info.get("atmcfg"):
+            pytest.project_key = item_info["atmcfg"].get("project_key")
+            pytest.test_plan_key = item_info["atmcfg"].get("test_plan_key")
+            pytest.test_run_key = item_info["atmcfg"].get("test_run_key")
             if not hasattr(pytest, "test_run_keys"):
                 pytest.test_run_keys = []
             if pytest.test_run_key and pytest.test_run_key not in pytest.test_run_keys:
                 pytest.test_run_keys.append(pytest.test_run_key)
 
         if item_info.get("report", {}):
-            pytest.report.update({(item_info.get("nodeid", None) or "") + worker_node_suffix: item_info.get("report", {})})
+            pytest.report.update({item_info.get("nodeid", "") + worker_node_suffix: item_info.get("report", {})})
 
         if not getattr(self.config.option, "pretty", False):
             super().pytest_runtest_logreport(report=report)
@@ -191,16 +146,12 @@ def patch_terminal_size(config):
             default_width = 152
             default_height = 24
 
-        import shutil
         width, _ = shutil.get_terminal_size((default_width, default_height))
         tw.fullwidth = width
 
 
 def get_code_base_url():
     """Get current code base url."""
-
-    import subprocess
-
     code_base = None
     with suppress(subprocess.CalledProcessError):
         code_base = subprocess.check_output("git config --get remote.origin.url".split()).decode("utf-8").strip()
@@ -251,8 +202,8 @@ def setup_item_collection(items, collected_project_keys, collected_items):
                 if marker is not None:
                     project_key = marker.kwargs["project_key"]
 
-                if not project_key:
-                    project_key = pytest.project_key or "TEST"
+            if not project_key:
+                project_key = pytest.project_key or "TEST"
 
             if project_key not in collected_project_keys:
                 collected_project_keys.append(project_key)
@@ -264,14 +215,9 @@ def setup_item_collection(items, collected_project_keys, collected_items):
             # mark this item with appropriate info (easier to read from when creating test results)
             item.add_marker(pytest.mark.testcase(project_key=project_key, test_case_key=project_key + "-" + test_case_key, test_step_key=test_step_key))
 
-            if test_case_keys:
-                # only add specified test cases (to be included in the report)
-                if (project_key + "-" + test_case_key) not in test_case_keys:
-                    item.add_marker(pytest.mark.skip(reason="skipped as requested"))
-                else:
-                    collected_items.setdefault(project_key + "-" + test_case_key, []).append(item)
+            if (test_case_keys and (project_key + "-" + test_case_key) not in test_case_keys):
+                item.add_marker(pytest.mark.skip(reason="skipped as requested"))
             else:
-                # if no specific test cases are given add any test case found (to be included in the report)
                 collected_items.setdefault(project_key + "-" + test_case_key, []).append(item)
         elif pytest.skip_ntc_methods:
             # skip methods that are no test case methods
@@ -401,8 +347,6 @@ def setup_report(worker_input):
                         pytest.test_refresh_info[key] = pytest.test_run_key
 
             elif worker_input and (worker_input.get("workerid", "gw0") not in [None, "gw0"]):
-                import time
-
                 # let other workers (if any) wait until test run is available
                 found = {}
                 while not found:
@@ -518,62 +462,6 @@ def handle_failed_assumptions(item, call, report):
     del getattr(pytest, "_assumption_locals", [])[:]
 
 
-def atm_user_is_valid(user):
-    """Check if user is known to Adaptavist/Jira."""
-
-    cfg = ATMConfiguration()
-
-    return user in Adaptavist(cfg.get("jira_server", ""), cfg.get("jira_username", ""), cfg.get("jira_password", "")).get_users()
-
-
-def atm_configure(config):
-    """Setup adaptavist reporting based on given requirements (config)."""
-
-    cfg = ATMConfiguration()
-
-    if not getattr(pytest, "adaptavist", None):
-        pytest.adaptavist = Adaptavist(cfg.get("jira_server", ""), cfg.get("jira_username", ""), cfg.get("jira_password", ""))
-    if not getattr(pytest, "project_key", None):
-        pytest.project_key = cfg.get("project_key", None)
-
-    # support of multiple environments
-    # in case of using xdist's "each" mode, a test run for each specified environment is created
-    # and test_environment can be used (when given as a list or comma-separated string) to specify keys for each test run resp. worker node
-    worker_input = getattr(config, "workerinput", {})
-    distribution = worker_input.get("options", {}).get("dist", None)
-    index = int(worker_input.get("workerid", "gw0").split("gw")[1]) if (distribution == "each") else 0
-
-    entry = getattr(pytest, "test_environment", []) or cfg.get("test_environment", []) or []
-    test_environments = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
-    pytest.test_environment = test_environments[index if index < len(test_environments) else -1] if test_environments else None
-
-    entry = getattr(pytest, "test_case_keys", []) or cfg.get("test_case_keys", []) or []
-    pytest.test_case_keys = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
-
-    entry = getattr(pytest, "test_case_order", []) or cfg.get("test_case_order", []) or []
-    pytest.test_case_order = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
-
-    entry = getattr(pytest, "test_case_range", []) or cfg.get("test_case_range", []) or []
-    pytest.test_case_range = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
-
-    if not getattr(pytest, "test_plan_key", None):
-        pytest.test_plan_key = cfg.get("test_plan_key", None)
-    if not getattr(pytest, "test_plan_folder", None):
-        pytest.test_plan_folder = cfg.get("test_plan_folder", None)
-    if not getattr(pytest, "test_plan_suffix", None):
-        pytest.test_plan_suffix = cfg.get("test_plan_suffix", None)
-    if not getattr(pytest, "test_run_key", None):
-        pytest.test_run_key = cfg.get("test_run_key", None)
-    if not getattr(pytest, "test_run_folder", None):
-        pytest.test_run_folder = cfg.get("test_run_folder", None)
-    if not getattr(pytest, "test_run_suffix", None):
-        pytest.test_run_suffix = cfg.get("test_run_suffix", "test run " + datetime.now().strftime("%Y%m%d%H%M"))
-    if getattr(pytest, "skip_ntc_methods", None) is None:
-        pytest.skip_ntc_methods = cfg.get_bool("skip_ntc_methods", False)
-
-    return True
-
-
 class Blocked(pytest.skip.Exception):  # pylint: disable=too-few-public-methods
     """Block exception used to abort test execution and set result status to "Blocked"."""
 
@@ -625,14 +513,14 @@ def pytest_configure(config):
     pytest.block = block
 
     # Store metadata for later usage (e.g. adaptavist traceability).
-    metadata = getattr(config, "_metadata", {}) or os.environ
+    metadata = getattr(config, "_metadata", os.environ)
 
     build_usr = get_executor()
-    build_url = metadata.get("BUILD_URL", None)
-    jenkins_url = metadata.get("JENKINS_URL", None)
-    code_base = metadata.get("GIT_URL", None) or get_code_base_url()
-    branch = metadata.get("GIT_BRANCH", None)
-    commit = metadata.get("GIT_COMMIT", None)
+    build_url = metadata.get("BUILD_URL")
+    jenkins_url = metadata.get("JENKINS_URL")
+    code_base = metadata.get("GIT_URL", get_code_base_url())
+    branch = metadata.get("GIT_BRANCH")
+    commit = metadata.get("GIT_COMMIT")
 
     pytest.build_url = "/".join(build_url.split("/")[:5]) if build_url and jenkins_url and build_url.startswith(jenkins_url) else build_url
     pytest.code_base = code_base.replace(":", "/").replace(".git", "").replace("git@", "https://") if code_base and code_base.startswith("git@") else code_base
@@ -686,7 +574,6 @@ def pytest_configure(config):
 
 
 if import_module("xdist"):
-
     @pytest.hookimpl(trylast=True)
     def pytest_configure_node(node):
         """This is called in case of using xdist to pass data to worker nodes."""
@@ -694,7 +581,7 @@ if import_module("xdist"):
 
 
 @pytest.hookimpl(trylast=True)
-def pytest_unconfigure(config):  # pylint: disable=unused-argument
+def pytest_unconfigure(config):
     """This is called before test process is exited."""
 
     if config.getoption("-h") or config.getoption("--help"):
@@ -717,9 +604,9 @@ def pytest_unconfigure(config):  # pylint: disable=unused-argument
         base_url = ATMConfiguration().get("jira_server", "")
         if base_url and getattr(pytest, "project_key", None) and getattr(pytest, "test_run_key", None):
             cycle_string = "%22%2C%20%22".join(pytest.test_run_keys) if getattr(pytest, "test_run_keys", None) else pytest.test_run_key or ""
-            traceability = f"{base_url}/secure/Tests.jspa#/reports/traceability/report/view?tql=testResult.projectKey%20IN%20%28%22{pytest.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TRACEABILITY_REPORT.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"
-            test_summary = f"{base_url}/secure/Tests.jspa#/reports/testresults/board/view?tql=testResult.projectKey%20IN%20%28%22{pytest.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_BOARD.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"
-            score_matrix = f"{base_url}/secure/Tests.jspa#/reports/testresults/scorecard/coverage/view?tql=testResult.projectKey%20IN%20%28%22{pytest.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_SCORECARD_BY_COVERAGE.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"
+            traceability = f"{base_url}/secure/Tests.jspa#/reports/traceability/report/view?tql=testResult.projectKey%20IN%20%28%22{pytest.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TRACEABILITY_REPORT.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"  # pylint: disable=line-too-long
+            test_summary = f"{base_url}/secure/Tests.jspa#/reports/testresults/board/view?tql=testResult.projectKey%20IN%20%28%22{pytest.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_BOARD.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"  # pylint: disable=line-too-long
+            score_matrix = f"{base_url}/secure/Tests.jspa#/reports/testresults/scorecard/coverage/view?tql=testResult.projectKey%20IN%20%28%22{pytest.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_SCORECARD_BY_COVERAGE.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"  # pylint: disable=line-too-long
 
         pytest.reporter.line("traceability:  %s" % traceability)
         pytest.reporter.line("test_summary:  %s" % test_summary)
@@ -739,7 +626,7 @@ def pytest_sessionfinish(session, exitstatus):
     exceptions_raised = 0
     high_prios_failed = 0
 
-    report = getattr(pytest, "report", {}) or {}
+    report = getattr(pytest, "report", {})
 
     not_built = True
     for key in report:
@@ -758,7 +645,9 @@ def pytest_sessionfinish(session, exitstatus):
     else:
         status = "SUCCESS"
 
-    line = f"final_status ({status}): {getattr(pytest, 'project_key', None)}, {getattr(pytest, 'test_plan_key', None)}, {', '.join(getattr(pytest, 'test_run_keys', []) or [str(getattr(pytest, 'test_run_key', None))])}, "
+    line = f"final_status ({status}): {getattr(pytest, 'project_key', None)}, "
+    line += f"{getattr(pytest, 'test_plan_key', None)}, "
+    line += f"{', '.join(getattr(pytest, 'test_run_keys', []) or [str(getattr(pytest, 'test_run_key', None))])}, "
     line += f"{high_prios_failed} high prio tc(s) failed, {exceptions_raised} exception(s) raised, exitstatus={exitstatus}"
 
     colormap = {"ABORTED": "white", "FAILURE": "red", "NOT_BUILT": "white", "SUCCESS": "green", "UNSTABLE": "yellow"}
@@ -842,13 +731,15 @@ def pytest_runtest_makereport(item, call):
 
     report = outcome.get_result()
 
-    report.item_info = {}
-    report.item_info["atmcfg"] = {
-        "project_key": pytest.project_key,
-        "test_environment": pytest.test_environment,
-        "test_plan_key": pytest.test_plan_key,
-        "test_run_key": pytest.test_run_key
+    report.item_info = {
+        "atmcfg": {
+            "project_key": pytest.project_key,
+            "test_environment": pytest.test_environment,
+            "test_plan_key": pytest.test_plan_key,
+            "test_run_key": pytest.test_run_key,
+        }
     }
+
     report.item_info["nodeid"] = get_item_nodeid(item)
     report.item_info["docstr"] = inspect.cleandoc(item.obj.__doc__ or "")
 
@@ -860,7 +751,12 @@ def pytest_runtest_makereport(item, call):
             setup_report(getattr(item.config, "workerinput", {}))
             report.item_info["atmcfg"] = {"project_key": pytest.project_key, "test_plan_key": pytest.test_plan_key, "test_run_key": pytest.test_run_key}
 
-        if not call.excinfo and not skip_status and not pytest.test_result_data[item.fullname].get("blocked", None) is True:
+        if (
+            not call.excinfo
+            and not skip_status
+            and pytest.test_result_data[item.fullname].get("blocked", None)
+            is not True
+        ):
             # no skipped or blocked methods to report
             return
     elif call.when != "call":
@@ -886,11 +782,18 @@ def pytest_runtest_makereport(item, call):
     if call.excinfo:
         exc_info = build_exception_info(item.fullname, call.excinfo.type, call.excinfo.value, getattr(call.excinfo.traceback[-1], "_rawentry"))
 
-        if exc_info and exc_info not in (pytest.test_result_data[item.fullname].get("comment", None) or ""):
-
-            if (call.excinfo.type is not pytest.skip.Exception) and not skip_status:
-                pytest.test_result_data[item.fullname]["comment"] = "".join(
-                    (pytest.test_result_data[item.fullname].get("comment", None) or "", html_row(False, exc_info)))
+        if (
+            exc_info
+            and exc_info
+            not in (
+                pytest.test_result_data[item.fullname].get("comment", None)
+                or ""
+            )
+            and (call.excinfo.type is not pytest.skip.Exception)
+            and not skip_status
+        ):
+            pytest.test_result_data[item.fullname]["comment"] = "".join(
+                (pytest.test_result_data[item.fullname].get("comment", None) or "", html_row(False, exc_info)))
 
     # handling failed assumptions
     handle_failed_assumptions(item, call, report)

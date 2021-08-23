@@ -1,9 +1,10 @@
 import signal
 from datetime import datetime
+from enum import IntEnum
 
 import pytest
 
-from .helpers import assume, build_exception_info, build_terminal_report, create_report, get_item_name_and_spec, get_item_nodeid, get_marker, html_row
+from ._helpers import assume, build_exception_info, build_terminal_report, create_report, get_item_name_and_spec, get_item_nodeid, get_marker, html_row
 
 
 class MetaBlockAborted(Exception):
@@ -13,7 +14,6 @@ class MetaBlockAborted(Exception):
 class MetaBlock:
     """Context Manager class used for processing/reporting single test blocks/steps."""
 
-    from enum import IntEnum
 
     class Action(IntEnum):
         """if condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')"""
@@ -76,17 +76,20 @@ class MetaBlock:
         if exc_type and exc_type is not MetaBlockAborted:
             exc_info = build_exception_info(self.item.fullname, exc_type, exc_value, traceback)
 
-            if exc_info and exc_info not in (self.data.get("comment", None) or ""):
-                if (exc_type is not pytest.skip.Exception) and not skip_status:
-                    self.data["comment"] = "".join((self.data.get("comment", None) or "", html_row(False, exc_info)))
+            if (
+                exc_info
+                and exc_info not in (self.data.get("comment") or "")
+                and (exc_type is not pytest.skip.Exception)
+                and not skip_status
+            ):
+                self.data["comment"] = "".join((self.data.get("comment", None) or "", html_row(False, exc_info)))
 
         passed = not exc_type and (len(getattr(pytest, "_failed_assumptions", [])) <= len(self.failed_assumptions))
         status = ("passed" if passed else "failed") if not skip_status else ("blocked" if
-                                                                             (skip_status.name == "block" or self.data.get("blocked", None)) else "skipped")
+                                                                             (skip_status.name == "block" or self.data.get("blocked")) else "skipped")
 
         # custom item callback
-        prefix = getattr(self.item.config, "workerinput", {}).get("workerid", None) if getattr(self.item.config, "workerinput", {}).get("options", {}).get(
-            "dist", None) == "each" else None
+        prefix = getattr(self.item.config, "workerinput", {}).get("workerid") if getattr(self.item.config, "workerinput", {}).get("options", {}).get("dist") == "each" else None
         getattr(self.item, "meta_block_cb",
                 lambda **kwargs: None)(signature="_".join(filter(None, (prefix, self.item.name, str(self.step) if self.step else "x"))), status=status)
 
@@ -98,9 +101,8 @@ class MetaBlock:
         if pytest.test_result_data[self.item.fullname].get("blocked", None) is True:
             if not passed and not skip_status:
                 pytest.test_result_data[self.item.fullname]["blocked"] = None
-        else:
-            if self.data.get("blocked", None) is True:
-                pytest.test_result_data[self.item.fullname]["blocked"] = True
+        elif self.data.get("blocked", None) is True:
+            pytest.test_result_data[self.item.fullname]["blocked"] = True
 
         if not getattr(self.item.config.option, "adaptavist", False):
             # adaptavist reporting disabled: no need to proceed here
@@ -145,11 +147,11 @@ class MetaBlock:
                     description: optional details about test results (f.e. can be a html table or more)
         """
 
-        attachment = kwargs.pop("attachment", None)
-        filename = kwargs.pop("filename", None)
-        description = kwargs.pop("description", None)
-        message_on_fail = kwargs.pop("message_on_fail", None) or message
-        message_on_pass = kwargs.pop("message_on_pass", None)
+        attachment = kwargs.pop("attachment")
+        filename = kwargs.pop("filename")
+        description = kwargs.pop("description")
+        message_on_fail = kwargs.pop("message_on_fail", message)
+        message_on_pass = kwargs.pop("message_on_pass")
 
         assert not kwargs, "Unknown arguments: %r" % kwargs
 
@@ -158,16 +160,15 @@ class MetaBlock:
             self.data["filename"] = filename
 
         if not condition and message_on_fail:
-            self.data["comment"] = "".join((self.data.get("comment", None) or "", html_row(condition, message_on_fail)))
+            self.data["comment"] = "".join((self.data.get("comment", ""), html_row(condition, message_on_fail)))
         elif condition and message_on_pass:
-            self.data["comment"] = "".join((self.data.get("comment", None) or "", html_row(condition, message_on_pass)))
+            self.data["comment"] = "".join((self.data.get("comment", ""), html_row(condition, message_on_pass)))
 
         if description:
-            self.data["description"] = "<br>".join((self.data.get("description", None) or "", description))
+            self.data["description"] = "<br>".join((self.data.get("description", ""), description))
 
         # custom item callback
-        prefix = getattr(self.item.config, "workerinput", {}).get("workerid", None) if getattr(self.item.config, "workerinput", {}).get("options", {}).get(
-            "dist", None) == "each" else None
+        prefix = getattr(self.item.config, "workerinput", {}).get("workerid") if getattr(self.item.config, "workerinput", {}).get("options", {}).get("dist") == "each" else None
         self.__dict__["numchecks"] = self.__dict__.get("numchecks", 0) + 1
         getattr(self.item, "meta_block_condition_cb", lambda **kwargs: None)(signature="_".join(
             filter(None, (prefix, self.item.name, str(self.step) if self.step else "x", str(self.__dict__["numchecks"])))),

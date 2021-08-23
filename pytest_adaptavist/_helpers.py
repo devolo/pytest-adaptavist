@@ -79,6 +79,9 @@ def build_terminal_report(when, item, status=None, step=None, level=1):
         :param level: The stack trace level (1 = the caller's level, 2 = the caller's caller level, 3 = ...).
     """
 
+    if not hasattr(pytest, "reporter"):
+        return
+
     # extract doc string from source
     (frame, _, line, _, _) = inspect.stack()[level][0:5]
     source_list = inspect.getsourcelines(frame)
@@ -86,7 +89,7 @@ def build_terminal_report(when, item, status=None, step=None, level=1):
     docs = re.findall(r"^[\s]*\"\"\"(.*?)\"\"\"", source_code, re.DOTALL | re.MULTILINE | re.IGNORECASE)
     doc_string = inspect.cleandoc(docs[0]) if docs else ""
 
-    if hasattr(pytest, "reporter") and getattr(item.config.option, "pretty", False):
+    if getattr(item.config.option, "pretty", False):
         if when == "setup":
             if not step:
                 title, specs = get_item_name_and_spec(get_item_nodeid(item) or "")
@@ -105,13 +108,11 @@ def build_terminal_report(when, item, status=None, step=None, level=1):
             if step and item.config.option.verbose > 1:
                 fill = getattr(pytest.reporter, "_tw").fullwidth - getattr(pytest.reporter, "_width_of_current_line") - 1
                 pytest.reporter.write_line(status.upper().rjust(fill), **get_status_color(status))
-    elif hasattr(pytest, "reporter"):
-        if when == "setup":
-            if step and item.config.option.verbose > 1:
-                pytest.reporter.line("")
-        if when == "call":
-            if step and item.config.option.verbose > 1:
-                pytest.reporter.line(get_item_nodeid(item) + " step " + str(step) + " " + status.upper())
+    else:
+        if when == "setup" and step and item.config.option.verbose > 1:
+            pytest.reporter.line("")
+        if when == "call" and step and item.config.option.verbose > 1:
+            pytest.reporter.line(get_item_nodeid(item) + " step " + str(step) + " " + status.upper())
 
 
 def calc_test_result_status(step_results):
