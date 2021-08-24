@@ -195,8 +195,8 @@ def create_report(test_case_key, test_step_key, execute_time, skip_status, passe
             # update test case with CI related info
             adaptavist.edit_test_case(test_case_key,
                                       labels=["automated"],
-                                      build_urls=[pytest.build_url if not pytest.build_url else f"<a href=\"{pytest.build_url}\">{pytest.build_url}</a>"],
-                                      code_bases=[pytest.code_base if not pytest.code_base else f"<a href=\"{pytest.code_base}\">{pytest.code_base}</a>"])
+                                      build_urls=[(pytest.build_url if not pytest.build_url else f"<a href=\"{pytest.build_url}\">{pytest.build_url}</a>") or ""],
+                                      code_bases=[(pytest.code_base if not pytest.code_base else f"<a href=\"{pytest.code_base}\">{pytest.code_base}</a>") or ""])
 
         if test_step_key:
 

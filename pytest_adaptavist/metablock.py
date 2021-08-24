@@ -147,11 +147,11 @@ class MetaBlock:
                     description: optional details about test results (f.e. can be a html table or more)
         """
 
-        attachment = kwargs.pop("attachment")
-        filename = kwargs.pop("filename")
-        description = kwargs.pop("description")
-        message_on_fail = kwargs.pop("message_on_fail", message)
-        message_on_pass = kwargs.pop("message_on_pass")
+        attachment = kwargs.pop("attachment", None)
+        filename = kwargs.pop("filename", None)
+        description = kwargs.pop("description", None)
+        message_on_fail = kwargs.pop("message_on_fail", None) or message
+        message_on_pass = kwargs.pop("message_on_pass", None)
 
         assert not kwargs, "Unknown arguments: %r" % kwargs
 
