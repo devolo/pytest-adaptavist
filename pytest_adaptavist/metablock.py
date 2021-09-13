@@ -1,12 +1,17 @@
 import signal
 from datetime import datetime
 from enum import IntEnum
+import inspect
+import re
 
 import pytest
 
-from ._helpers import assume, build_exception_info, build_terminal_report, create_report, get_item_name_and_spec, get_item_nodeid, get_marker, html_row
+from ._helpers import assume, get_item_name_and_spec, get_item_nodeid, get_marker, html_row
 
-
+COLORMAP = {"passed": {"green": True, "bold": True},
+            "failed": {"red": True, "bold": True},
+            "blocked": {"blue": True, "bold": True},
+            "skipped": {"yellow": True, "bold": True}}
 class MetaBlockAborted(Exception):
     """Internal exception used to abort meta block execution."""
 
@@ -39,7 +44,8 @@ class MetaBlock:
         self.start = datetime.now().timestamp()
         self.stop = datetime.now().timestamp()
         self.timeout = timeout
-        self.data = pytest.test_result_data.setdefault(self.item.fullname + ("_" + str(step) if step else ""), {"comment": None, "attachment": None})
+        self.adaptavist = request.config.pluginmanager.getplugin("adaptavist2")
+        self.data = self.adaptavist.test_result_data.setdefault(self.item.fullname + ("_" + str(step) if step else ""), {"comment": None, "attachment": None})
         self.failed_assumptions = getattr(pytest, "_failed_assumptions", [])[:]
 
     def _timeout_handler(self, signum, frame):
@@ -47,8 +53,7 @@ class MetaBlock:
 
     def __enter__(self):
         if self.step:
-            build_terminal_report(when="setup", item=self.item, step=self.step,
-                                  level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)')
+            build_terminal_report(when="setup", item=self.item, step=self.step, level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)')
         self.start = datetime.now().timestamp()
         signal.signal(signal.SIGALRM, self._timeout_handler)
         signal.alarm(self.timeout)
@@ -74,7 +79,7 @@ class MetaBlock:
 
         # report exceptions
         if exc_type and exc_type is not MetaBlockAborted:
-            exc_info = build_exception_info(self.item.fullname, exc_type, exc_value, traceback)
+            exc_info = self.adaptavist.build_exception_info(self.item.fullname, exc_type, exc_value, traceback)
 
             if (
                 exc_info
@@ -98,11 +103,11 @@ class MetaBlock:
                                   level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)'))
 
         # adjust parent's test result status if necessary (needed for makereport call later)
-        if pytest.test_result_data[self.item.fullname].get("blocked", None) is True:
+        if self.adaptavist.test_result_data[self.item.fullname].get("blocked", None) is True:
             if not passed and not skip_status:
-                pytest.test_result_data[self.item.fullname]["blocked"] = None
+                self.adaptavist.test_result_data[self.item.fullname]["blocked"] = None
         elif self.data.get("blocked", None) is True:
-            pytest.test_result_data[self.item.fullname]["blocked"] = True
+            self.adaptavist.test_result_data[self.item.fullname]["blocked"] = True
 
         if not getattr(self.item.config.option, "adaptavist", False):
             # adaptavist reporting disabled: no need to proceed here
@@ -121,7 +126,7 @@ class MetaBlock:
                 return exc_type is MetaBlockAborted  # suppress MetaBlockAborted exception
 
             _, specs = get_item_name_and_spec(get_item_nodeid(self.item))
-            create_report(test_case_key, self.step, self.stop - self.start, skip_status, passed, self.data, specs)
+            self.adaptavist.create_report(test_case_key, self.step, self.stop - self.start, skip_status, passed, self.data, specs)
 
         self.data["done"] = True  # tell pytest_runtest_makereport that this item has been processed already
 
@@ -193,20 +198,20 @@ class MetaBlock:
             # STOP_SESSION: skip execution of this block/test, set it to 'Blocked' and block following tests as well
             self.data["blocked"] = True
             seen = True
-            for item in pytest.items:
+            for item in self.adaptavist.items:
                 if not seen:
-                    pytest.test_result_data[item.fullname]["blocked"] = True
-                    pytest.test_result_data[item.fullname]["comment"] = "Blocked. {0} failed: {1}".format(self.item_name, message_on_fail)
+                    self.adaptavist.test_result_data[item.fullname]["blocked"] = True
+                    self.adaptavist.test_result_data[item.fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
                 if item.name == self.item.name:
                     seen = False
             pytest.skip(msg="Blocked. {0} failed: {1}".format(self.item_name, message_on_fail))
         elif action_on_fail == self.Action.FAIL_SESSION:
             # FAIL_SESSION: skip execution of this block/test, set it to 'Fail' and block following tests
             seen = True
-            for item in pytest.items:
+            for item in self.adaptavist.items:
                 if not seen:
-                    pytest.test_result_data[item.fullname]["blocked"] = True
-                    pytest.test_result_data[item.fullname]["comment"] = "Blocked. {0} failed: {1}".format(self.item_name, message_on_fail)
+                    self.adaptavist.test_result_data[item.fullname]["blocked"] = True
+                    self.adaptavist.test_result_data[item.fullname]["comment"] = "Blocked. {0} failed: {1}".format(self.item_name, message_on_fail)
                 if item.name == self.item.name:
                     seen = False
             assert condition, message_on_fail
@@ -217,3 +222,34 @@ class MetaBlock:
         else:
             # CONTINUE: try to collect failed assumption, set result to 'Fail' and continue
             assume(expr=condition, msg=message_on_fail, level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of mb.check)
+
+def build_terminal_report(when, item, status=None, step=None, level=1):
+    """Generate (pretty) terminal output.
+        :param when: The call info ("setup", "call").
+        :param item: The item to report.
+        :param status: The status ("passed", "failed", "skipped", "blocked").
+        :param item: The step index to report.
+        :param level: The stack trace level (1 = the caller's level, 2 = the caller's caller level, 3 = ...).
+    """
+
+    # extract doc string from source
+    (frame, _, line, _, _) = inspect.stack()[level][0:5]
+    source_list = inspect.getsourcelines(frame)
+    source_code = "".join(source_list[0][line - source_list[1]:])
+    docs = re.findall(r"^[\s]*\"\"\"(.*?)\"\"\"", source_code, re.DOTALL | re.MULTILINE | re.IGNORECASE)
+    doc_string = inspect.cleandoc(docs[0]) if docs else ""
+    reporter = item.config.pluginmanager.getplugin("terminalreporter") or None
+    
+    if reporter:
+        if when == "setup":
+            if step and item.config.option.verbose > 1:
+                reporter.write_sep("-", "Step " + str(step), bold=True)
+                reporter.write(doc_string + ("\n" if doc_string else ""))  # -s is needed!!
+        elif when == "call":
+            if not step:
+                reporter.write_sep("-", bold=True)
+                fill = getattr(reporter, "_tw").fullwidth - getattr(reporter, "_width_of_current_line") - 1
+                reporter.write_line(status.upper().rjust(fill), **COLORMAP.get(status))
+            if step and item.config.option.verbose > 1:
+                fill = getattr(reporter, "_tw").fullwidth - getattr(reporter, "_width_of_current_line") - 1
+                reporter.write_line(status.upper().rjust(fill), **COLORMAP.get(status))
