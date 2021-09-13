@@ -1,8 +1,11 @@
 import inspect
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import pytest
+from _pytest.nodes import Item
+from _pytest.reports import TestReport
+from _pytest.runner import CallInfo
 from adaptavist.const import STATUS_BLOCKED, STATUS_FAIL, STATUS_IN_PROGRESS, STATUS_NOT_EXECUTED, STATUS_PASS
 
 
@@ -85,13 +88,13 @@ def calc_test_result_status(step_results: List[Dict[str, str]]) -> str:
     return [k for k, v in status_map.items() if v == status][0]
 
 
-def get_item_name_and_spec(nodeid):
+def get_item_name_and_spec(nodeid: str) -> Tuple[str, Optional[str]]:
     """Split item nodeid into function name and - if existing - callspec res. parameterization."""
     tokens = nodeid.split("[", 1)
     return tokens[0].strip(), "[" + tokens[1].strip() if len(tokens) > 1 else None
 
 
-def get_item_nodeid(item):
+def get_item_nodeid(item: Item) -> str:
     """Build item node id."""
     # note: pytest's item.nodeid could be modified by third party, so build a local one here
     if item.location and len(item.location) > 2:
@@ -99,7 +102,7 @@ def get_item_nodeid(item):
     return item.fspath.relto(item.config.rootdir).replace("\\", "/") + "::" + item.getmodpath().replace(".", "::")
 
 
-def get_marker(item, name):
+def get_marker(item: Item, name: str):
     """Get item marker (wrapper for supporting older and newer pytest versions)."""
     return (getattr(item, "get_closest_marker", None) or getattr(item, "get_marker", None))(name)
 
@@ -161,7 +164,7 @@ def apply_test_case_range(collected_items, test_case_range):
 
     return collected_items
 
-def handle_failed_assumptions(item, call, report):
+def handle_failed_assumptions(item: Item, call: CallInfo, report: TestReport):
     """Handle failed assumptions (simulating pytest-assume, if not available)."""
 
     if hasattr(pytest, "assume") and pytest.assume is not assume:

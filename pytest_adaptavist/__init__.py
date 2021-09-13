@@ -5,11 +5,13 @@ import os
 import subprocess
 from contextlib import suppress
 from importlib.metadata import PackageNotFoundError, version
-from typing import Optional
+from typing import Callable, Optional
+from _pytest.nodes import Node
 
 import pytest
 from _pytest.config import Config
 from _pytest.config.argparsing import Parser
+from _pytest.fixtures import FixtureRequest
 
 from ._atm_configuration import atm_user_is_valid
 from ._helpers import assume, import_module
@@ -141,18 +143,18 @@ def pytest_addoption(parser: Parser):
 
 if import_module("xdist"):
     @pytest.hookimpl(trylast=True)
-    def pytest_configure_node(node):
+    def pytest_configure_node(node: Node):
         """This is called in case of using xdist to pass data to worker nodes."""
         node.workerinput["options"] = {"dist": node.config.option.dist, "numprocesses": node.config.option.numprocesses}
 
 @pytest.fixture(scope="function")
-def meta_data(request):
+def meta_data(request: FixtureRequest):
     """This can be used to store data inside of test methods."""
     return pytest.test_result_data[request.node.fullname]
 
 
 @pytest.fixture(scope="function")
-def meta_block(request) -> MetaBlock:
+def meta_block(request: FixtureRequest) -> Callable[[Optional[int], int], MetaBlock]:
     """This can be used to create reports for test blocks/steps immediately during test method call.
         ```
         with meta_block(step):

@@ -3,9 +3,10 @@ import re
 import signal
 from datetime import datetime
 from enum import IntEnum
-from typing import Any
+from typing import Any, Optional
 
 import pytest
+from _pytest.fixtures import FixtureRequest
 
 from ._helpers import assume, get_item_name_and_spec, get_item_nodeid, get_marker, html_row
 from ._pytest_adaptavist import PytestAdaptavist
@@ -40,7 +41,7 @@ class MetaBlock:
         """if condition fails, skip execution of this block/test, set it to 'Blocked' and exit session"""
         EXIT_SESSION = -1
 
-    def __init__(self, request, timeout, step=None):
+    def __init__(self, request: FixtureRequest, timeout: int, step: Optional[int] = None):
         self.item = request.node
         self.item_name = self.item.name + ("_" + str(step) if step else "")
         self.step = step
@@ -138,7 +139,7 @@ class MetaBlock:
 
         return exc_type is MetaBlockAborted  # suppress MetaBlockAborted exception
 
-    def check(self, condition, message=None, action_on_fail: Action = Action.NONE, **kwargs: Any):
+    def check(self, condition, message: Optional[str] = None, action_on_fail: Action = Action.NONE, **kwargs: Any):
         """Check given condition.
 
             :param condition: the condition to be checked
