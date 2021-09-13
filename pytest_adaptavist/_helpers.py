@@ -3,6 +3,7 @@ import os
 from typing import Dict, List, Optional
 
 import pytest
+from adaptavist.const import STATUS_BLOCKED, STATUS_FAIL, STATUS_IN_PROGRESS, STATUS_NOT_EXECUTED, STATUS_PASS
 
 
 def assume(expr: Exception, msg: Optional[str] = None, level: int = 1):
@@ -69,14 +70,14 @@ def calc_test_result_status(step_results: List[Dict[str, str]]) -> str:
     """
     # map representing status as binary/hex number to be used with & operator
     status_map = {
-        "Not Executed": 0xB,  # 1011
-        "Pass": 0x7,  # 0111
-        "In Progress": 0x3,  # 0011
-        "Blocked": 0x1,  # 0001
-        "Fail": 0x0  # 0000
+        STATUS_NOT_EXECUTED: 0xB,  # 1011
+        STATUS_PASS: 0x7,  # 0111
+        STATUS_IN_PROGRESS: 0x3,  # 0011
+        STATUS_BLOCKED: 0x1,  # 0001
+        STATUS_FAIL: 0x0  # 0000
     }
     if not step_results:
-        return "Not Executed"
+        return STATUS_NOT_EXECUTED
     status = 0xF
     for result in step_results:
         status &= status_map[result["status"]]
@@ -110,10 +111,10 @@ def html_row(condition, message):
 
     if condition:
         background_color = "rgb(58, 187, 75)"
-        badge_text = "PASS"
+        badge_text = STATUS_PASS
     else:
         background_color = "rgb(223, 47, 54)"
-        badge_text = "FAIL"
+        badge_text = STATUS_FAIL
 
     return f"<div style='padding: 2pt'><span style='width: auto; margin-right: 4pt; padding: 2pt; border-radius: 4px; background-color: {background_color}; color: white; font-family: monospace; font-size: 10pt; font-weight: bold;'>{badge_text}</span>{message}</div>"
 

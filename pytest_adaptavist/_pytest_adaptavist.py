@@ -15,6 +15,7 @@ from _pytest.reports import TestReport
 from _pytest.runner import CallInfo
 from _pytest.terminal import TerminalReporter
 from adaptavist import Adaptavist
+from adaptavist.const import PRIORITY_HIGH, STATUS_BLOCKED, STATUS_FAIL, STATUS_NOT_EXECUTED, STATUS_PASS
 
 from ._atm_configuration import ATMConfiguration
 from ._helpers import (apply_test_case_range,
@@ -309,10 +310,10 @@ class PytestAdaptavist:
                 # in case of parameterization or repetition the status will be Fail if one iteration failed
                 last_result = next((result for result in test_result.get("scriptResults", []) if result["index"] == int(test_step_key) - 1), {})
 
-                if skip_status and last_result.get("status", None) != "Fail":
-                    status = "Blocked" if skip_status.name == "block" else "Not Executed"
+                if skip_status and last_result.get("status", None) != STATUS_FAIL:
+                    status = STATUS_BLOCKED if skip_status.name == "block" else STATUS_NOT_EXECUTED
                 else:
-                    status = "Pass" if passed and last_result.get("status", None) != "Fail" else "Fail"
+                    status = STATUS_PASS if passed and last_result.get("status", None) != STATUS_FAIL else STATUS_FAIL
 
                 comments = ((header + "<br>" + "parameterization " + (specs or "") + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
                     (description + "<br>") if description else "") + (last_result.get("comment", "") if specs else "")
@@ -322,7 +323,7 @@ class PytestAdaptavist:
                                                    step=int(test_step_key),
                                                    environment=self.test_environment,
                                                    status=status,
-                                                   comment=comments if (specs or last_result.get("status", None) != "Fail") else None)
+                                                   comment=comments if (specs or last_result.get("status", None) != STATUS_FAIL) else None)
 
                 if attachment:
                     adaptavist.add_test_script_attachment(test_run_key=test_run_key,
@@ -357,16 +358,16 @@ class PytestAdaptavist:
 
             else:
                 # change parent test result status only if blocked or failed or if there was no previous failure
-                # if test_result.get("status", "Not Executed") == "Blocked" and skip_status:
+                # if test_result.get("status", STATUS_NOT_EXECUTED) == "Blocked" and skip_status:
                 #    # no need to proceed here, info about blocked steps is enough
                 #    return
-                status = test_result.get("status", "Not Executed")
-                if status == "Not Executed" and skip_status:
-                    status = "Blocked" if skip_status.name == "block" else "Not Executed"
-                elif status == "Fail" or (not passed and not skip_status):
-                    status = "Fail"
-                elif status == "Not Executed":
-                    status = "Pass" if passed else "Fail"
+                status = test_result.get("status", STATUS_NOT_EXECUTED)
+                if status == STATUS_NOT_EXECUTED and skip_status:
+                    status = STATUS_BLOCKED if skip_status.name == "block" else STATUS_NOT_EXECUTED
+                elif status == STATUS_FAIL or (not passed and not skip_status):
+                    status = STATUS_FAIL
+                elif status == STATUS_NOT_EXECUTED:
+                    status = STATUS_PASS if passed else STATUS_FAIL
 
                 comments = ((header + "<br>" + "parameterization " + (specs or "") + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
                     (description + "<br>") if description else "") + test_result.get("comment", "")
@@ -674,7 +675,7 @@ class PytestAdaptavist:
         not_built = True
         for value in report.values():
             exceptions_raised += 1 if value["exc_info"] else 0
-            high_prios_failed += 1 if value["status"] == "failed" and value["priority"] == "High" else 0
+            high_prios_failed += 1 if value["status"] == "failed" and value["priority"] == PRIORITY_HIGH else 0
             not_built = not_built and value["status"] not in ["passed", "failed"]
 
         if exceptions_raised or high_prios_failed or exitstatus in (3, 4):
