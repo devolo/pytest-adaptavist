@@ -4,16 +4,21 @@ import logging
 import os
 import subprocess
 from contextlib import suppress
-from ._pytest_adaptavist import PytestAdaptavist
+from typing import Optional
+
 import pytest
+from _pytest.config import Config
+from _pytest.config.argparsing import Parser
+
 from ._atm_configuration import atm_user_is_valid
 from ._helpers import assume, import_module
+from ._pytest_adaptavist import PytestAdaptavist
 from .metablock import MetaBlock
 
 META_BLOCK_TIMEOUT = 600
 
 @pytest.hookimpl(trylast=True)
-def pytest_configure(config):
+def pytest_configure(config: Config):
     """Prepare and start logging/reporting (called at the beginning of the test process)."""
 
     # register custom markers
@@ -26,7 +31,7 @@ def pytest_configure(config):
 
     adaptavist = PytestAdaptavist(config)
     config.pluginmanager.register(adaptavist, "adaptavist2")  # something registered as adaptavist before me?!?
-    
+
     # support for pytest-assume >= 1.2.1 (needs to be done after any potential call of pytest_configure)
     if hasattr(pytest, "assume") and not hasattr(pytest, "_failed_assumptions"):
         pytest_assume = import_module("pytest_assume")
@@ -63,7 +68,9 @@ def pytest_configure(config):
     commit = metadata.get("GIT_COMMIT")
 
     adaptavist.build_url = "/".join(build_url.split("/")[:5]) if build_url and jenkins_url and build_url.startswith(jenkins_url) else build_url
-    adaptavist.code_base = code_base.replace(":", "/").replace(".git", "").replace("git@", "https://") if code_base and code_base.startswith("git@") else code_base
+    adaptavist.code_base = code_base.replace(":", "/").replace(".git", "").replace("git@", "https://") \
+        if code_base and code_base.startswith("git@") \
+        else code_base
 
     # only report results to adaptavist if:
     #     - branch is master
@@ -88,7 +95,7 @@ def pytest_configure(config):
         if not atm_user_is_valid(build_usr):
             # disable reporting
             setattr(config.option, "adaptavist", False)
-    
+
     # TODO: REMOVE BEFORE RELEASE!!!!!!!
     setattr(config.option, "adaptavist", True)
 
@@ -108,26 +115,21 @@ def pytest_configure(config):
     logger.propagate = False
 
 
-def get_code_base_url():
+def get_code_base_url() -> Optional[str]:
     """Get current code base url."""
     code_base = None
     with suppress(subprocess.CalledProcessError):
         code_base = subprocess.check_output("git config --get remote.origin.url".split()).decode("utf-8").strip()
-
     return code_base
 
 class Blocked(pytest.skip.Exception):  # pylint: disable=too-few-public-methods
     """Block exception used to abort test execution and set result status to "Blocked"."""
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: Parser):
     """Add options to control plugin."""
-
     group = parser.getgroup("adaptavist", "adaptavist test reporting")
     group.addoption("--adaptavist", action="store_true", default=False, help="Enable adaptavist reporting (default: False)")
-
-
-
 
 
 if import_module("xdist"):
@@ -143,7 +145,7 @@ def meta_data(request):
 
 
 @pytest.fixture(scope="function")
-def meta_block(request):
+def meta_block(request) -> MetaBlock:
     """This can be used to create reports for test blocks/steps immediately during test method call.
         ```
         with meta_block(step):
@@ -151,8 +153,7 @@ def meta_block(request):
             pytest.assume(...)
         ```
     """
-
-    def get_meta_block(step=None, timeout=META_BLOCK_TIMEOUT):
+    def get_meta_block(step: Optional[int] = None, timeout: int = META_BLOCK_TIMEOUT) -> MetaBlock:
         """Return a meta block context to process single test blocks/steps."""
         return MetaBlock(request, timeout=timeout, step=step)
 

@@ -1,24 +1,27 @@
+import inspect
+import re
 import signal
 from datetime import datetime
 from enum import IntEnum
-import inspect
-import re
+from typing import Any
 
 import pytest
 
 from ._helpers import assume, get_item_name_and_spec, get_item_nodeid, get_marker, html_row
+from ._pytest_adaptavist import PytestAdaptavist
 
 COLORMAP = {"passed": {"green": True, "bold": True},
             "failed": {"red": True, "bold": True},
             "blocked": {"blue": True, "bold": True},
             "skipped": {"yellow": True, "bold": True}}
+
+
 class MetaBlockAborted(Exception):
     """Internal exception used to abort meta block execution."""
 
 
 class MetaBlock:
     """Context Manager class used for processing/reporting single test blocks/steps."""
-
 
     class Action(IntEnum):
         """if condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')"""
@@ -44,7 +47,7 @@ class MetaBlock:
         self.start = datetime.now().timestamp()
         self.stop = datetime.now().timestamp()
         self.timeout = timeout
-        self.adaptavist = request.config.pluginmanager.getplugin("adaptavist2")
+        self.adaptavist: PytestAdaptavist = request.config.pluginmanager.getplugin("adaptavist2")
         self.data = self.adaptavist.test_result_data.setdefault(self.item.fullname + ("_" + str(step) if step else ""), {"comment": None, "attachment": None})
         self.failed_assumptions = getattr(pytest, "_failed_assumptions", [])[:]
 
@@ -53,7 +56,8 @@ class MetaBlock:
 
     def __enter__(self):
         if self.step:
-            build_terminal_report(when="setup", item=self.item, step=self.step, level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)')
+            # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)')
+            build_terminal_report(when="setup", item=self.item, step=self.step, level=2)
         self.start = datetime.now().timestamp()
         signal.signal(signal.SIGALRM, self._timeout_handler)
         signal.alarm(self.timeout)
@@ -94,7 +98,9 @@ class MetaBlock:
                                                                              (skip_status.name == "block" or self.data.get("blocked")) else "skipped")
 
         # custom item callback
-        prefix = getattr(self.item.config, "workerinput", {}).get("workerid") if getattr(self.item.config, "workerinput", {}).get("options", {}).get("dist") == "each" else None
+        prefix = getattr(self.item.config, "workerinput", {}).get("workerid") \
+            if getattr(self.item.config, "workerinput", {}).get("options", {}).get("dist") == "each" \
+            else None
         getattr(self.item, "meta_block_cb",
                 lambda **kwargs: None)(signature="_".join(filter(None, (prefix, self.item.name, str(self.step) if self.step else "x"))), status=status)
 
@@ -132,7 +138,7 @@ class MetaBlock:
 
         return exc_type is MetaBlockAborted  # suppress MetaBlockAborted exception
 
-    def check(self, condition, message=None, action_on_fail: Action = Action.NONE, **kwargs):
+    def check(self, condition, message=None, action_on_fail: Action = Action.NONE, **kwargs: Any):
         """Check given condition.
 
             :param condition: the condition to be checked
@@ -173,7 +179,9 @@ class MetaBlock:
             self.data["description"] = "<br>".join((self.data.get("description", ""), description))
 
         # custom item callback
-        prefix = getattr(self.item.config, "workerinput", {}).get("workerid") if getattr(self.item.config, "workerinput", {}).get("options", {}).get("dist") == "each" else None
+        prefix = getattr(self.item.config, "workerinput", {}).get("workerid") \
+            if getattr(self.item.config, "workerinput", {}).get("options", {}).get("dist") == "each" \
+            else None
         self.__dict__["numchecks"] = self.__dict__.get("numchecks", 0) + 1
         getattr(self.item, "meta_block_condition_cb", lambda **kwargs: None)(signature="_".join(
             filter(None, (prefix, self.item.name, str(self.step) if self.step else "x", str(self.__dict__["numchecks"])))),
@@ -239,7 +247,7 @@ def build_terminal_report(when, item, status=None, step=None, level=1):
     docs = re.findall(r"^[\s]*\"\"\"(.*?)\"\"\"", source_code, re.DOTALL | re.MULTILINE | re.IGNORECASE)
     doc_string = inspect.cleandoc(docs[0]) if docs else ""
     reporter = item.config.pluginmanager.getplugin("terminalreporter") or None
-    
+
     if reporter:
         if when == "setup":
             if step and item.config.option.verbose > 1:

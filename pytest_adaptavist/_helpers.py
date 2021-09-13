@@ -1,10 +1,11 @@
 import inspect
 import os
+from typing import Dict, List, Optional
 
 import pytest
 
 
-def assume(expr, msg=None, level=1):
+def assume(expr: Exception, msg: Optional[str] = None, level: int = 1):
     """Assume expression.
 
         :param expr: The expression or condition to be checked.
@@ -18,7 +19,6 @@ def assume(expr, msg=None, level=1):
     pretty_locals = None
 
     (frame, filename, line, _, contextlist) = inspect.stack()[max(1, level)][0:5]
-    # get filename, line, and context
     path = os.path.relpath(filename)
     context = msg or contextlist[0].lstrip()
     if path and line and context:
@@ -48,7 +48,7 @@ def assume(expr, msg=None, level=1):
         getattr(pytest, "_failed_assumptions", []).append(entry)
 
 
-def calc_test_result_status(step_results):
+def calc_test_result_status(step_results: List[Dict[str, str]]) -> str:
     """Calculate overall test result status from list of step results.
 
         According to Adaptavist test management:
@@ -105,12 +105,21 @@ def get_marker(item, name):
 
 def html_row(condition, message):
     """Generate an html status row to be displayed in test case results."""
-    return f"<div style='padding: 2pt'><span style='width: auto; margin-right: 4pt; padding: 2pt; border-radius: 4px; background-color: {'rgb(58, 187, 75)' if condition else 'rgb(223, 47, 54)'}; color: white; font-family: monospace; font-size: 10pt; font-weight: bold;'>{'PASS' if condition else 'FAIL'}</span>{message}</div>" if message else None
+    if not message:
+        return None
+
+    if condition:
+        background_color = "rgb(58, 187, 75)"
+        badge_text = "PASS"
+    else:
+        background_color = "rgb(223, 47, 54)"
+        badge_text = "FAIL"
+
+    return f"<div style='padding: 2pt'><span style='width: auto; margin-right: 4pt; padding: 2pt; border-radius: 4px; background-color: {background_color}; color: white; font-family: monospace; font-size: 10pt; font-weight: bold;'>{badge_text}</span>{message}</div>"
 
 
 def import_module(module_name):
     """Import and return module if existing."""
-
     try:
         return pytest.importorskip(module_name)
     except pytest.skip.Exception:

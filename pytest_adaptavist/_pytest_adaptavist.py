@@ -3,44 +3,58 @@ import os
 import re
 import sys
 import time
-from adaptavist import Adaptavist
+from datetime import datetime
+from typing import Dict, List
+
 import pytest
+from _pytest.config import Config
+from _pytest.main import Session
+from _pytest.mark.structures import MarkDecorator
+from _pytest.nodes import Item
+from _pytest.reports import TestReport
+from _pytest.runner import CallInfo
+from _pytest.terminal import TerminalReporter
+from adaptavist import Adaptavist
+
 from ._atm_configuration import ATMConfiguration
-from ._helpers import (get_item_name_and_spec,
+from ._helpers import (apply_test_case_range,
+                       calc_test_result_status,
+                       get_item_name_and_spec,
                        get_item_nodeid,
                        get_marker,
+                       handle_failed_assumptions,
                        html_row,
-                       import_module, intersection, apply_test_case_range, handle_failed_assumptions, calc_test_result_status)
-from datetime import datetime
+                       import_module,
+                       intersection)
+
 
 class PytestAdaptavist:
-    def __init__(self, config):
+    def __init__(self, config: Config):
         self.config = config
         # dictionary to store temporal info about test items
-        self.item_status_info = {}
+        self.item_status_info: Dict[str, str] = {}
         # dictionary to control whether to create new or to update existing test results
-        self.test_refresh_info = {}
+        self.test_refresh_info: Dict[str, str] = {}
         # to be able to store data inside of test methods (see meta_data function down below)
-        self.test_result_data = {}
+        self.test_result_data: Dict[str, str] = {}
         # dictionary to store final report
-        self.report = {}
+        self.report: Dict[str, str] = {}
         self.project_key = None
-        
+
         self.test_case_key = None
-        self.test_run_keys = []
+        self.test_run_keys: List[str] = []
         self.items = None
         self.adaptavist = None
-        self.reporter = config.pluginmanager.getplugin("terminalreporter")
+        self.reporter: TerminalReporter = config.pluginmanager.getplugin("terminalreporter")
         self.build_url = ""
         self.code_base = ""
         self.test_plan_key = ""
         self.test_run_key = ""
-        self.test_case_order = []
-        self.test_case_keys = []
+        self.test_case_order: List[str] = []
+        self.test_case_keys: List[str] = []
         self.atm_configure(config)
 
-
-    def pytest_runtest_logreport(self, report):
+    def pytest_runtest_logreport(self, report: TestReport):
         """"""
 
         item_info = getattr(report, "item_info", {})
@@ -54,8 +68,8 @@ class PytestAdaptavist:
 
         category, _, _ = self.config.hook.pytest_report_teststatus(report=report, config=self.config)
         # self.stats.setdefault(category, []).append(report)  # needed for statistics and summary
-    
-    def create_item_collection(self, items, collected_project_keys, collected_items):   
+
+    def create_item_collection(self, items, collected_project_keys, collected_items):
         """Create the list of test methods to be executed and included in adaptavist report."""
 
         if self.adaptavist and (self.project_key or self.test_run_key):
@@ -93,8 +107,8 @@ class PytestAdaptavist:
             self.test_case_keys = intersection(ordered_collected_items.keys(), test_cases)
 
         self.items = items  # for later usage
-    
-    def atm_configure(self, config) -> bool:
+
+    def atm_configure(self, config: Config) -> bool:
         """Setup adaptavist reporting based on given requirements (config)."""
         cfg = ATMConfiguration()
 
@@ -139,7 +153,7 @@ class PytestAdaptavist:
             self.skip_ntc_methods = cfg.get_bool("skip_ntc_methods", False)
 
         return True
-    
+
     def setup_item_collection(self, items, collected_project_keys, collected_items):
         """Setup and prepare collection of available test methods."""
 
@@ -194,9 +208,9 @@ class PytestAdaptavist:
             elif self.skip_ntc_methods:
                 # skip methods that are no test case methods
                 item.add_marker(pytest.mark.skip)
-    
+
     @pytest.hookimpl(trylast=True)
-    def pytest_collection_modifyitems(self, session, config, items):  # pylint: disable=unused-argument
+    def pytest_collection_modifyitems(self, session: Session, config: Config, items: List[Item]):  # pylint: disable=unused-argument
         """Collect items matching given requirements (config)
         and prepare adaptavist reporting.
 
@@ -225,9 +239,8 @@ class PytestAdaptavist:
         self.setup_item_collection(items, collected_project_keys, collected_items)
         self.create_item_collection(items, collected_project_keys, collected_items)
 
-
     @pytest.hookimpl(tryfirst=True)
-    def pytest_runtest_setup(self, item):
+    def pytest_runtest_setup(self, item: Item):
         """This is called before calling the test item (i.e. before any parameter/fixture call).
 
             Used to skip test items dynamically (e.g. triggered by some other item or control function).
@@ -243,8 +256,7 @@ class PytestAdaptavist:
 
         if skip_reason:
             pytest.skip(msg=skip_reason)
-            
-            
+
     def create_report(self, test_case_key, test_step_key, execute_time, skip_status, passed, test_result_data, specs=None):
         """Generate adaptavist test results for given item.
 
@@ -370,8 +382,7 @@ class PytestAdaptavist:
                     self.adaptavist.add_test_result_attachment(test_run_key=test_run_key,
                                                           test_case_key=test_case_key, attachment=attachment, filename=test_result_data.get("filename", None))
 
-
-    def build_report_description(self, item, call, report, skip_status):
+    def build_report_description(self, item: Item, call: CallInfo, report: TestReport, skip_status: MarkDecorator):
         """Generate standard test results for given item.
             :param item: The item to report.
                 :param call: The call info object.
@@ -405,9 +416,15 @@ class PytestAdaptavist:
 
             outcome = report.outcome if not skip_status else ("blocked" if skip_status.name == "block" else "skipped")
 
-            self.report[key] = {"test_case_key": test_case_key, "test_case_name": test_case_name, "priority": priority, "status": outcome, "duration": report.duration, "details": report.description or "",
-                                "exc_info": is_unexpected_exception(self.item_status_info[item.fullname].get("exc_info", (None, None, None))[0])}
-    
+            self.report[key] = {"test_case_key": test_case_key,
+                                "test_case_name": test_case_name,
+                                "priority": priority,
+                                "status": outcome,
+                                "duration": report.duration,
+                                "details": report.description or "",
+                                "exc_info": is_unexpected_exception(self.item_status_info[item.fullname].get("exc_info", (None, None, None))[0])
+                               }
+
     def build_exception_info(self, item_name, exc_type, exc_value, traceback):
         """Generate description info about exceptions."""
 
@@ -418,7 +435,10 @@ class PytestAdaptavist:
                 # in case of assertion only report exception value (not line of code)
                 exc_info = str(exc_value).partition("\n")[0]
             else:
-                exc_dict = {"path": os.path.relpath(traceback.tb_frame.f_code.co_filename), "line": traceback.tb_lineno, "info": str(exc_value).partition("\n")[0]}
+                exc_dict = {"path": os.path.relpath(traceback.tb_frame.f_code.co_filename),
+                            "line": traceback.tb_lineno,
+                            "info": str(exc_value).partition("\n")[0]
+                           }
                 exc_info = f'{exc_dict["info"]} ({exc_dict["path"]}, line {exc_dict["line"]} )'
 
             # avoid reporting this exception a second time
@@ -427,15 +447,13 @@ class PytestAdaptavist:
         return exc_info
 
     @pytest.hookimpl(hookwrapper=True, tryfirst=True)
-    def pytest_runtest_makereport(self, item, call):
+    def pytest_runtest_makereport(self, item: Item, call: CallInfo):
         """This is called at setup, run/call and teardown of test items.
 
             Generates adaptavist test run results from test reports.
         """
         outcome = yield
-
-        report = outcome.get_result()
-
+        report: TestReport = outcome.get_result()
         report.item_info = {
             "atmcfg": {
                 "project_key": self.project_key,
@@ -607,7 +625,7 @@ class PytestAdaptavist:
                 self.adaptavist.create_environment(project_key, self.test_environment)
 
     @pytest.hookimpl(trylast=True)
-    def pytest_unconfigure(self, config):
+    def pytest_unconfigure(self, config: Config):
         """This is called before test process is exited."""
 
         if config.getoption("-h") or config.getoption("--help"):
@@ -639,7 +657,7 @@ class PytestAdaptavist:
             self.reporter.line("score_matrix:  %s" % score_matrix)
 
     @pytest.hookimpl(hookwrapper=True, tryfirst=True)
-    def pytest_sessionfinish(self, session, exitstatus):
+    def pytest_sessionfinish(self, session: Session, exitstatus: int):
         """This is called after whole test run has finished."""
 
         yield
@@ -683,8 +701,9 @@ class PytestAdaptavist:
             self.reporter.write_sep("=", **markup)
             self.reporter.write_line(line, **markup)
             self.reporter.write_sep("=", **markup)
-            
-def is_unexpected_exception(exc_type):
+
+
+def is_unexpected_exception(exc_type: Exception) -> bool:
     """Check if exception type is unexpected (any exception except AssertionError, pytest.block.Exception, pytest.skip.Exception)."""
 
     if exc_type and (isinstance(exc_type, (Exception, BaseException)) or issubclass(exc_type, (Exception, BaseException))):
