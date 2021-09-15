@@ -26,6 +26,7 @@ except PackageNotFoundError:
 
 META_BLOCK_TIMEOUT = 600
 
+
 @pytest.hookimpl(trylast=True)
 def pytest_configure(config: Config):
     """Prepare and start logging/reporting (called at the beginning of the test process)."""
@@ -37,9 +38,9 @@ def pytest_configure(config: Config):
 
     if config.getoption("-h") or config.getoption("--help"):
         return
-
+    
     adaptavist = PytestAdaptavist(config)
-    config.pluginmanager.register(adaptavist, "adaptavist2")  # something registered as adaptavist before me?!?
+    config.pluginmanager.register(adaptavist, "_adaptavist")  # something registered as adaptavist before me?!?
 
     # support for pytest-assume >= 1.2.1 (needs to be done after any potential call of pytest_configure)
     if hasattr(pytest, "assume") and not hasattr(pytest, "_failed_assumptions"):
@@ -69,7 +70,7 @@ def pytest_configure(config: Config):
     # Store metadata for later usage (e.g. adaptavist traceability).
     metadata = getattr(config, "_metadata", os.environ)
 
-    build_usr = "jenkins" # TODO: REVERT THIS!!!!
+    build_usr = "jenkins"  # TODO: REVERT THIS!!!!
     build_url = metadata.get("BUILD_URL")
     jenkins_url = metadata.get("JENKINS_URL")
     code_base = metadata.get("GIT_URL", get_code_base_url())
@@ -111,11 +112,10 @@ def pytest_configure(config: Config):
     if adaptavist.reporter:
         adaptavist.reporter.section("ATM build meta data", bold=True)
 
-        adaptavist.reporter.line("build_usr: %s" % (build_usr or "unknown"))
-        adaptavist.reporter.line("build_url: %s" % (build_url or "unknown"))
-        adaptavist.reporter.line("code_base: %s %s %s" %
-                            (code_base or "unknown", (branch or "unknown") if code_base else "", (commit or "unknown") if code_base and branch else ""))
-        adaptavist.reporter.line("reporting: %s" % ("enabled" if getattr(config.option, "adaptavist", False) else "disabled"))
+        adaptavist.reporter.line(f"build_usr: {build_usr or 'unknown'}")
+        adaptavist.reporter.line(f"build_url: {build_usr or 'unknown'}")
+        adaptavist.reporter.line(f"code_base: {code_base or 'unknown'} {(branch or 'unknown') if code_base else ''} {(commit or 'unknown') if code_base and branch else ''}")
+        adaptavist.reporter.line(f"reporting: {'enabled' if getattr(config.option, 'adaptavist', False) else 'disabled'}")
 
     logger = logging.getLogger("pytest-adaptavist")
     logger_handler = logging.StreamHandler()
@@ -130,6 +130,7 @@ def get_code_base_url() -> Optional[str]:
     with suppress(subprocess.CalledProcessError):
         code_base = subprocess.check_output("git config --get remote.origin.url".split()).decode("utf-8").strip()
     return code_base
+
 
 class Blocked(pytest.skip.Exception):  # pylint: disable=too-few-public-methods
     """Block exception used to abort test execution and set result status to "Blocked"."""
@@ -147,10 +148,12 @@ if import_module("xdist"):
         """This is called in case of using xdist to pass data to worker nodes."""
         node.workerinput["options"] = {"dist": node.config.option.dist, "numprocesses": node.config.option.numprocesses}
 
+
 @pytest.fixture(scope="function")
 def meta_data(request: FixtureRequest):
     """This can be used to store data inside of test methods."""
-    return pytest.test_result_data[request.node.fullname]
+    adaptavist = request.config.pluginmanager.getplugin("_adaptavist")
+    return adaptavist.test_result_data[request.node.fullname]
 
 
 @pytest.fixture(scope="function")
@@ -167,4 +170,3 @@ def meta_block(request: FixtureRequest) -> Callable[[Optional[int], int], MetaBl
         return MetaBlock(request, timeout=timeout, step=step)
 
     return get_meta_block
-    

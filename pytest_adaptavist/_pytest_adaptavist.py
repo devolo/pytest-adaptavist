@@ -53,17 +53,20 @@ class PytestAdaptavist:
         self.test_run_key = ""
         self.test_case_order: List[str] = []
         self.test_case_keys: List[str] = []
+        self.test_environment: List[str] = []
+        self.test_case_range: List[str] = []
+        self.test_plan_folder: str = ""
         self.atm_configure(config)
 
     def pytest_runtest_logreport(self, report: TestReport):
         """"""
 
-        item_info = getattr(report, "item_info", {})
+        user_properties = dict(report.user_properties)
 
-        if item_info.get("atmcfg", None):
-            self.test_plan_key = item_info["atmcfg"].get("test_plan_key", None)
-            self.project_key = item_info["atmcfg"].get("project_key", None)
-            self.test_run_key = item_info["atmcfg"].get("test_run_key", None)
+        if user_properties.get("atmcfg"):
+            self.test_plan_key = user_properties["atmcfg"].get("test_plan_key", None)
+            self.project_key = user_properties["atmcfg"].get("project_key", None)
+            self.test_run_key = user_properties["atmcfg"].get("test_run_key", None)
             if self.test_run_key and self.test_run_key not in self.test_run_keys:
                 self.test_run_keys.append(self.test_run_key)
 
@@ -105,7 +108,7 @@ class PytestAdaptavist:
 
             # define the list of test cases to be included in adaptavist report
             # (intersection of collected pytest cases and existing test cases)
-            self.test_case_keys = intersection(ordered_collected_items.keys(), test_cases)
+            self.test_case_keys = intersection(list(ordered_collected_items.keys()), test_cases)
 
         self.items = items  # for later usage
 
@@ -125,30 +128,30 @@ class PytestAdaptavist:
         distribution = worker_input.get("options", {}).get("dist", None)
         index = int(worker_input.get("workerid", "gw0").split("gw")[1]) if (distribution == "each") else 0
 
-        entry = getattr(pytest, "test_environment", []) or cfg.get("test_environment", []) or []
+        entry = self.test_environment or cfg.get("test_environment", []) or []
         test_environments = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
         self.test_environment = test_environments[index if index < len(test_environments) else -1] if test_environments else None
 
-        entry = getattr(pytest, "test_case_keys", []) or cfg.get("test_case_keys", []) or []
+        entry = self.test_case_keys or cfg.get("test_case_keys", []) or []
         self.test_case_keys = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
 
-        entry = getattr(pytest, "test_case_order", []) or cfg.get("test_case_order", []) or []
+        entry = self.test_case_order or cfg.get("test_case_order", []) or []
         self.test_case_order = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
 
-        entry = getattr(pytest, "test_case_range", []) or cfg.get("test_case_range", []) or []
+        entry = self.test_case_range or cfg.get("test_case_range", []) or []
         self.test_case_range = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
 
-        if not getattr(pytest, "test_plan_key", None):
+        if not self.test_plan_key:
             self.test_plan_key = cfg.get("test_plan_key", None)
-        if not getattr(pytest, "test_plan_folder", None):
+        if not self.test_plan_folder:
             self.test_plan_folder = cfg.get("test_plan_folder", None)
-        if not getattr(pytest, "test_plan_suffix", None):
+        if not self.test_plan_suffix:
             self.test_plan_suffix = cfg.get("test_plan_suffix", None)
-        if not getattr(pytest, "test_run_key", None):
+        if not self.test_run_key:
             self.test_run_key = cfg.get("test_run_key", None)
-        if not getattr(pytest, "test_run_folder", None):
+        if not self.test_run_folder:
             self.test_run_folder = cfg.get("test_run_folder", None)
-        if not getattr(pytest, "test_run_suffix", None):
+        if not self.test_run_suffix:
             self.test_run_suffix = cfg.get("test_run_suffix", "test run " + datetime.now().strftime("%Y%m%d%H%M"))
         if getattr(pytest, "skip_ntc_methods", None) is None:
             self.skip_ntc_methods = cfg.get_bool("skip_ntc_methods", False)
@@ -372,16 +375,18 @@ class PytestAdaptavist:
                 comments = ((header + "<br>" + "parameterization " + (specs or "") + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
                     (description + "<br>") if description else "") + test_result.get("comment", "")
 
-                result_id = adaptavist.edit_test_result_status(test_run_key=test_run_key,
-                                                            test_case_key=test_case_key,
-                                                            environment=self.test_environment,
-                                                            status=status,
-                                                            comment=comments,
-                                                            execute_time=execute_time)
+                adaptavist.edit_test_result_status(test_run_key=test_run_key,
+                                                   test_case_key=test_case_key,
+                                                   environment=self.test_environment,
+                                                   status=status,
+                                                   comment=comments,
+                                                   execute_time=execute_time)
 
                 if attachment:
                     self.adaptavist.add_test_result_attachment(test_run_key=test_run_key,
-                                                          test_case_key=test_case_key, attachment=attachment, filename=test_result_data.get("filename", None))
+                                                               test_case_key=test_case_key,
+                                                               attachment=attachment,
+                                                               filename=test_result_data.get("filename", None))
 
     def build_report_description(self, item: Item, call: CallInfo, report: TestReport, skip_status: MarkDecorator):
         """Generate standard test results for given item.
@@ -455,17 +460,13 @@ class PytestAdaptavist:
         """
         outcome = yield
         report: TestReport = outcome.get_result()
-        report.item_info = {
-            "atmcfg": {
-                "project_key": self.project_key,
-                "test_environment": self.test_environment,
-                "test_plan_key": self.test_plan_key,
-                "test_run_key": self.test_run_key,
-            }
-        }
+        report.user_properties.append(("atmcfg", {"project_key": self.project_key,
+                                                  "test_environment": self.test_environment,
+                                                  "test_plan_key": self.test_plan_key,
+                                                  "test_run_key": self.test_run_key}))
 
-        report.item_info["nodeid"] = get_item_nodeid(item)
-        report.item_info["docstr"] = inspect.cleandoc(item.obj.__doc__ or "")
+        report.user_properties.append(("nodeid", get_item_nodeid(item)))
+        report.user_properties.append(("docstr", inspect.cleandoc(item.obj.__doc__ or "")))
 
         skip_status = get_marker(item, "block") or get_marker(item, "skip")
 
@@ -473,8 +474,10 @@ class PytestAdaptavist:
             if getattr(item.config.option, "adaptavist", False):
                 # setup report only if adaptavist reporting is enabled
                 self.setup_report(getattr(item.config, "workerinput", {}))
-                report.item_info["atmcfg"] = {"project_key": self.project_key, "test_plan_key": self.test_plan_key, "test_run_key": self.test_run_key}
-
+                for user_property in report.user_properties:
+                    if user_property[0] == "atmcfg":
+                        user_property[1] = {"project_key": self.project_key, "test_plan_key": self.test_plan_key, "test_run_key": self.test_run_key}
+                    
             if (
                 not call.excinfo
                 and not skip_status
@@ -526,7 +529,7 @@ class PytestAdaptavist:
 
         # build_terminal_report(when="call", item=item, status=report.outcome if not skip_status else ("blocked" if skip_status.name == "block" else "skipped"))
 
-        report.item_info["report"] = self.report[get_item_nodeid(item)]
+        report.user_properties.append(("report", self.report[get_item_nodeid(item)]))
 
         if not getattr(item.config.option, "adaptavist", False):
             # adaptavist reporting disabled: no need to proceed here

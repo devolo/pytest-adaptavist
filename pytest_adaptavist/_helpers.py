@@ -80,7 +80,7 @@ def calc_test_result_status(step_results: List[Dict[str, str]]) -> str:
         STATUS_FAIL: 0x0  # 0000
     }
     if not step_results:
-        return STATUS_NOT_EXECUTED
+        return "Not Executed"
     status = 0xF
     for result in step_results:
         status &= status_map[result["status"]]
@@ -132,11 +132,7 @@ def import_module(module_name):
 
 def intersection(list_a, list_b):
     """Return the intersection of two lists (maintaining the item order of the first list)."""
-    result = []
-    for item in list_a:
-        if (item in list_b) and (item not in result):
-            result.append(item)
-    return result
+    return sorted(set(list_a) & set(list_b), key = list_a.index)
 
 
 def apply_test_case_range(collected_items, test_case_range):

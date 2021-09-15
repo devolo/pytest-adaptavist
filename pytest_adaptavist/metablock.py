@@ -48,7 +48,7 @@ class MetaBlock:
         self.start = datetime.now().timestamp()
         self.stop = datetime.now().timestamp()
         self.timeout = timeout
-        self.adaptavist: PytestAdaptavist = request.config.pluginmanager.getplugin("adaptavist2")
+        self.adaptavist: PytestAdaptavist = request.config.pluginmanager.getplugin("_adaptavist")
         self.data = self.adaptavist.test_result_data.setdefault(self.item.fullname + ("_" + str(step) if step else ""), {"comment": None, "attachment": None})
         self.failed_assumptions = getattr(pytest, "_failed_assumptions", [])[:]
 
@@ -57,8 +57,9 @@ class MetaBlock:
 
     def __enter__(self):
         if self.step:
-            # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)')
-            build_terminal_report(when="setup", item=self.item, step=self.step, level=2)
+            # gibt's pretty --> pretty prüfen ob pretty an ist.
+                # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)')
+                build_terminal_report(when="setup", item=self.item, step=self.step, level=2)
         self.start = datetime.now().timestamp()
         signal.signal(signal.SIGALRM, self._timeout_handler)
         signal.alarm(self.timeout)
@@ -165,7 +166,8 @@ class MetaBlock:
         message_on_fail = kwargs.pop("message_on_fail", None) or message
         message_on_pass = kwargs.pop("message_on_pass", None)
 
-        assert not kwargs, "Unknown arguments: %r" % kwargs
+        if kwargs:
+            raise SyntaxWarning(f"Unknown arguments: {kwargs}")
 
         if attachment:
             self.data["attachment"] = attachment
