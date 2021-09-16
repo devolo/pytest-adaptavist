@@ -43,22 +43,20 @@ def pytest_configure(config: Config):
     config.pluginmanager.register(adaptavist, "_adaptavist")
 
     # support for pytest-assume >= 1.2.1 (needs to be done after any potential call of pytest_configure)
-    if hasattr(pytest, "assume") and not hasattr(pytest, "_failed_assumptions"):
-        pytest_assume = import_module("pytest_assume")
-        if pytest_assume and hasattr(pytest_assume, "plugin"):
-            # pytest-assume 1.2.1 is using _FAILED_ASSUMPTIONS and _ASSUMPTION_LOCALS
-            setattr(pytest, "_failed_assumptions", getattr(pytest_assume.plugin, "_FAILED_ASSUMPTIONS", []))
-            setattr(pytest, "_assumption_locals", getattr(pytest_assume.plugin, "_ASSUMPTION_LOCALS", []))
+    pytest_assume = config.pluginmanager.getplugin("assume")
+    if pytest_assume and not hasattr(pytest, "_failed_assumptions") and hasattr(pytest_assume, "plugin"):
+        # if hasattr(pytest, "assume") and not hasattr(pytest, "_failed_assumptions"):
+        # pytest-assume 1.2.1 is using _FAILED_ASSUMPTIONS and _ASSUMPTION_LOCALS
+        setattr(pytest, "_failed_assumptions", getattr(pytest_assume.plugin, "_FAILED_ASSUMPTIONS", []))
+        setattr(pytest, "_assumption_locals", getattr(pytest_assume.plugin, "_ASSUMPTION_LOCALS", []))
 
     if not hasattr(pytest, "_failed_assumptions"):
         # overwrite all assumption related attributes by local ones
         setattr(pytest, "_failed_assumptions", [])
         setattr(pytest, "_assumption_locals", [])
         pytest.assume = assume
-
-    setattr(pytest, "_showlocals", config.getoption("showlocals"))
-
     # support for pytest.block
+
     def block(msg=""):
         __tracebackhide__ = True  # pylint: disable=unused-variable
         raise Blocked(msg=msg)
@@ -96,15 +94,13 @@ def pytest_configure(config: Config):
 
     # => automated flag set and executedby = "jenkins" means official test run
     # => automated flag set and executedby != "jenkins" means inofficial test run (not valid with respect to DoD)
-    if build_usr == "jenkins" and build_url and jenkins_url and build_url.startswith(jenkins_url):
-        if branch != "origin/master":
-            # disable reporting
-            setattr(config.option, "adaptavist", False)
+    if build_usr == "jenkins" and build_url and jenkins_url and build_url.startswith(jenkins_url) and branch != "origin/master":
+        # disable reporting
+        setattr(config.option, "adaptavist", False)
 
-    if build_usr != "jenkins":
-        if not atm_user_is_valid(build_usr):
-            # disable reporting
-            setattr(config.option, "adaptavist", False)
+    if build_usr != "jenkins" and not atm_user_is_valid(build_usr):
+        # disable reporting
+        setattr(config.option, "adaptavist", False)
 
     # TODO: REMOVE BEFORE RELEASE!!!!!!!
     setattr(config.option, "adaptavist", True)
@@ -133,7 +129,7 @@ def get_code_base_url() -> Optional[str]:
     return code_base
 
 
-class Blocked(pytest.skip.Exception):  # pylint: disable=too-few-public-methods
+class Blocked(pytest.skip.Exception):
     """Block exception used to abort test execution and set result status to "Blocked"."""
 
 

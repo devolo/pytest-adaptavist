@@ -80,16 +80,17 @@ class MetaBlock:
         self.stop = datetime.now().timestamp()
         if exc_type is TimeoutError:
             self.data["blocked"] = True
-            pytest.skip(msg="Blocked. {0} failed: The test step exceeded its timewindow and timed out".format(self.item_name))
+            pytest.skip(msg=f"Blocked. {self.item_name} failed: The test step exceeded its timewindow and timed out")
         skip_status = get_marker(self.item, "block") or get_marker(self.item, "skip")
 
         # if method was blocked dynamically (during call) an appropriate marker is used
         # to handle the reporting in the same way as for statically blocked methods
         # (status will be reported as "Blocked" with given comment in Adaptavist)
-        if not skip_status and ((exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception)) or
-                                (exc_type in (None, MetaBlockAborted) and self.data.get("blocked", None) is True)):
-            reason = self.data.get(
-                "comment", None) or (str(exc_value).partition("\n")[0] if exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception) else None)
+        if not skip_status and (exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception)
+                                or exc_type in (None, MetaBlockAborted) and self.data.get("blocked") is True):
+            reason = self.data.get("comment") or (str(exc_value).partition("\n")[0]
+                                                  if exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception) else None)
+
             skip_status = pytest.mark.block(reason=reason) if ((exc_type and exc_type is pytest.block.Exception)
                                                                or self.data.get("blocked", None) is True) else pytest.mark.skip(reason=reason)
 
@@ -116,10 +117,9 @@ class MetaBlock:
                                   level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)'))
 
         # adjust parent's test result status if necessary (needed for makereport call later)
-        if self.adaptavist.test_result_data[self.item.fullname].get("blocked", None) is True:
-            if not passed and not skip_status:
-                self.adaptavist.test_result_data[self.item.fullname]["blocked"] = None
-        elif self.data.get("blocked", None) is True:
+        if self.adaptavist.test_result_data[self.item.fullname].get("blocked") is True and not passed and not skip_status:
+            self.adaptavist.test_result_data[self.item.fullname]["blocked"] = None
+        elif self.data.get("blocked") is True:
             self.adaptavist.test_result_data[self.item.fullname]["blocked"] = True
 
         if not getattr(self.item.config.option, "adaptavist", False):
@@ -151,12 +151,12 @@ class MetaBlock:
             :param condition: the condition to be checked
             :param message: the info test in case of failed condition
             :param action_on_fail: action in case of failed condition (default: continue, just like 'assume')
-                        Action.FAIL_CONTEXT: if condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')
-                        Action.FAIL_METHOD: if condition fails, skip execution of this block/test, set it to 'Fail' and continue with next test (just like 'assert')
-                        Action.STOP_CONTEXT: if condition fails, skip execution of this block, set it to 'Blocked' and continue with next block
-                        Action.STOP_METHOD: if condition fails, skip execution of this block/test, set it to 'Blocked' and continue with next test
-                        Action.STOP_SESSION: if condition fails, skip execution of this block/test, set it to 'Blocked' and block following tests as well
-                        Action.EXIT_SESSION: if condition fails, skip execution of this block/test, set it to 'Blocked' and exit session
+                    Action.FAIL_CONTEXT: if condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')
+                    Action.FAIL_METHOD: if condition fails, skip execution of this block/test, set it to 'Fail' and continue with next test (just like 'assert')
+                    Action.STOP_CONTEXT: if condition fails, skip execution of this block, set it to 'Blocked' and continue with next block
+                    Action.STOP_METHOD: if condition fails, skip execution of this block/test, set it to 'Blocked' and continue with next test
+                    Action.STOP_SESSION: if condition fails, skip execution of this block/test, set it to 'Blocked' and block following tests as well
+                    Action.EXIT_SESSION: if condition fails, skip execution of this block/test, set it to 'Blocked' and exit session
             :param kwargs: Arbitrary list of keyword arguments
                     attachment: The attachment as filepath name or file-like object.
                     filename: The optional filename.
@@ -191,8 +191,8 @@ class MetaBlock:
             if getattr(self.item.config, "workerinput", {}).get("options", {}).get("dist") == "each" \
             else None
         self.__dict__["numchecks"] = self.__dict__.get("numchecks", 0) + 1
-        getattr(self.item, "meta_block_condition_cb", lambda **kwargs: None)(signature="_".join(
-            filter(None, (prefix, self.item.name, str(self.step) if self.step else "x", str(self.__dict__["numchecks"])))),
+        signature = "_".join(filter(None, (prefix, self.item.name, str(self.step) if self.step else "x", str(self.__dict__["numchecks"]))))
+        getattr(self.item, "meta_block_condition_cb", lambda **kwargs: None)(signature=signature,
                                                                              condition=condition,
                                                                              reference=message_on_pass if condition else message_on_fail)
 
@@ -209,7 +209,7 @@ class MetaBlock:
         elif action_on_fail == self.Action.STOP_METHOD:
             # STOP_METHOD: skip execution of this block/test, set it to 'Blocked' and continue with next test
             self.data["blocked"] = True
-            pytest.skip(msg="Blocked. {0} failed: {1}".format(self.item_name, message_on_fail))
+            pytest.skip(msg=f"Blocked. {self.item_name} failed: {message_on_fail}")
         elif action_on_fail == self.Action.STOP_SESSION:
             # STOP_SESSION: skip execution of this block/test, set it to 'Blocked' and block following tests as well
             self.data["blocked"] = True
@@ -220,21 +220,21 @@ class MetaBlock:
                     self.adaptavist.test_result_data[item.fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
                 if item.name == self.item.name:
                     seen = False
-            pytest.skip(msg="Blocked. {0} failed: {1}".format(self.item_name, message_on_fail))
+            pytest.skip(msg=f"Blocked. {self.item_name} failed: {message_on_fail}")
         elif action_on_fail == self.Action.FAIL_SESSION:
             # FAIL_SESSION: skip execution of this block/test, set it to 'Fail' and block following tests
             seen = True
             for item in self.adaptavist.items:
                 if not seen:
                     self.adaptavist.test_result_data[item.fullname]["blocked"] = True
-                    self.adaptavist.test_result_data[item.fullname]["comment"] = "Blocked. {0} failed: {1}".format(self.item_name, message_on_fail)
+                    self.adaptavist.test_result_data[item.fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
                 if item.name == self.item.name:
                     seen = False
             assert condition, message_on_fail
         elif action_on_fail == self.Action.EXIT_SESSION:
             # EXIT_SESSION: skip execution of this block/test, set it to 'Blocked' and exit session
             self.data["blocked"] = True
-            pytest.exit(msg="Exiting pytest. {0} failed: {1}".format(self.item_name, message_on_fail))
+            pytest.exit(msg="Exiting pytest. {self.item_name} failed: {message_on_fail}")
         else:
             # CONTINUE: try to collect failed assumption, set result to 'Fail' and continue
             assume(expr=condition, msg=message_on_fail, level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of mb.check)

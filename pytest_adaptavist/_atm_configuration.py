@@ -18,7 +18,7 @@ class ATMConfiguration:
                 try:
                     self.config.update(json.load(config_file))
                 except Exception as ex:
-                    raise ValueError("Failed to load config from file \"{0}\"!".format(config_file), ex) from ex
+                    raise ValueError(f'Failed to load config from file "{config_file}"!', ex) from ex
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get value either from environment or from config file."""

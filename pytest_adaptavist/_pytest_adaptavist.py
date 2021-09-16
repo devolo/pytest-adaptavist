@@ -4,7 +4,7 @@ import re
 import sys
 import time
 from datetime import datetime
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 
 import pytest
 from _pytest.config import Config
@@ -85,7 +85,7 @@ class PytestAdaptavist:
             # build and order the list of items to be executed and included in adaptavist report
             if not self.test_run_key:
                 # only include those test cases that are part of collected projects (including test database)
-                search_mask = "projectKey IN (\"{0}\")".format("\", \"".join(collected_project_keys + ["TEST"]))
+                search_mask = f"""projectKey IN ("{'", "'.join(collected_project_keys + ["TEST"])}")"""
                 test_cases = [test_case["key"] for test_case in self.adaptavist.get_test_cases(
                     search_mask=search_mask)] if items and getattr(items[0].config.option, "adaptavist") else collected_items.keys()
             else:
@@ -281,120 +281,118 @@ class PytestAdaptavist:
         """
         test_run_key = self.test_run_key
 
-        if test_run_key and test_case_key in (self.test_case_keys or []):
+        if not (test_run_key or test_case_key in (self.test_case_key or [])):
+            return
 
-            adaptavist = self.adaptavist
+        adaptavist = self.adaptavist
 
+        test_result = adaptavist.get_test_result(test_run_key, test_case_key)
+
+        if not test_result or self.test_refresh_info[test_case_key + (specs or "")] != test_run_key:
+            # create new test result to prevent accumulation of data
+            # when using an existing test run key multiple times
+            adaptavist.create_test_result(test_run_key=test_run_key, test_case_key=test_case_key, environment=self.test_environment, status=None)
+
+            # refetch result
             test_result = adaptavist.get_test_result(test_run_key, test_case_key)
 
-            if not test_result or self.test_refresh_info[test_case_key + (specs or "")] != test_run_key:
-                # create new test result to prevent accumulation of data
-                # when using an existing test run key multiple times
-                adaptavist.create_test_result(test_run_key=test_run_key, test_case_key=test_case_key, environment=self.test_environment, status=None)
+            self.test_refresh_info[test_case_key + (specs or "")] = test_run_key
 
-                # refetch result
-                test_result = adaptavist.get_test_result(test_run_key, test_case_key)
+        # touch parametrized/repeated items
+        for key in self.test_refresh_info:
+            if re.search(test_case_key + r"[ \[\b]", key):
+                self.test_refresh_info[key] = self.test_run_key
 
-                self.test_refresh_info[test_case_key + (specs or "")] = test_run_key
+        # get optional meta data (comments, attachments) of test case method
+        comment = skip_status.kwargs.get("reason") if skip_status else test_result_data.get("comment")
+        description = None if skip_status else test_result_data.get("description")
+        attachment = None if skip_status else test_result_data.get("attachment")
 
-            # touch parametrized/repeated items
-            for key in self.test_refresh_info:
-                if re.search(test_case_key + r"[ \[\b]", key):
-                    self.test_refresh_info[key] = self.test_run_key
+        now = datetime.now().strftime('%Y%m%d%H%M')
+        header = f"---------------------------------------- {now} ----------------------------------------" if specs else ""
 
-            # get optional meta data (comments, attachments) of test case method
-            comment = skip_status.kwargs.get("reason") if skip_status else test_result_data.get("comment")
-            description = None if skip_status else test_result_data.get("description")
-            attachment = None if skip_status else test_result_data.get("attachment")
+        if not skip_status and not test_step_key:
+            # update test case with CI related info
+            adaptavist.edit_test_case(test_case_key,
+                                      labels=["automated"],
+                                      build_urls=[f"<a href=\"{self.build_url}\">{self.build_url}</a>" if self.build_url else ""],
+                                      code_bases=[f"<a href=\"{self.code_base}\">{self.code_base}</a>" if self.code_base else ""])
 
-            header = f"---------------------------------------- {datetime.now().strftime('%Y%m%d%H%M')} ----------------------------------------" if specs else ""
+        if test_step_key:
 
-            if not skip_status and not test_step_key:
-                # update test case with CI related info
-                adaptavist.edit_test_case(test_case_key,
-                                          labels=["automated"],
-                                          build_urls=[(self.build_url if not self.build_url else f"<a href=\"{self.build_url}\">{self.build_url}</a>") or ""],
-                                          code_bases=[(self.code_base if not self.code_base else f"<a href=\"{self.code_base}\">{self.code_base}</a>") or ""])
+            # in case of parameterization or repetition the status will be Fail if one iteration failed
+            last_result = next((result for result in test_result.get("scriptResults", []) if result["index"] == int(test_step_key) - 1), {})
 
-            if test_step_key:
-
-                # in case of parameterization or repetition the status will be Fail if one iteration failed
-                last_result = next((result for result in test_result.get("scriptResults", []) if result["index"] == int(test_step_key) - 1), {})
-
-                if skip_status and last_result.get("status", None) != STATUS_FAIL:
-                    status = STATUS_BLOCKED if skip_status.name == "block" else STATUS_NOT_EXECUTED
-                else:
-                    status = STATUS_PASS if passed and last_result.get("status", None) != STATUS_FAIL else STATUS_FAIL
-
-                comments = ((header + "<br>" + "parameterization " + (specs or "") + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
-                    (description + "<br>") if description else "") + (last_result.get("comment", "") if specs else "")
-
-                adaptavist.edit_test_script_status(test_run_key=test_run_key,
-                                                   test_case_key=test_case_key,
-                                                   step=int(test_step_key),
-                                                   environment=self.test_environment,
-                                                   status=status,
-                                                   comment=comments if (specs or last_result.get("status", None) != STATUS_FAIL) else None)
-
-                if attachment:
-                    adaptavist.add_test_script_attachment(test_run_key=test_run_key,
-                                                          test_case_key=test_case_key,
-                                                          step=int(test_step_key),
-                                                          attachment=attachment,
-                                                          filename=test_result_data.get("filename"))
-
-                # adjust parent test result status according to current test script results
-                test_result = adaptavist.get_test_result(test_run_key, test_case_key)
-                status = calc_test_result_status(test_result.get("scriptResults", []))
-
-                comments = None
-                if skip_status:
-                    # modify comment to add info about blocked or skipped script steps
-                    comments = ("step {0} {1}:".format(test_step_key, "blocked" if skip_status.name == "block" else "skipped") +
-                                (("<br>" + comment + "<br>") if comment else ""))
-                elif not passed:
-                    # modify comment to add info about failure in script steps
-                    comments = ("step {0} failed:".format(test_step_key) + (("<br>" + comment + "<br>") if comment else ""))
-
-                # find the right position to insert comments of this test execution (in case of parametrized or repeated test methods)
-                index = test_result.get("comment", "").find("---------------------------------------- ")
-
-                adaptavist.edit_test_result_status(test_run_key=test_run_key,
-                                                   test_case_key=test_case_key,
-                                                   environment=self.test_environment,
-                                                   status=status,
-                                                   comment=(test_result.get("comment", "") + (comments or "")) if index < 0 else
-                                                   (test_result.get("comment", "")[:index] + (comments or "") + test_result.get("comment", "")[index:]),
-                                                   execute_time=execute_time)
-
+            if skip_status and last_result.get("status", None) != STATUS_FAIL:
+                status = STATUS_BLOCKED if skip_status.name == "block" else STATUS_NOT_EXECUTED
             else:
-                # change parent test result status only if blocked or failed or if there was no previous failure
-                # if test_result.get("status", STATUS_NOT_EXECUTED) == "Blocked" and skip_status:
-                #    # no need to proceed here, info about blocked steps is enough
-                #    return
-                status = test_result.get("status", STATUS_NOT_EXECUTED)
-                if status == STATUS_NOT_EXECUTED and skip_status:
-                    status = STATUS_BLOCKED if skip_status.name == "block" else STATUS_NOT_EXECUTED
-                elif status == STATUS_FAIL or (not passed and not skip_status):
-                    status = STATUS_FAIL
-                elif status == STATUS_NOT_EXECUTED:
-                    status = STATUS_PASS if passed else STATUS_FAIL
+                status = STATUS_PASS if passed and last_result.get("status") != STATUS_FAIL else STATUS_FAIL
 
-                comments = ((header + "<br>" + "parameterization " + (specs or "") + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
-                    (description + "<br>") if description else "") + test_result.get("comment", "")
+            comments = ((header + "<br>" + "parameterization " + (specs or "") + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
+                (description + "<br>") if description else "") + (last_result.get("comment", "") if specs else "")
 
-                adaptavist.edit_test_result_status(test_run_key=test_run_key,
-                                                   test_case_key=test_case_key,
-                                                   environment=self.test_environment,
-                                                   status=status,
-                                                   comment=comments,
-                                                   execute_time=execute_time)
+            adaptavist.edit_test_script_status(test_run_key=test_run_key,
+                                               test_case_key=test_case_key,
+                                               step=int(test_step_key),
+                                               environment=self.test_environment,
+                                               status=status,
+                                               comment=comments if (specs or last_result.get("status") != STATUS_FAIL) else None)
 
-                if attachment:
-                    self.adaptavist.add_test_result_attachment(test_run_key=test_run_key,
-                                                               test_case_key=test_case_key,
-                                                               attachment=attachment,
-                                                               filename=test_result_data.get("filename"))
+            if attachment:
+                adaptavist.add_test_script_attachment(test_run_key=test_run_key,
+                                                      test_case_key=test_case_key,
+                                                      step=int(test_step_key),
+                                                      attachment=attachment,
+                                                      filename=test_result_data.get("filename"))
+
+            # adjust parent test result status according to current test script results
+            test_result = adaptavist.get_test_result(test_run_key, test_case_key)
+            status = calc_test_result_status(test_result.get("scriptResults", []))
+
+            comments = ""
+            if skip_status:
+                # modify comment to add info about blocked or skipped script steps
+                comments = f'step {test_step_key} {"blocked" if skip_status.name == "block" else "skipped"}{("<br>" + comment + "<br>") if comment else ""}'
+            elif not passed:
+                # modify comment to add info about failure in script steps
+                comments = f'step {test_step_key}{("<br>" + comment + "<br>") if comment else ""} failed:'
+
+            # find the right position to insert comments of this test execution (in case of parametrized or repeated test methods)
+            index = test_result.get("comment", "").find("---------------------------------------- ")
+
+            adaptavist.edit_test_result_status(test_run_key=test_run_key,
+                                               test_case_key=test_case_key,
+                                               environment=self.test_environment,
+                                               status=status,
+                                               comment=(test_result.get("comment", "") + comments) if index < 0 else
+                                               (test_result.get("comment", "")[:index] + comments + test_result.get("comment", "")[index:]),
+                                               execute_time=execute_time)
+
+        else:
+            # change parent test result status only if blocked or failed or if there was no previous failure
+            status = test_result.get("status", STATUS_NOT_EXECUTED)
+            if status == STATUS_NOT_EXECUTED and skip_status:
+                status = STATUS_BLOCKED if skip_status.name == "block" else STATUS_NOT_EXECUTED
+            elif status == STATUS_FAIL or (not passed and not skip_status):
+                status = STATUS_FAIL
+            elif status == STATUS_NOT_EXECUTED:
+                status = STATUS_PASS if passed else STATUS_FAIL
+
+            comments = ((header + "<br>" + "parameterization " + (specs or "") + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
+                (description + "<br>") if description else "") + test_result.get("comment", "")
+
+            adaptavist.edit_test_result_status(test_run_key=test_run_key,
+                                               test_case_key=test_case_key,
+                                               environment=self.test_environment,
+                                               status=status,
+                                               comment=comments,
+                                               execute_time=execute_time)
+
+            if attachment:
+                self.adaptavist.add_test_result_attachment(test_run_key=test_run_key,
+                                                           test_case_key=test_case_key,
+                                                           attachment=attachment,
+                                                           filename=test_result_data.get("filename"))
 
     def build_report_description(self, item: Item, call: CallInfo, report: TestReport, skip_status: MarkDecorator):
         """Generate standard test results for given item.
@@ -421,7 +419,7 @@ class PytestAdaptavist:
                 subkeys = [key for key in self.test_result_data if key != item.fullname and key.startswith(item.fullname)]
                 for key in subkeys:
                     report.description = "<br>".join((report.description,
-                                                      f"{key}{' blocked' if self.test_result_data[key].get('blocked', None) is True else ''}:".format(key),
+                                                      f"{key}{' blocked' if self.test_result_data[key].get('blocked', None) is True else ''}:",
                                                       self.test_result_data[key].get("comment", None) or ""))
 
             key = get_item_nodeid(item)
@@ -477,6 +475,9 @@ class PytestAdaptavist:
         report.user_properties.append(("nodeid", get_item_nodeid(item)))
         report.user_properties.append(("docstr", inspect.cleandoc(item.obj.__doc__ or "")))
 
+        if call.when not in ("call", "setup"):
+            return
+
         skip_status = get_marker(item, "block") or get_marker(item, "skip")
 
         if call.when == "setup":
@@ -489,14 +490,12 @@ class PytestAdaptavist:
             if (not call.excinfo and not skip_status and self.test_result_data[item.fullname].get("blocked", None) is not True):
                 # no skipped or blocked methods to report
                 return
-        elif call.when != "call":
-            return
 
         # if method was blocked dynamically (during call) an appropriate marker is used
         # to handle the reporting in the same way as for statically blocked methods
         # (status will be reported as "Blocked" with given comment in Adaptavist)
-        if not skip_status and ((call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)) or
-                                (not call.excinfo and self.test_result_data[item.fullname].get("blocked", None) is True)):
+        if not skip_status and (call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)
+                                or not call.excinfo and self.test_result_data[item.fullname].get("blocked", None) is True):
             reason = self.test_result_data[item.fullname].get("comment", None) or (str(
                 call.excinfo.value).partition("\n")[0] if call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception) else None)
             skip_status = pytest.mark.block(reason=reason) if ((call.excinfo and call.excinfo.type is pytest.block.Exception)
@@ -562,8 +561,8 @@ class PytestAdaptavist:
 
         if self.project_key and self.test_case_keys:
             if not self.test_plan_key and self.test_plan_suffix:
-                test_plan_name = "{0} {1}".format(self.project_key, self.test_plan_suffix)
-                test_plans = self.adaptavist.get_test_plans("projectKey = \"{0}\"".format(self.project_key))
+                test_plan_name = f"{self.project_key} {self.test_plan_suffix}"
+                test_plans = self.adaptavist.get_test_plans(f'projectKey = "{self.project_key}"')
 
                 self.test_plan_key = ([test_plan["key"] for test_plan in test_plans if test_plan["name"] == test_plan_name]
                                       or [test_plan["key"] for test_plan in test_plans if test_plan["name"].endswith(self.test_plan_suffix)] or [None])[0]
@@ -575,7 +574,7 @@ class PytestAdaptavist:
 
             if not self.test_run_key:
                 test_plan_name = self.adaptavist.get_test_plan(test_plan_key=self.test_plan_key).get("name", None) if self.test_plan_key else None
-                test_run_name = "{0} {1}".format(test_plan_name or self.project_key, self.test_run_suffix)
+                test_run_name = f"{test_plan_name or self.project_key} {self.test_run_suffix}"
 
                 # create new test run either in master (normal sequential mode) or worker0 (load balanced mode) only or - if requested - in each worker
                 distribution = worker_input.get("options", {}).get("dist", None)
@@ -645,6 +644,7 @@ class PytestAdaptavist:
             score_matrix = None
             base_url = ATMConfiguration().get("jira_server", "")
             if base_url and getattr(self, "project_key", None) and getattr(self, "test_run_key", None):
+                # pylint: disable=line-too-long
                 cycle_string = "%22%2C%20%22".join(self.test_run_keys) if getattr(self, "test_run_keys", None) else self.test_run_key or ""
                 traceability = f"{base_url}/secure/Tests.jspa#/reports/traceability/report/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TRACEABILITY_REPORT.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"
                 test_summary = f"{base_url}/secure/Tests.jspa#/reports/testresults/board/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_BOARD.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"

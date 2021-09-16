@@ -119,7 +119,8 @@ def html_row(condition, message):
         background_color = "rgb(223, 47, 54)"
         badge_text = STATUS_FAIL
 
-    return f"<div style='padding: 2pt'><span style='width: auto; margin-right: 4pt; padding: 2pt; border-radius: 4px; background-color: {background_color}; color: white; font-family: monospace; font-size: 10pt; font-weight: bold;'>{badge_text}</span>{message}</div>"
+    return f"<div style='padding: 2pt'><span style='width: auto; margin-right: 4pt; padding: 2pt; border-radius: 4px; background-color: {background_color}; \
+            color: white; font-family: monospace; font-size: 10pt; font-weight: bold;'>{badge_text}</span>{message}</div>"
 
 
 def import_module(module_name):
