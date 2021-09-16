@@ -199,6 +199,9 @@ class MetaBlock:
         if condition:
             return
 
+        self._process_condition(action_on_fail, condition, message_on_fail)
+
+    def _process_condition(self, action_on_fail, condition, message_on_fail):
         if action_on_fail == self.Action.FAIL_METHOD:
             # FAIL_METHOD: skip execution of this block/test, set it to 'Fail' and continue with next test
             assert condition, message_on_fail
