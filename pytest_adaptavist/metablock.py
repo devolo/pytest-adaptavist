@@ -11,10 +11,20 @@ from _pytest.fixtures import FixtureRequest
 from ._helpers import assume, get_item_name_and_spec, get_item_nodeid, get_marker, html_row
 from ._pytest_adaptavist import PytestAdaptavist
 
-COLORMAP = {"passed": {"green": True, "bold": True},
-            "failed": {"red": True, "bold": True},
-            "blocked": {"blue": True, "bold": True},
-            "skipped": {"yellow": True, "bold": True}}
+COLORMAP = {
+    "passed": {
+        "green": True, "bold": True
+    },
+    "failed": {
+        "red": True, "bold": True
+    },
+    "blocked": {
+        "blue": True, "bold": True
+    },
+    "skipped": {
+        "yellow": True, "bold": True
+    }
+}
 
 
 class MetaBlockAborted(Exception):
@@ -58,8 +68,8 @@ class MetaBlock:
     def __enter__(self):
         if self.step:
             # gibt's pretty --> pretty prüfen ob pretty an ist.
-                # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)')
-                build_terminal_report(when="setup", item=self.item, step=self.step, level=2)
+            # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)')
+            build_terminal_report(when="setup", item=self.item, step=self.step, level=2)
         self.start = datetime.now().timestamp()
         signal.signal(signal.SIGALRM, self._timeout_handler)
         signal.alarm(self.timeout)
@@ -87,12 +97,7 @@ class MetaBlock:
         if exc_type and exc_type is not MetaBlockAborted:
             exc_info = self.adaptavist.build_exception_info(self.item.fullname, exc_type, exc_value, traceback)
 
-            if (
-                exc_info
-                and exc_info not in (self.data.get("comment") or "")
-                and (exc_type is not pytest.skip.Exception)
-                and not skip_status
-            ):
+            if (exc_info and exc_info not in (self.data.get("comment") or "") and (exc_type is not pytest.skip.Exception) and not skip_status):
                 self.data["comment"] = "".join((self.data.get("comment", None) or "", html_row(False, exc_info)))
 
         passed = not exc_type and (len(getattr(pytest, "_failed_assumptions", [])) <= len(self.failed_assumptions))
@@ -233,6 +238,7 @@ class MetaBlock:
         else:
             # CONTINUE: try to collect failed assumption, set result to 'Fail' and continue
             assume(expr=condition, msg=message_on_fail, level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of mb.check)
+
 
 def build_terminal_report(when, item, status=None, step=None, level=1):
     """Generate (pretty) terminal output.

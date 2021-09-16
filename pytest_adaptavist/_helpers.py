@@ -132,7 +132,7 @@ def import_module(module_name):
 
 def intersection(list_a, list_b):
     """Return the intersection of two lists (maintaining the item order of the first list)."""
-    return sorted(set(list_a) & set(list_b), key = list_a.index)
+    return sorted(set(list_a) & set(list_b), key=list_a.index)
 
 
 def apply_test_case_range(collected_items, test_case_range):
@@ -159,6 +159,7 @@ def apply_test_case_range(collected_items, test_case_range):
             i += 2
 
     return collected_items
+
 
 def handle_failed_assumptions(item: Item, call: CallInfo, report: TestReport):
     """Handle failed assumptions (simulating pytest-assume, if not available)."""

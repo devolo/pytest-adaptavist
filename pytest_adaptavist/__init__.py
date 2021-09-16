@@ -6,12 +6,12 @@ import subprocess
 from contextlib import suppress
 from importlib.metadata import PackageNotFoundError, version
 from typing import Callable, Optional
-from _pytest.nodes import Node
 
 import pytest
 from _pytest.config import Config
 from _pytest.config.argparsing import Parser
 from _pytest.fixtures import FixtureRequest
+from _pytest.nodes import Node
 
 from ._atm_configuration import atm_user_is_valid
 from ._helpers import assume, import_module
@@ -38,7 +38,7 @@ def pytest_configure(config: Config):
 
     if config.getoption("-h") or config.getoption("--help"):
         return
-    
+
     adaptavist = PytestAdaptavist(config)
     config.pluginmanager.register(adaptavist, "_adaptavist")
 
@@ -114,7 +114,8 @@ def pytest_configure(config: Config):
 
         adaptavist.reporter.line(f"build_usr: {build_usr or 'unknown'}")
         adaptavist.reporter.line(f"build_url: {build_usr or 'unknown'}")
-        adaptavist.reporter.line(f"code_base: {code_base or 'unknown'} {(branch or 'unknown') if code_base else ''} {(commit or 'unknown') if code_base and branch else ''}")
+        adaptavist.reporter.line(
+            f"code_base: {code_base or 'unknown'} {(branch or 'unknown') if code_base else ''} {(commit or 'unknown') if code_base and branch else ''}")
         adaptavist.reporter.line(f"reporting: {'enabled' if getattr(config.option, 'adaptavist', False) else 'disabled'}")
 
     logger = logging.getLogger("pytest-adaptavist")
@@ -143,6 +144,7 @@ def pytest_addoption(parser: Parser):
 
 
 if import_module("xdist"):
+
     @pytest.hookimpl(trylast=True)
     def pytest_configure_node(node: Node):
         """This is called in case of using xdist to pass data to worker nodes."""
@@ -165,6 +167,7 @@ def meta_block(request: FixtureRequest) -> Callable[[Optional[int], int], MetaBl
             pytest.assume(...)
         ```
     """
+
     def get_meta_block(step: Optional[int] = None, timeout: int = META_BLOCK_TIMEOUT) -> MetaBlock:
         """Return a meta block context to process single test blocks/steps."""
         return MetaBlock(request, timeout=timeout, step=step)
