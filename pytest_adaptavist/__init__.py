@@ -40,7 +40,7 @@ def pytest_configure(config: Config):
         return
     
     adaptavist = PytestAdaptavist(config)
-    config.pluginmanager.register(adaptavist, "_adaptavist")  # something registered as adaptavist before me?!?
+    config.pluginmanager.register(adaptavist, "_adaptavist")
 
     # support for pytest-assume >= 1.2.1 (needs to be done after any potential call of pytest_configure)
     if hasattr(pytest, "assume") and not hasattr(pytest, "_failed_assumptions"):

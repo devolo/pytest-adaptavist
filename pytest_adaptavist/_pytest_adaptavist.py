@@ -56,6 +56,9 @@ class PytestAdaptavist:
         self.test_environment: List[str] = []
         self.test_case_range: List[str] = []
         self.test_plan_folder: str = ""
+        self.test_run_folder: str = ""
+        self.test_plan_suffix: str = ""
+        self.test_run_suffix: str = ""
         self.atm_configure(config)
 
     def pytest_runtest_logreport(self, report: TestReport):
@@ -70,10 +73,7 @@ class PytestAdaptavist:
             if self.test_run_key and self.test_run_key not in self.test_run_keys:
                 self.test_run_keys.append(self.test_run_key)
 
-        category, _, _ = self.config.hook.pytest_report_teststatus(report=report, config=self.config)
-        # self.stats.setdefault(category, []).append(report)  # needed for statistics and summary
-
-    def create_item_collection(self, items, collected_project_keys, collected_items):
+    def create_item_collection(self, items: List[Item], collected_project_keys: List[str], collected_items: Dict):
         """Create the list of test methods to be executed and included in adaptavist report."""
 
         if self.adaptavist and (self.project_key or self.test_run_key):
@@ -158,7 +158,7 @@ class PytestAdaptavist:
 
         return True
 
-    def setup_item_collection(self, items, collected_project_keys, collected_items):
+    def setup_item_collection(self, items: List[Item], collected_project_keys: List[str], collected_items: Dict):
         """Setup and prepare collection of available test methods."""
 
         # define the test case keys to be processed
@@ -261,7 +261,7 @@ class PytestAdaptavist:
         if skip_reason:
             pytest.skip(msg=skip_reason)
 
-    def create_report(self, test_case_key, test_step_key, execute_time, skip_status, passed, test_result_data, specs=None):
+    def create_report(self, test_case_key: str, test_step_key: Optional[str], execute_time: float, skip_status: Optional[bool], passed: bool, test_result_data: Dict[str, Any], specs=None):
         """Generate adaptavist test results for given item.
 
             :param test_case_key: The test case to report.
@@ -333,7 +333,7 @@ class PytestAdaptavist:
                                                           test_case_key=test_case_key,
                                                           step=int(test_step_key),
                                                           attachment=attachment,
-                                                          filename=test_result_data.get("filename", None))
+                                                          filename=test_result_data.get("filename"))
 
                 # adjust parent test result status according to current test script results
                 test_result = adaptavist.get_test_result(test_run_key, test_case_key)
@@ -386,7 +386,7 @@ class PytestAdaptavist:
                     self.adaptavist.add_test_result_attachment(test_run_key=test_run_key,
                                                                test_case_key=test_case_key,
                                                                attachment=attachment,
-                                                               filename=test_result_data.get("filename", None))
+                                                               filename=test_result_data.get("filename"))
 
     def build_report_description(self, item: Item, call: CallInfo, report: TestReport, skip_status: MarkDecorator):
         """Generate standard test results for given item.
@@ -476,8 +476,7 @@ class PytestAdaptavist:
                 self.setup_report(getattr(item.config, "workerinput", {}))
                 for user_property in report.user_properties:
                     if user_property[0] == "atmcfg":
-                        user_property[1] = {"project_key": self.project_key, "test_plan_key": self.test_plan_key, "test_run_key": self.test_run_key}
-                    
+                        del user_property[1]["test_environment"]
             if (
                 not call.excinfo
                 and not skip_status
@@ -681,7 +680,7 @@ class PytestAdaptavist:
             high_prios_failed += 1 if value["status"] == "failed" and value["priority"] == PRIORITY_HIGH else 0
             not_built = not_built and value["status"] not in ["passed", "failed"]
 
-        if exceptions_raised or high_prios_failed or exitstatus in (3, 4):
+        if exceptions_raised or high_prios_failed or exitstatus in {3, 4}:
             status = "FAILURE"
         elif exitstatus == 1:
             status = "UNSTABLE"

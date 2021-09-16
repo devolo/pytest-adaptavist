@@ -80,7 +80,7 @@ def calc_test_result_status(step_results: List[Dict[str, str]]) -> str:
         STATUS_FAIL: 0x0  # 0000
     }
     if not step_results:
-        return "Not Executed"
+        return STATUS_NOT_EXECUTED
     status = 0xF
     for result in step_results:
         status &= status_map[result["status"]]
