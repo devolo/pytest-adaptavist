@@ -1,3 +1,5 @@
+"""Helper methods used by the module."""
+
 import inspect
 import os
 from typing import Dict, List, Optional, Tuple
@@ -90,15 +92,10 @@ def get_item_nodeid(item: Item) -> str:
     return item.fspath.relto(item.config.rootdir).replace("\\", "/") + "::" + item.getmodpath().replace(".", "::")
 
 
-def get_marker(item: Item, name: str):
-    """Get item marker (wrapper for supporting older and newer pytest versions)."""
-    return (getattr(item, "get_closest_marker", None) or getattr(item, "get_marker", None))(name)
-
-
-def html_row(condition, message):
+def html_row(condition: bool, message: str) -> str:
     """Generate an html status row to be displayed in test case results."""
     if not message:
-        return None
+        return ""
 
     if condition:
         background_color = "rgb(58, 187, 75)"
@@ -119,7 +116,7 @@ def import_module(module_name):
         return None
 
 
-def intersection(list_a, list_b):
+def intersection(list_a: List, list_b: List) -> List:
     """Return the intersection of two lists (maintaining the item order of the first list)."""
     return sorted(set(list_a) & set(list_b), key=list_a.index)
 

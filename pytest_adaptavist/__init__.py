@@ -8,13 +8,15 @@ from importlib.metadata import PackageNotFoundError, version
 from typing import Callable, Optional
 
 import pytest
+from _pytest._io.saferepr import saferepr
 from _pytest.config import Config
 from _pytest.config.argparsing import Parser
 from _pytest.fixtures import FixtureRequest
 from _pytest.nodes import Node
+from _pytest.outcomes import OutcomeException, _with_exception
 
 from ._atm_configuration import atm_user_is_valid
-from ._helpers import assume, import_module
+from ._helpers import import_module
 from ._pytest_adaptavist import PytestAdaptavist
 from .metablock import MetaBlock
 
@@ -23,7 +25,7 @@ try:
 except PackageNotFoundError:
     # package is not installed - e.g. pulled and run locally
     __version__ = "0.0.0"
-from _pytest._io.saferepr import saferepr
+
 
 META_BLOCK_TIMEOUT = 600
 
@@ -62,26 +64,11 @@ def pytest_configure(config: Config):
     adaptavist = PytestAdaptavist(config)
     config.pluginmanager.register(adaptavist, "_adaptavist")
 
-    # support for pytest-assume >= 1.2.1 (needs to be done after any potential call of pytest_configure)
-    # pytest_assume = config.pluginmanager.getplugin("assume")
-    # if pytest_assume and not hasattr(pytest, "_failed_assumptions") and hasattr(pytest_assume, "plugin"):
-    #     # if hasattr(pytest, "assume") and not hasattr(pytest, "_failed_assumptions"):
-    #     # pytest-assume 1.2.1 is using _FAILED_ASSUMPTIONS and _ASSUMPTION_LOCALS
-    #     setattr(pytest, "_failed_assumptions", getattr(pytest_assume.plugin, "_FAILED_ASSUMPTIONS", []))
-    #     setattr(pytest, "_assumption_locals", getattr(pytest_assume.plugin, "_ASSUMPTION_LOCALS", []))
-
-    # if not hasattr(pytest, "_failed_assumptions"):
-    #     # overwrite all assumption related attributes by local ones
-    #     setattr(pytest, "_failed_assumptions", [])
-    #     setattr(pytest, "_assumption_locals", [])
-    #     pytest.assume = assume
     # support for pytest.block
-
+    @_with_exception(Blocked)
     def block(msg=""):
         __tracebackhide__ = True  # pylint: disable=unused-variable
         raise Blocked(msg=msg)
-
-    block.Exception = Blocked
 
     pytest.block = block
 
@@ -149,7 +136,7 @@ def get_code_base_url() -> Optional[str]:
     return code_base
 
 
-class Blocked(pytest.skip.Exception):
+class Blocked(OutcomeException):
     """Block exception used to abort test execution and set result status to "Blocked"."""
 
 
@@ -170,7 +157,7 @@ if import_module("xdist"):
 @pytest.fixture(scope="function")
 def meta_data(request: FixtureRequest):
     """This can be used to store data inside of test methods."""
-    adaptavist = request.config.pluginmanager.getplugin("_adaptavist")
+    adaptavist: PytestAdaptavist = request.config.pluginmanager.getplugin("_adaptavist")
     return adaptavist.test_result_data[request.node.fullname]
 
 
@@ -189,13 +176,3 @@ def meta_block(request: FixtureRequest) -> Callable[[Optional[int], int], MetaBl
         return MetaBlock(request, timeout=timeout, step=step)
 
     return get_meta_block
-
-
-# from _pytest.outcomes import _with_exception
-# from _pytest.outcomes import Skipped
-# @pytest.hookimpl()
-# @_with_exception(Blocked)
-# @_with_exception(Skipped)
-# def pytest_runtest_setup(item):
-#     if item.get_closest_marker("block"):
-#         pytest.block()

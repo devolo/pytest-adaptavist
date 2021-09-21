@@ -1,3 +1,5 @@
+"""Process reporting of tests or test steps."""
+
 import inspect
 import re
 import signal
@@ -8,7 +10,7 @@ from typing import Any, Optional
 import pytest
 from _pytest.fixtures import FixtureRequest
 
-from ._helpers import assume, get_item_name_and_spec, get_item_nodeid, get_marker, html_row
+from ._helpers import get_item_name_and_spec, get_item_nodeid, html_row
 from ._pytest_adaptavist import PytestAdaptavist
 
 COLORMAP = {
@@ -62,7 +64,8 @@ class MetaBlock:
         self.data = self.adaptavist.test_result_data.setdefault(self.item.fullname + ("_" + str(step) if step else ""), {"comment": None, "attachment": None})
         self.failed_assumptions = getattr(pytest, "_failed_assumptions", [])[:]
 
-    def _timeout_handler(self, signum, frame):
+    @staticmethod
+    def _timeout_handler(signum, frame):
         raise TimeoutError("The test step exceeded its timewindow and timed out")
 
     def __enter__(self):
@@ -81,7 +84,7 @@ class MetaBlock:
         if exc_type is TimeoutError:
             self.data["blocked"] = True
             pytest.skip(msg=f"Blocked. {self.item_name} failed: The test step exceeded its timewindow and timed out")
-        skip_status = get_marker(self.item, "block") or get_marker(self.item, "skip")
+        skip_status = self.item.get_closest_marker("block") or self.item.get_closest_marker("skip")
 
         # if method was blocked dynamically (during call) an appropriate marker is used
         # to handle the reporting in the same way as for statically blocked methods
@@ -126,7 +129,7 @@ class MetaBlock:
             # adaptavist reporting disabled: no need to proceed here
             return exc_type is MetaBlockAborted  # suppress MetaBlockAborted exception
 
-        marker = get_marker(self.item, "testcase")
+        marker = self.item.get_closest_marker("testcase")
         if marker is not None:
 
             test_case_key = marker.kwargs["test_case_key"]
@@ -168,8 +171,8 @@ class MetaBlock:
         attachment = kwargs.pop("attachment", None)
         filename = kwargs.pop("filename", None)
         description = kwargs.pop("description", None)
-        message_on_fail = kwargs.pop("message_on_fail", None) or message
-        message_on_pass = kwargs.pop("message_on_pass", None)
+        message_on_fail = kwargs.pop("message_on_fail", None) or message or ""
+        message_on_pass = kwargs.pop("message_on_pass", "")
 
         if kwargs:
             raise SyntaxWarning(f"Unknown arguments: {kwargs}")
@@ -201,7 +204,7 @@ class MetaBlock:
 
         self._process_condition(action_on_fail, condition, message_on_fail)
 
-    def _process_condition(self, action_on_fail, condition, message_on_fail):
+    def _process_condition(self, action_on_fail: Action, condition: bool, message_on_fail: str):
         if action_on_fail == self.Action.FAIL_METHOD:
             # FAIL_METHOD: skip execution of this block/test, set it to 'Fail' and continue with next test
             assert condition, message_on_fail
@@ -221,8 +224,7 @@ class MetaBlock:
                 if not seen:
                     self.adaptavist.test_result_data[item.fullname]["blocked"] = True
                     self.adaptavist.test_result_data[item.fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
-                if item.name == self.item.name:
-                    seen = False
+                seen = item.name != self.item.name
             pytest.skip(msg=f"Blocked. {self.item_name} failed: {message_on_fail}")
         elif action_on_fail == self.Action.FAIL_SESSION:
             # FAIL_SESSION: skip execution of this block/test, set it to 'Fail' and block following tests
@@ -231,8 +233,7 @@ class MetaBlock:
                 if not seen:
                     self.adaptavist.test_result_data[item.fullname]["blocked"] = True
                     self.adaptavist.test_result_data[item.fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
-                if item.name == self.item.name:
-                    seen = False
+                seen = item.name != self.item.name
             assert condition, message_on_fail
         elif action_on_fail == self.Action.EXIT_SESSION:
             # EXIT_SESSION: skip execution of this block/test, set it to 'Blocked' and exit session

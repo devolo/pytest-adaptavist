@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 import pytest
 from _pytest.config import Config
 from _pytest.main import Session
-from _pytest.mark.structures import MarkDecorator
+from _pytest.mark.structures import Mark
 from _pytest.nodes import Item
 from _pytest.reports import TestReport
 from _pytest.runner import CallInfo
@@ -22,7 +22,6 @@ from ._helpers import (apply_test_case_range,
                        calc_test_result_status,
                        get_item_name_and_spec,
                        get_item_nodeid,
-                       get_marker,
                        handle_failed_assumptions,
                        html_row,
                        import_module,
@@ -32,7 +31,6 @@ from ._helpers import (apply_test_case_range,
 class PytestAdaptavist:
 
     def __init__(self, config: Config):
-        self.config = config
         # dictionary to store temporal info about test items
         self.item_status_info: Dict[str, Any] = {}
         # dictionary to control whether to create new or to update existing test results
@@ -45,8 +43,7 @@ class PytestAdaptavist:
 
         self.test_case_key = None
         self.test_run_keys: List[str] = []
-        self.items = None
-        self.adaptavist = None
+        self.items: List[Item] = []
         self.reporter: TerminalReporter = config.pluginmanager.getplugin("terminalreporter")
         self.build_url = ""
         self.code_base = ""
@@ -56,27 +53,27 @@ class PytestAdaptavist:
         self.test_case_keys: List[str] = []
         self.test_environment: List[str] = []
         self.test_case_range: List[str] = []
-        self.test_plan_folder: str = ""
-        self.test_run_folder: str = ""
-        self.test_plan_suffix: str = ""
-        self.test_run_suffix: str = ""
+        self.test_plan_folder = ""
+        self.test_run_folder = ""
+        self.test_plan_suffix = ""
+        self.test_run_suffix = ""
+
+        self.adaptavist: Adaptavist
+
         self.atm_configure(config)
 
     def pytest_runtest_logreport(self, report: TestReport):
-        """"""
-
-        user_properties = dict(report.user_properties)
-
+        """Process the test report produced for each of the setup, call and teardown runtest phases of an item."""
+        user_properties: Dict[str, Any] = dict(report.user_properties)
         if user_properties.get("atmcfg"):
-            self.test_plan_key = user_properties["atmcfg"].get("test_plan_key", None)
-            self.project_key = user_properties["atmcfg"].get("project_key", None)
-            self.test_run_key = user_properties["atmcfg"].get("test_run_key", None)
+            self.test_plan_key = user_properties["atmcfg"].get("test_plan_key", "")
+            self.project_key = user_properties["atmcfg"].get("project_key", "")
+            self.test_run_key = user_properties["atmcfg"].get("test_run_key", "")
             if self.test_run_key and self.test_run_key not in self.test_run_keys:
                 self.test_run_keys.append(self.test_run_key)
 
     def create_item_collection(self, items: List[Item], collected_project_keys: List[str], collected_items: Dict):
         """Create the list of test methods to be executed and included in adaptavist report."""
-
         if self.adaptavist and (self.project_key or self.test_run_key):
             if self.test_case_keys:
                 # add any specified test cases, even if they are not implemented
@@ -87,7 +84,7 @@ class PytestAdaptavist:
                 # only include those test cases that are part of collected projects (including test database)
                 search_mask = f"""projectKey IN ("{'", "'.join(collected_project_keys + ["TEST"])}")"""
                 test_cases = [test_case["key"] for test_case in self.adaptavist.get_test_cases(
-                    search_mask=search_mask)] if items and getattr(items[0].config.option, "adaptavist") else collected_items.keys()
+                    search_mask=search_mask)] if items and getattr(items[0].config.option, "adaptavist") else list(collected_items.keys())
             else:
                 # only include those test cases that are part of this test run
                 test_run = self.adaptavist.get_test_run(self.test_run_key)
@@ -189,7 +186,7 @@ class PytestAdaptavist:
                 if not project_key:
                     project_key = getattr(item.cls, "project_key", None)
 
-                    marker = get_marker(item, "project")
+                    marker = item.get_closest_marker("project")
                     if marker is not None:
                         project_key = marker.kwargs["project_key"]
 
@@ -238,8 +235,8 @@ class PytestAdaptavist:
         if not self.atm_configure(config):
             return
 
-        collected_project_keys = []
-        collected_items = {}
+        collected_project_keys: List[str] = []
+        collected_items: Dict[str, Any] = {}
 
         self.setup_item_collection(items, collected_project_keys, collected_items)
         self.create_item_collection(items, collected_project_keys, collected_items)
@@ -250,7 +247,7 @@ class PytestAdaptavist:
 
             Used to skip test items dynamically (e.g. triggered by some other item or control function).
         """
-        skip_status = get_marker(item, "block") or get_marker(item, "skip")
+        skip_status = item.get_closest_marker("block") or item.get_closest_marker("skip")
 
         if skip_status:
             skip_reason = skip_status.kwargs.get("reason", "")
@@ -263,10 +260,10 @@ class PytestAdaptavist:
                       test_case_key: str,
                       test_step_key: Optional[str],
                       execute_time: float,
-                      skip_status: Optional[bool],
+                      skip_status: Optional[Mark],
                       passed: bool,
                       test_result_data: Dict[str, Any],
-                      specs=None):
+                      specs: Optional[str] = None):
         """Generate adaptavist test results for given item.
 
             :param test_case_key: The test case to report.
@@ -281,17 +278,15 @@ class PytestAdaptavist:
         if not (test_run_key or test_case_key in (self.test_case_key or [])):
             return
 
-        adaptavist = self.adaptavist
-
-        test_result = adaptavist.get_test_result(test_run_key, test_case_key)
+        test_result = self.adaptavist.get_test_result(test_run_key, test_case_key)
 
         if not test_result or self.test_refresh_info[test_case_key + (specs or "")] != test_run_key:
             # create new test result to prevent accumulation of data
             # when using an existing test run key multiple times
-            adaptavist.create_test_result(test_run_key=test_run_key, test_case_key=test_case_key, environment=self.test_environment, status=None)
+            self.adaptavist.create_test_result(test_run_key=test_run_key, test_case_key=test_case_key, environment=self.test_environment, status=None)
 
             # refetch result
-            test_result = adaptavist.get_test_result(test_run_key, test_case_key)
+            test_result = self.adaptavist.get_test_result(test_run_key, test_case_key)
 
             self.test_refresh_info[test_case_key + (specs or "")] = test_run_key
 
@@ -305,22 +300,21 @@ class PytestAdaptavist:
         description = None if skip_status else test_result_data.get("description")
         attachment = None if skip_status else test_result_data.get("attachment")
 
-        now = datetime.now().strftime('%Y%m%d%H%M')
-        header = f"---------------------------------------- {now} ----------------------------------------" if specs else ""
+        header = f"---------------------------------------- {datetime.now().strftime('%Y%m%d%H%M')} ----------------------------------------" if specs else ""
 
         if not skip_status and not test_step_key:
             # update test case with CI related info
-            adaptavist.edit_test_case(test_case_key,
-                                      labels=["automated"],
-                                      build_urls=[f"<a href=\"{self.build_url}\">{self.build_url}</a>" if self.build_url else ""],
-                                      code_bases=[f"<a href=\"{self.code_base}\">{self.code_base}</a>" if self.code_base else ""])
+            self.adaptavist.edit_test_case(test_case_key,
+                                           labels=["automated"],
+                                           build_urls=[f"<a href=\"{self.build_url}\">{self.build_url}</a>" if self.build_url else ""],
+                                           code_bases=[f"<a href=\"{self.code_base}\">{self.code_base}</a>" if self.code_base else ""])
 
         if test_step_key:
 
             # in case of parameterization or repetition the status will be Fail if one iteration failed
-            last_result = next((result for result in test_result.get("scriptResults", []) if result["index"] == int(test_step_key) - 1), {})
+            last_result: Dict[str, str] = next((result for result in test_result.get("scriptResults", []) if result["index"] == int(test_step_key) - 1), {})
 
-            if skip_status and last_result.get("status", None) != STATUS_FAIL:
+            if skip_status and last_result.get("status") != STATUS_FAIL:
                 status = STATUS_BLOCKED if skip_status.name == "block" else STATUS_NOT_EXECUTED
             else:
                 status = STATUS_PASS if passed and last_result.get("status") != STATUS_FAIL else STATUS_FAIL
@@ -328,22 +322,22 @@ class PytestAdaptavist:
             comments = ((header + "<br>" + "parameterization " + (specs or "") + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
                 (description + "<br>") if description else "") + (last_result.get("comment", "") if specs else "")
 
-            adaptavist.edit_test_script_status(test_run_key=test_run_key,
-                                               test_case_key=test_case_key,
-                                               step=int(test_step_key),
-                                               environment=self.test_environment,
-                                               status=status,
-                                               comment=comments if (specs or last_result.get("status") != STATUS_FAIL) else None)
+            self.adaptavist.edit_test_script_status(test_run_key=test_run_key,
+                                                    test_case_key=test_case_key,
+                                                    step=int(test_step_key),
+                                                    environment=self.test_environment,
+                                                    status=status,
+                                                    comment=comments if (specs or last_result.get("status") != STATUS_FAIL) else None)
 
             if attachment:
-                adaptavist.add_test_script_attachment(test_run_key=test_run_key,
-                                                      test_case_key=test_case_key,
-                                                      step=int(test_step_key),
-                                                      attachment=attachment,
-                                                      filename=test_result_data.get("filename"))
+                self.adaptavist.add_test_script_attachment(test_run_key=test_run_key,
+                                                           test_case_key=test_case_key,
+                                                           step=int(test_step_key),
+                                                           attachment=attachment,
+                                                           filename=test_result_data.get("filename"))
 
             # adjust parent test result status according to current test script results
-            test_result = adaptavist.get_test_result(test_run_key, test_case_key)
+            test_result = self.adaptavist.get_test_result(test_run_key, test_case_key)
             status = calc_test_result_status(test_result.get("scriptResults", []))
 
             comments = ""
@@ -357,13 +351,13 @@ class PytestAdaptavist:
             # find the right position to insert comments of this test execution (in case of parametrized or repeated test methods)
             index = test_result.get("comment", "").find("---------------------------------------- ")
 
-            adaptavist.edit_test_result_status(test_run_key=test_run_key,
-                                               test_case_key=test_case_key,
-                                               environment=self.test_environment,
-                                               status=status,
-                                               comment=(test_result.get("comment", "") + comments) if index < 0 else
-                                               (test_result.get("comment", "")[:index] + comments + test_result.get("comment", "")[index:]),
-                                               execute_time=execute_time)
+            self.adaptavist.edit_test_result_status(test_run_key=test_run_key,
+                                                    test_case_key=test_case_key,
+                                                    environment=self.test_environment,
+                                                    status=status,
+                                                    comment=(test_result.get("comment", "") + comments) if index < 0 else
+                                                    (test_result.get("comment", "")[:index] + comments + test_result.get("comment", "")[index:]),
+                                                    execute_time=execute_time)
 
         else:
             # change parent test result status only if blocked or failed or if there was no previous failure
@@ -378,12 +372,12 @@ class PytestAdaptavist:
             comments = ((header + "<br>" + "parameterization " + (specs or "") + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
                 (description + "<br>") if description else "") + test_result.get("comment", "")
 
-            adaptavist.edit_test_result_status(test_run_key=test_run_key,
-                                               test_case_key=test_case_key,
-                                               environment=self.test_environment,
-                                               status=status,
-                                               comment=comments,
-                                               execute_time=execute_time)
+            self.adaptavist.edit_test_result_status(test_run_key=test_run_key,
+                                                    test_case_key=test_case_key,
+                                                    environment=self.test_environment,
+                                                    status=status,
+                                                    comment=comments,
+                                                    execute_time=execute_time)
 
             if attachment:
                 self.adaptavist.add_test_result_attachment(test_run_key=test_run_key,
@@ -391,20 +385,22 @@ class PytestAdaptavist:
                                                            attachment=attachment,
                                                            filename=test_result_data.get("filename"))
 
-    def build_report_description(self, item: Item, call: CallInfo, report: TestReport, skip_status: MarkDecorator):
-        """Generate standard test results for given item.
-            :param item: The item to report.
-                :param call: The call info object.
-                :param report: The report object.
-                :param skip_status: pytest marker, may hold either a pytest.mark.skip or pytest.mark.block
+    def build_report_description(self, item: Item, call: CallInfo, report: TestReport, skip_status: Mark):
         """
-        report.description = (skip_status.kwargs.get("reason", None) if skip_status else "") or self.test_result_data[item.fullname].get("comment", None) or ""
+        Generate standard test results for given item.
+
+        :param item: The item to report.
+        :param call: The call info object.
+        :param report: The report object.
+        :param skip_status: pytest marker, may hold either a pytest.mark.skip or pytest.mark.block
+        """
+        description = (skip_status.kwargs.get("reason") if skip_status else "") or self.test_result_data[item.fullname].get("comment") or ""
 
         if call.when != "teardown" or call.excinfo:
             test_case_key = None
             test_case_name = None
             priority = None
-            marker = get_marker(item, "testcase")
+            marker = item.get_closest_marker("testcase")
             if marker is not None:
                 test_case_key = marker.kwargs["test_case_key"]
                 if test_case_key in (self.test_case_keys or []):
@@ -415,9 +411,9 @@ class PytestAdaptavist:
             if (not (call.excinfo and call.excinfo.type is pytest.skip.Exception) and not skip_status and test_case_key):
                 subkeys = [key for key in self.test_result_data if key != item.fullname and key.startswith(item.fullname)]
                 for key in subkeys:
-                    report.description = "<br>".join((report.description,
-                                                      f"{key}{' blocked' if self.test_result_data[key].get('blocked', None) is True else ''}:",
-                                                      self.test_result_data[key].get("comment", None) or ""))
+                    description = "<br>".join((description,
+                                               f"{key}{' blocked' if self.test_result_data[key].get('blocked', None) is True else ''}:",
+                                               self.test_result_data[key].get("comment", None) or ""))
 
             key = get_item_nodeid(item)
 
@@ -429,15 +425,13 @@ class PytestAdaptavist:
                 "priority": priority,
                 "status": outcome,
                 "duration": report.duration,
-                "details": report.description or "",
+                "details": description or "",
                 "exc_info": is_unexpected_exception(self.item_status_info[item.fullname].get("exc_info", (None, None, None))[0])
             }
 
-    def build_exception_info(self, item_name, exc_type, exc_value, traceback):
+    def build_exception_info(self, item_name, exc_type, exc_value, traceback) -> str:
         """Generate description info about exceptions."""
-
-        exc_info = None
-
+        exc_info = ""
         if exc_type and (exc_type, exc_value, traceback) != self.item_status_info[item_name].get("exc_info", None):
             if exc_type is AssertionError or exc_type is pytest.skip.Exception:
                 # in case of assertion only report exception value (not line of code)
@@ -455,10 +449,7 @@ class PytestAdaptavist:
 
     @pytest.hookimpl(hookwrapper=True, tryfirst=True)
     def pytest_runtest_makereport(self, item: Item, call: CallInfo):
-        """This is called at setup, run/call and teardown of test items.
-
-            Generates adaptavist test run results from test reports.
-        """
+        """This is called at setup, run/call and teardown of test items. Generates adaptavist test run results from test reports."""
         outcome = yield
         report: TestReport = outcome.get_result()
         report.user_properties.append(
@@ -475,7 +466,7 @@ class PytestAdaptavist:
         if call.when not in ("call", "setup"):
             return
 
-        skip_status = get_marker(item, "block") or get_marker(item, "skip")
+        skip_status = item.get_closest_marker("block") or item.get_closest_marker("skip")
 
         if call.when == "setup":
             if getattr(item.config.option, "adaptavist", False):
@@ -530,7 +521,7 @@ class PytestAdaptavist:
             # this item has been reported already within a meta block context (see below)
             return
 
-        marker = get_marker(item, "testcase")
+        marker = item.get_closest_marker("testcase")
         if marker is not None:
 
             test_case_key = marker.kwargs["test_case_key"]
@@ -664,10 +655,8 @@ class PytestAdaptavist:
         exceptions_raised = 0
         high_prios_failed = 0
 
-        report = self.report
-
         not_built = True
-        for value in report.values():
+        for value in self.report.values():
             exceptions_raised += 1 if value["exc_info"] else 0
             high_prios_failed += 1 if value["status"] == "failed" and value["priority"] == PRIORITY_HIGH else 0
             not_built = not_built and value["status"] not in ["passed", "failed"]
@@ -693,9 +682,9 @@ class PytestAdaptavist:
         markup = {colormap[status]: True, "bold": True}
 
         if self.reporter:
-            self.reporter.write_sep("=", **markup)
+            self.reporter.write_sep("=", title=None, fullwidth=None, **markup)
             self.reporter.write_line(line, **markup)
-            self.reporter.write_sep("=", **markup)
+            self.reporter.write_sep("=", title=None, fullwidth=None, **markup)
 
 
 def is_unexpected_exception(exc_type: Exception) -> bool:
