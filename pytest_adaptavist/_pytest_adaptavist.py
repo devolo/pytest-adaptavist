@@ -34,13 +34,13 @@ class PytestAdaptavist:
     def __init__(self, config: Config):
         self.config = config
         # dictionary to store temporal info about test items
-        self.item_status_info: Dict[str, str] = {}
+        self.item_status_info: Dict[str, Any] = {}
         # dictionary to control whether to create new or to update existing test results
-        self.test_refresh_info: Dict[str, str] = {}
+        self.test_refresh_info: Dict[str, Any] = {}
         # to be able to store data inside of test methods (see meta_data function down below)
-        self.test_result_data: Dict[str, str] = {}
+        self.test_result_data: Dict[str, Any] = {}
         # dictionary to store final report
-        self.report: Dict[str, str] = {}
+        self.report: Dict[str, Any] = {}
         self.project_key = None
 
         self.test_case_key = None
@@ -252,14 +252,11 @@ class PytestAdaptavist:
         """
         skip_status = get_marker(item, "block") or get_marker(item, "skip")
 
-        skip_reason = None
+        if skip_status:
+            skip_reason = skip_status.kwargs.get("reason", "")
+            if not skip_reason and self.test_result_data[item.fullname].get("blocked") is True:
+                skip_reason = self.test_result_data[item.fullname].get("comment", "")
 
-        if not skip_reason and skip_status:
-            skip_reason = skip_status.kwargs.get("reason", None)
-        if not skip_reason and self.test_result_data[item.fullname].get("blocked", None) is True:
-            skip_reason = self.test_result_data[item.fullname].get("comment", None)
-
-        if skip_reason:
             pytest.skip(msg=skip_reason)
 
     def create_report(self,
@@ -497,7 +494,7 @@ class PytestAdaptavist:
         if not skip_status and (call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)
                                 or not call.excinfo and self.test_result_data[item.fullname].get("blocked", None) is True):
             reason = self.test_result_data[item.fullname].get("comment", None) or (str(
-                call.excinfo.value).partition("\n")[0] if call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception) else None)
+                call.excinfo.value).partition("\n")[0] if call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception) else "")
             skip_status = pytest.mark.block(reason=reason) if ((call.excinfo and call.excinfo.type is pytest.block.Exception)
                                                                or self.test_result_data[item.fullname].get("blocked", None) is True) else pytest.mark.skip(
                                                                    reason=reason)

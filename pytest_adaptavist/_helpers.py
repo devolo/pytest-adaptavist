@@ -3,13 +3,14 @@ import os
 from typing import Dict, List, Optional, Tuple
 
 import pytest
+from _pytest._io.saferepr import saferepr
 from _pytest.nodes import Item
 from _pytest.reports import TestReport
 from _pytest.runner import CallInfo
 from adaptavist.const import STATUS_BLOCKED, STATUS_FAIL, STATUS_IN_PROGRESS, STATUS_NOT_EXECUTED, STATUS_PASS
 
 
-def assume(expr: Exception, msg: Optional[str] = None, level: int = 1):
+def assume(expr: bool, msg: Optional[str] = None, level: int = 1):
     """Assume expression.
 
         :param expr: The expression or condition to be checked.
@@ -29,27 +30,14 @@ def assume(expr: Exception, msg: Optional[str] = None, level: int = 1):
         entry = "{path}:{line}: AssumptionFailure\n\t{context}".format(**locals())
 
     if getattr(pytest, "_showlocals", False):
-        try:
-            from py.io import saferepr
-        except ImportError:
-            saferepr = repr
-
-        # Debatable whether we should display locals for
-        # every failed assertion, or just the final one.
-        # I'm defaulting to per-assumption, just because vars
-        # can easily change between assumptions.
         pretty_locals = ["%-10s = %s" % (name, saferepr(val)) for name, val in frame.f_locals.items()]
-        getattr(pytest, "_assumption_locals", []).append(pretty_locals)
+        pytest._assumption_locals.append(pretty_locals)
 
     # the following lines are necessary to support both 1.x and 2.x versions of pytest-assume
     pytest_assume = import_module("pytest_assume")
-    if pytest_assume and hasattr(pytest_assume, "plugin") and hasattr(pytest_assume.plugin, "Assumption"):
+    if pytest_assume:
         exc_tb = None
-        # 2.x
         getattr(pytest, "_failed_assumptions", []).append(pytest_assume.plugin.Assumption(entry, exc_tb, pretty_locals))
-    else:
-        # 1.x
-        getattr(pytest, "_failed_assumptions", []).append(entry)
 
 
 def calc_test_result_status(step_results: List[Dict[str, str]]) -> str:

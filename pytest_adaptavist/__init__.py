@@ -23,8 +23,28 @@ try:
 except PackageNotFoundError:
     # package is not installed - e.g. pulled and run locally
     __version__ = "0.0.0"
+from _pytest._io.saferepr import saferepr
 
 META_BLOCK_TIMEOUT = 600
+
+
+@pytest.hookimpl()
+def pytest_assume_summary_report(failed_assumptions):
+    print()
+
+
+@pytest.hookimpl()
+def pytest_assume_fail(lineno, entry):
+    import inspect
+    frame = inspect.stack()[max([1])][0]
+    pretty_locals = ["%-10s = %s" % (name, saferepr(val)) for name, val in frame.f_locals.items()]
+    exc_tb = None
+    getattr(pytest, "_failed_assumptions", []).append(pytest.assume.plugin.Assumption(entry, exc_tb, pretty_locals))
+
+
+@pytest.hookimpl()
+def pytest_assume_pass(lineno, entry):
+    print()
 
 
 @pytest.hookimpl(trylast=True)
@@ -43,18 +63,18 @@ def pytest_configure(config: Config):
     config.pluginmanager.register(adaptavist, "_adaptavist")
 
     # support for pytest-assume >= 1.2.1 (needs to be done after any potential call of pytest_configure)
-    pytest_assume = config.pluginmanager.getplugin("assume")
-    if pytest_assume and not hasattr(pytest, "_failed_assumptions") and hasattr(pytest_assume, "plugin"):
-        # if hasattr(pytest, "assume") and not hasattr(pytest, "_failed_assumptions"):
-        # pytest-assume 1.2.1 is using _FAILED_ASSUMPTIONS and _ASSUMPTION_LOCALS
-        setattr(pytest, "_failed_assumptions", getattr(pytest_assume.plugin, "_FAILED_ASSUMPTIONS", []))
-        setattr(pytest, "_assumption_locals", getattr(pytest_assume.plugin, "_ASSUMPTION_LOCALS", []))
+    # pytest_assume = config.pluginmanager.getplugin("assume")
+    # if pytest_assume and not hasattr(pytest, "_failed_assumptions") and hasattr(pytest_assume, "plugin"):
+    #     # if hasattr(pytest, "assume") and not hasattr(pytest, "_failed_assumptions"):
+    #     # pytest-assume 1.2.1 is using _FAILED_ASSUMPTIONS and _ASSUMPTION_LOCALS
+    #     setattr(pytest, "_failed_assumptions", getattr(pytest_assume.plugin, "_FAILED_ASSUMPTIONS", []))
+    #     setattr(pytest, "_assumption_locals", getattr(pytest_assume.plugin, "_ASSUMPTION_LOCALS", []))
 
-    if not hasattr(pytest, "_failed_assumptions"):
-        # overwrite all assumption related attributes by local ones
-        setattr(pytest, "_failed_assumptions", [])
-        setattr(pytest, "_assumption_locals", [])
-        pytest.assume = assume
+    # if not hasattr(pytest, "_failed_assumptions"):
+    #     # overwrite all assumption related attributes by local ones
+    #     setattr(pytest, "_failed_assumptions", [])
+    #     setattr(pytest, "_assumption_locals", [])
+    #     pytest.assume = assume
     # support for pytest.block
 
     def block(msg=""):
@@ -169,3 +189,13 @@ def meta_block(request: FixtureRequest) -> Callable[[Optional[int], int], MetaBl
         return MetaBlock(request, timeout=timeout, step=step)
 
     return get_meta_block
+
+
+# from _pytest.outcomes import _with_exception
+# from _pytest.outcomes import Skipped
+# @pytest.hookimpl()
+# @_with_exception(Blocked)
+# @_with_exception(Skipped)
+# def pytest_runtest_setup(item):
+#     if item.get_closest_marker("block"):
+#         pytest.block()
