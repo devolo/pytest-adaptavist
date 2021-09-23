@@ -4,9 +4,10 @@ import re
 import sys
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import pytest
+from _pytest._io.saferepr import saferepr
 from _pytest.config import Config
 from _pytest.main import Session
 from _pytest.mark.structures import Mark
@@ -58,7 +59,10 @@ class PytestAdaptavist:
         self.test_plan_suffix = ""
         self.test_run_suffix = ""
 
-        self.adaptavist: Adaptavist
+        self.failed_assumptions_step = []
+
+        self.cfg = ATMConfiguration()
+        self.adaptavist: Adaptavist = Adaptavist(self.cfg.get("jira_server", ""), self.cfg.get("jira_username", ""), self.cfg.get("jira_password", ""))
 
         self.atm_configure(config)
 
@@ -112,12 +116,8 @@ class PytestAdaptavist:
 
     def atm_configure(self, config: Config) -> bool:
         """Setup adaptavist reporting based on given requirements (config)."""
-        cfg = ATMConfiguration()
-
-        if not self.adaptavist:
-            self.adaptavist = Adaptavist(cfg.get("jira_server", ""), cfg.get("jira_username", ""), cfg.get("jira_password", ""))
         if not self.project_key:
-            self.project_key = cfg.get("project_key", None)
+            self.project_key = self.cfg.get("project_key", None)
 
         # support of multiple environments
         # in case of using xdist's "each" mode, a test run for each specified environment is created
@@ -126,33 +126,33 @@ class PytestAdaptavist:
         distribution = worker_input.get("options", {}).get("dist", None)
         index = int(worker_input.get("workerid", "gw0").split("gw")[1]) if (distribution == "each") else 0
 
-        entry = self.test_environment or cfg.get("test_environment", []) or []
+        entry = self.test_environment or self.cfg.get("test_environment", []) or []
         test_environments = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
         self.test_environment = test_environments[index if index < len(test_environments) else -1] if test_environments else None
 
-        entry = self.test_case_keys or cfg.get("test_case_keys", []) or []
+        entry = self.test_case_keys or self.cfg.get("test_case_keys", []) or []
         self.test_case_keys = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
 
-        entry = self.test_case_order or cfg.get("test_case_order", []) or []
+        entry = self.test_case_order or self.cfg.get("test_case_order", []) or []
         self.test_case_order = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
 
-        entry = self.test_case_range or cfg.get("test_case_range", []) or []
+        entry = self.test_case_range or self.cfg.get("test_case_range", []) or []
         self.test_case_range = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
 
         if not self.test_plan_key:
-            self.test_plan_key = cfg.get("test_plan_key", None)
+            self.test_plan_key = self.cfg.get("test_plan_key", None)
         if not self.test_plan_folder:
-            self.test_plan_folder = cfg.get("test_plan_folder", None)
+            self.test_plan_folder = self.cfg.get("test_plan_folder", None)
         if not self.test_plan_suffix:
-            self.test_plan_suffix = cfg.get("test_plan_suffix", None)
+            self.test_plan_suffix = self.cfg.get("test_plan_suffix", None)
         if not self.test_run_key:
-            self.test_run_key = cfg.get("test_run_key", None)
+            self.test_run_key = self.cfg.get("test_run_key", None)
         if not self.test_run_folder:
-            self.test_run_folder = cfg.get("test_run_folder", None)
+            self.test_run_folder = self.cfg.get("test_run_folder", None)
         if not self.test_run_suffix:
-            self.test_run_suffix = cfg.get("test_run_suffix", "test run " + datetime.now().strftime("%Y%m%d%H%M"))
+            self.test_run_suffix = self.cfg.get("test_run_suffix", "test run " + datetime.now().strftime("%Y%m%d%H%M"))
         if getattr(pytest, "skip_ntc_methods", None) is None:
-            self.skip_ntc_methods = cfg.get_bool("skip_ntc_methods", False)
+            self.skip_ntc_methods = self.cfg.get_bool("skip_ntc_methods", False)
 
         return True
 
@@ -254,7 +254,7 @@ class PytestAdaptavist:
             if not skip_reason and self.test_result_data[item.fullname].get("blocked") is True:
                 skip_reason = self.test_result_data[item.fullname].get("comment", "")
 
-            pytest.skip(msg=skip_reason)
+            pytest.block(msg=skip_reason)
 
     def create_report(self,
                       test_case_key: str,
@@ -385,6 +385,38 @@ class PytestAdaptavist:
                                                            attachment=attachment,
                                                            filename=test_result_data.get("filename"))
 
+    FAILED_ASSUMPTIONS = []
+
+    @pytest.hookimpl()
+    def pytest_assume_fail(self, lineno, entry):
+        stack = inspect.stack()
+        for index, stack_entry in enumerate(stack):
+            if stack_entry.function == "check" and stack_entry.filename.endswith("metablock.py"):
+                test_call_index = index + 1
+                break
+        (frame, _, _, _, contextlist) = inspect.stack()[test_call_index][0:5]
+        from pytest_assume.plugin import _FAILED_ASSUMPTIONS, Assumption
+        local_locals = ["%-10s = %s" % (name, saferepr(val)) for name, val in frame.f_locals.items()]
+        self.failed_assumptions_step.append([])
+        self.FAILED_ASSUMPTIONS.append(Assumption(contextlist[0].lstrip(), frame, local_locals))
+
+    @pytest.hookimpl()
+    def pytest_assume_summary_report(self, failed_assumptions):
+        for failed_assumption, f in zip(failed_assumptions, self.FAILED_ASSUMPTIONS):
+            frame, filename, lineno, _, codecontext = inspect.getouterframes(failed_assumption.tb.tb_frame)[2][0:5]
+            msg = frame.f_locals.get("message_on_fail")
+            context = msg or codecontext[0].lstrip()
+            local_entry = f"{os.path.relpath(filename)}:{lineno}: AssumptionFailure\n\t{context}"
+            failed_assumption.locals = f.locals
+            failed_assumption.entry = local_entry
+
+        if getattr(pytest, "_showlocals"):
+            content = "".join(x.longrepr() for x in self.FAILED_ASSUMPTIONS)
+        else:
+            content = "".join(x.repr() for x in self.FAILED_ASSUMPTIONS)
+
+        return content
+
     def build_report_description(self, item: Item, call: CallInfo, report: TestReport, skip_status: Mark):
         """
         Generate standard test results for given item.
@@ -447,11 +479,12 @@ class PytestAdaptavist:
 
         return exc_info
 
-    @pytest.hookimpl(hookwrapper=True, tryfirst=True)
+    @pytest.hookimpl(hookwrapper=True, trylast=True)
     def pytest_runtest_makereport(self, item: Item, call: CallInfo):
         """This is called at setup, run/call and teardown of test items. Generates adaptavist test run results from test reports."""
         outcome = yield
         report: TestReport = outcome.get_result()
+
         report.user_properties.append(
             ("atmcfg", {
                 "project_key": self.project_key,
@@ -465,6 +498,8 @@ class PytestAdaptavist:
 
         if call.when not in ("call", "setup"):
             return
+        if item.get_closest_marker("block"):
+            report.block = True
 
         skip_status = item.get_closest_marker("block") or item.get_closest_marker("skip")
 
@@ -641,6 +676,12 @@ class PytestAdaptavist:
             self.reporter.line("traceability:  %s" % traceability)
             self.reporter.line("test_summary:  %s" % test_summary)
             self.reporter.line("score_matrix:  %s" % score_matrix)
+
+    @pytest.hookimpl()
+    def pytest_report_teststatus(self, report) -> Optional[Tuple[str, str, str]]:
+        if getattr(report, "block", False):
+            return "blocked", "b", ("BLOCKED", {"blue": True})
+        return None
 
     @pytest.hookimpl(hookwrapper=True, tryfirst=True)
     def pytest_sessionfinish(self, session: Session, exitstatus: int):

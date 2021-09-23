@@ -12,36 +12,6 @@ from _pytest.runner import CallInfo
 from adaptavist.const import STATUS_BLOCKED, STATUS_FAIL, STATUS_IN_PROGRESS, STATUS_NOT_EXECUTED, STATUS_PASS
 
 
-def assume(expr: bool, msg: Optional[str] = None, level: int = 1):
-    """Assume expression.
-
-        :param expr: The expression or condition to be checked.
-        :param msg: The message in the case of failure.
-        :param level: The stack trace level (1 = the caller's level, 2 = the caller's caller level, 3 = ...).
-    """
-    if expr:
-        return
-
-    entry = None
-    pretty_locals = None
-
-    (frame, filename, line, _, contextlist) = inspect.stack()[max(1, level)][0:5]
-    path = os.path.relpath(filename)
-    context = msg or contextlist[0].lstrip()
-    if path and line and context:
-        entry = "{path}:{line}: AssumptionFailure\n\t{context}".format(**locals())
-
-    if getattr(pytest, "_showlocals", False):
-        pretty_locals = ["%-10s = %s" % (name, saferepr(val)) for name, val in frame.f_locals.items()]
-        pytest._assumption_locals.append(pretty_locals)
-
-    # the following lines are necessary to support both 1.x and 2.x versions of pytest-assume
-    pytest_assume = import_module("pytest_assume")
-    if pytest_assume:
-        exc_tb = None
-        getattr(pytest, "_failed_assumptions", []).append(pytest_assume.plugin.Assumption(entry, exc_tb, pretty_locals))
-
-
 def calc_test_result_status(step_results: List[Dict[str, str]]) -> str:
     """Calculate overall test result status from list of step results.
 
@@ -150,7 +120,7 @@ def apply_test_case_range(collected_items, test_case_range):
 def handle_failed_assumptions(item: Item, call: CallInfo, report: TestReport):
     """Handle failed assumptions (simulating pytest-assume, if not available)."""
 
-    if hasattr(pytest, "assume") and pytest.assume is not assume:
+    if hasattr(pytest, "assume"):
         # use 3rd party handling
         return
 

@@ -5,15 +5,14 @@ import os
 import subprocess
 from contextlib import suppress
 from importlib.metadata import PackageNotFoundError, version
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 
 import pytest
-from _pytest._io.saferepr import saferepr
 from _pytest.config import Config
 from _pytest.config.argparsing import Parser
 from _pytest.fixtures import FixtureRequest
 from _pytest.nodes import Node
-from _pytest.outcomes import OutcomeException, _with_exception
+from _pytest.outcomes import OutcomeException, Skipped, _with_exception
 
 from ._atm_configuration import atm_user_is_valid
 from ._helpers import import_module
@@ -26,27 +25,7 @@ except PackageNotFoundError:
     # package is not installed - e.g. pulled and run locally
     __version__ = "0.0.0"
 
-
 META_BLOCK_TIMEOUT = 600
-
-
-@pytest.hookimpl()
-def pytest_assume_summary_report(failed_assumptions):
-    print()
-
-
-@pytest.hookimpl()
-def pytest_assume_fail(lineno, entry):
-    import inspect
-    frame = inspect.stack()[max([1])][0]
-    pretty_locals = ["%-10s = %s" % (name, saferepr(val)) for name, val in frame.f_locals.items()]
-    exc_tb = None
-    getattr(pytest, "_failed_assumptions", []).append(pytest.assume.plugin.Assumption(entry, exc_tb, pretty_locals))
-
-
-@pytest.hookimpl()
-def pytest_assume_pass(lineno, entry):
-    print()
 
 
 @pytest.hookimpl(trylast=True)
@@ -136,7 +115,7 @@ def get_code_base_url() -> Optional[str]:
     return code_base
 
 
-class Blocked(OutcomeException):
+class Blocked(Skipped):
     """Block exception used to abort test execution and set result status to "Blocked"."""
 
 
