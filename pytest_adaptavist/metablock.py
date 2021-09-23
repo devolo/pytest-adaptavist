@@ -242,7 +242,7 @@ class MetaBlock:
             pytest.exit(msg="Exiting pytest. {self.item_name} failed: {message_on_fail}")
         else:
             # CONTINUE: try to collect failed assumption, set result to 'Fail' and continue
-            pytest.assume(expr=condition, msg=message_on_fail)  # level = 2 to get info from outside of this plugin (i.e. caller of mb.check)
+            pytest.assume(expr=condition, msg=message_on_fail)  # pylint: disable=no-member
 
 
 def build_terminal_report(when, item, status=None, step=None, level=1):

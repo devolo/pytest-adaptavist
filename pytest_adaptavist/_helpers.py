@@ -1,11 +1,10 @@
 """Helper methods used by the module."""
 
-import inspect
-import os
+import subprocess
+from contextlib import suppress
 from typing import Dict, List, Optional, Tuple
 
 import pytest
-from _pytest._io.saferepr import saferepr
 from _pytest.nodes import Item
 from _pytest.reports import TestReport
 from _pytest.runner import CallInfo
@@ -48,6 +47,14 @@ def calc_test_result_status(step_results: List[Dict[str, str]]) -> str:
     return [k for k, v in status_map.items() if v == status][0]
 
 
+def get_code_base_url() -> Optional[str]:
+    """Get current code base url."""
+    code_base = None
+    with suppress(subprocess.CalledProcessError):
+        code_base = subprocess.check_output("git config --get remote.origin.url".split()).decode("utf-8").strip()
+    return code_base
+
+
 def get_item_name_and_spec(nodeid: str) -> Tuple[str, Optional[str]]:
     """Split item nodeid into function name and - if existing - callspec res. parameterization."""
     tokens = nodeid.split("[", 1)
@@ -76,14 +83,6 @@ def html_row(condition: bool, message: str) -> str:
 
     return f"<div style='padding: 2pt'><span style='width: auto; margin-right: 4pt; padding: 2pt; border-radius: 4px; background-color: {background_color}; \
             color: white; font-family: monospace; font-size: 10pt; font-weight: bold;'>{badge_text}</span>{message}</div>"
-
-
-def import_module(module_name):
-    """Import and return module if existing."""
-    try:
-        return pytest.importorskip(module_name)
-    except pytest.skip.Exception:
-        return None
 
 
 def intersection(list_a: List, list_b: List) -> List:

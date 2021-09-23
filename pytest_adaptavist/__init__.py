@@ -2,20 +2,19 @@
 
 import logging
 import os
-import subprocess
-from contextlib import suppress
 from importlib.metadata import PackageNotFoundError, version
-from typing import Callable, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 import pytest
 from _pytest.config import Config
 from _pytest.config.argparsing import Parser
 from _pytest.fixtures import FixtureRequest
 from _pytest.nodes import Node
-from _pytest.outcomes import OutcomeException, Skipped, _with_exception
+from _pytest.outcomes import Skipped, _with_exception
+from _pytest.reports import TestReport
 
 from ._atm_configuration import atm_user_is_valid
-from ._helpers import import_module
+from ._helpers import get_code_base_url
 from ._pytest_adaptavist import PytestAdaptavist
 from .metablock import MetaBlock
 
@@ -107,16 +106,8 @@ def pytest_configure(config: Config):
     logger.propagate = False
 
 
-def get_code_base_url() -> Optional[str]:
-    """Get current code base url."""
-    code_base = None
-    with suppress(subprocess.CalledProcessError):
-        code_base = subprocess.check_output("git config --get remote.origin.url".split()).decode("utf-8").strip()
-    return code_base
-
-
 class Blocked(Skipped):
-    """Block exception used to abort test execution and set result status to "Blocked"."""
+    """Block exception used to abort test execution and set result status to 'Blocked'."""
 
 
 def pytest_addoption(parser: Parser):
@@ -125,12 +116,19 @@ def pytest_addoption(parser: Parser):
     group.addoption("--adaptavist", action="store_true", default=False, help="Enable adaptavist reporting (default: False)")
 
 
-if import_module("xdist"):
-
-    @pytest.hookimpl(trylast=True)
-    def pytest_configure_node(node: Node):
-        """This is called in case of using xdist to pass data to worker nodes."""
+@pytest.hookimpl(trylast=True)
+def pytest_configure_node(node: Node):
+    """This is called in case of using xdist to pass data to worker nodes."""
+    if node.config.pluginmanager.hasplugin("xdist"):
         node.workerinput["options"] = {"dist": node.config.option.dist, "numprocesses": node.config.option.numprocesses}
+
+
+@pytest.hookimpl()
+def pytest_report_teststatus(report: TestReport) -> Optional[Tuple[str, str, Tuple[str, Dict[str, bool]]]]:
+    """Return result-category, shortletter and verbose word for status reporting."""
+    if getattr(report, "block", False):
+        return "blocked", "b", ("BLOCKED", {"blue": True})
+    return None
 
 
 @pytest.fixture(scope="function")

@@ -1,10 +1,12 @@
+"""Connect pytest with Adaptavist."""
+
 import inspect
 import os
 import re
 import sys
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import pytest
 from _pytest._io.saferepr import saferepr
@@ -17,19 +19,20 @@ from _pytest.runner import CallInfo
 from _pytest.terminal import TerminalReporter
 from adaptavist import Adaptavist
 from adaptavist.const import PRIORITY_HIGH, STATUS_BLOCKED, STATUS_FAIL, STATUS_NOT_EXECUTED, STATUS_PASS
+from pytest_assume.plugin import Assumption, FailedAssumption
 
 from ._atm_configuration import ATMConfiguration
-from ._helpers import (apply_test_case_range,
-                       calc_test_result_status,
-                       get_item_name_and_spec,
-                       get_item_nodeid,
-                       handle_failed_assumptions,
-                       html_row,
-                       import_module,
-                       intersection)
+from ._helpers import apply_test_case_range, calc_test_result_status, get_item_name_and_spec, get_item_nodeid, handle_failed_assumptions, html_row, intersection
 
 
 class PytestAdaptavist:
+    """
+    Connects pytest with Adaptavist and takes care about the reporting.
+
+    :param config: A pytest config
+    """
+
+    FAILED_ASSUMPTIONS: List[Assumption] = []
 
     def __init__(self, config: Config):
         # dictionary to store temporal info about test items
@@ -45,6 +48,7 @@ class PytestAdaptavist:
         self.test_case_key = None
         self.test_run_keys: List[str] = []
         self.items: List[Item] = []
+        self.failed_assumptions_step: List[Assumption] = []
         self.reporter: TerminalReporter = config.pluginmanager.getplugin("terminalreporter")
         self.build_url = ""
         self.code_base = ""
@@ -58,8 +62,6 @@ class PytestAdaptavist:
         self.test_run_folder = ""
         self.test_plan_suffix = ""
         self.test_run_suffix = ""
-
-        self.failed_assumptions_step = []
 
         self.cfg = ATMConfiguration()
         self.adaptavist: Adaptavist = Adaptavist(self.cfg.get("jira_server", ""), self.cfg.get("jira_username", ""), self.cfg.get("jira_password", ""))
@@ -385,23 +387,22 @@ class PytestAdaptavist:
                                                            attachment=attachment,
                                                            filename=test_result_data.get("filename"))
 
-    FAILED_ASSUMPTIONS = []
-
     @pytest.hookimpl()
-    def pytest_assume_fail(self, lineno, entry):
+    def pytest_assume_fail(self, lineno: int, entry: str):  # pylint: disable=unused-argument
+        """Store stacke in-case of assumption failure."""
         stack = inspect.stack()
         for index, stack_entry in enumerate(stack):
             if stack_entry.function == "check" and stack_entry.filename.endswith("metablock.py"):
                 test_call_index = index + 1
                 break
         (frame, _, _, _, contextlist) = inspect.stack()[test_call_index][0:5]
-        from pytest_assume.plugin import _FAILED_ASSUMPTIONS, Assumption
         local_locals = ["%-10s = %s" % (name, saferepr(val)) for name, val in frame.f_locals.items()]
         self.failed_assumptions_step.append([])
         self.FAILED_ASSUMPTIONS.append(Assumption(contextlist[0].lstrip(), frame, local_locals))
 
     @pytest.hookimpl()
-    def pytest_assume_summary_report(self, failed_assumptions):
+    def pytest_assume_summary_report(self, failed_assumptions: List[Assumption]):
+        """Manipulate the summary that prints at the end."""
         for failed_assumption, f in zip(failed_assumptions, self.FAILED_ASSUMPTIONS):
             frame, filename, lineno, _, codecontext = inspect.getouterframes(failed_assumption.tb.tb_frame)[2][0:5]
             msg = frame.f_locals.get("message_on_fail")
@@ -410,12 +411,11 @@ class PytestAdaptavist:
             failed_assumption.locals = f.locals
             failed_assumption.entry = local_entry
 
-        if getattr(pytest, "_showlocals"):
-            content = "".join(x.longrepr() for x in self.FAILED_ASSUMPTIONS)
-        else:
-            content = "".join(x.repr() for x in self.FAILED_ASSUMPTIONS)
-
-        return content
+        return (
+            "".join(failed_assumption.longrepr() for failed_assumption in self.FAILED_ASSUMPTIONS)
+            if getattr(pytest, "_showlocals")
+            else "".join(failed_assumption.repr() for failed_assumption in self.FAILED_ASSUMPTIONS)
+        )
 
     def build_report_description(self, item: Item, call: CallInfo, report: TestReport, skip_status: Mark):
         """
@@ -499,7 +499,7 @@ class PytestAdaptavist:
         if call.when not in ("call", "setup"):
             return
         if item.get_closest_marker("block"):
-            report.block = True
+            report.blocked = True
 
         skip_status = item.get_closest_marker("block") or item.get_closest_marker("skip")
 
@@ -677,12 +677,6 @@ class PytestAdaptavist:
             self.reporter.line("test_summary:  %s" % test_summary)
             self.reporter.line("score_matrix:  %s" % score_matrix)
 
-    @pytest.hookimpl()
-    def pytest_report_teststatus(self, report) -> Optional[Tuple[str, str, str]]:
-        if getattr(report, "block", False):
-            return "blocked", "b", ("BLOCKED", {"blue": True})
-        return None
-
     @pytest.hookimpl(hookwrapper=True, tryfirst=True)
     def pytest_sessionfinish(self, session: Session, exitstatus: int):
         """This is called after whole test run has finished."""
@@ -730,11 +724,6 @@ class PytestAdaptavist:
 
 def is_unexpected_exception(exc_type: Exception) -> bool:
     """Check if exception type is unexpected (any exception except AssertionError, pytest.block.Exception, pytest.skip.Exception)."""
-
     if exc_type and (isinstance(exc_type, (Exception, BaseException)) or issubclass(exc_type, (Exception, BaseException))):
-        # the following lines are necessary to support 2.x versions of pytest-assume which raise FailedAssumption exceptions on failed assumptions
-        pytest_assume = import_module("pytest_assume")
-        failed_assumption = pytest_assume.plugin.FailedAssumption if pytest_assume and hasattr(pytest_assume, "plugin") and hasattr(
-            pytest_assume.plugin, "FailedAssumption") else None
-        return exc_type not in (None, failed_assumption, AssertionError, pytest.skip.Exception)
+        return exc_type not in (None, FailedAssumption, AssertionError, pytest.skip.Exception)
     return False
