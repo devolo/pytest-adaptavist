@@ -411,11 +411,9 @@ class PytestAdaptavist:
             failed_assumption.locals = f.locals
             failed_assumption.entry = local_entry
 
-        return (
-            "".join(failed_assumption.longrepr() for failed_assumption in self.FAILED_ASSUMPTIONS)
-            if getattr(pytest, "_showlocals")
+        return "".join(failed_assumption.longrepr() for failed_assumption in self.FAILED_ASSUMPTIONS) \
+            if getattr(pytest, "_showlocals") \
             else "".join(failed_assumption.repr() for failed_assumption in self.FAILED_ASSUMPTIONS)
-        )
 
     def build_report_description(self, item: Item, call: CallInfo, report: TestReport, skip_status: Mark):
         """
