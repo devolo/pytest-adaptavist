@@ -9,13 +9,13 @@ import pytest
 from _pytest.config import Config
 from _pytest.config.argparsing import Parser
 from _pytest.fixtures import FixtureRequest
-from _pytest.nodes import Node
 from _pytest.outcomes import Skipped, _with_exception
 from _pytest.reports import TestReport
 
 from ._atm_configuration import atm_user_is_valid
 from ._helpers import get_code_base_url
 from ._pytest_adaptavist import PytestAdaptavist
+from ._xdist import XdistHooks
 from .metablock import MetaBlock
 
 try:
@@ -25,15 +25,6 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 META_BLOCK_TIMEOUT = 600
-
-
-class XdistHooks:
-
-    @pytest.hookimpl(trylast=True)
-    def pytest_configure_node(self, node: Node):
-        """This is called in case of using xdist to pass data to worker nodes."""
-        if node.config.pluginmanager.hasplugin("xdist"):
-            node.workerinput["options"] = {"dist": node.config.option.dist, "numprocesses": node.config.option.numprocesses}  # type: ignore
 
 
 @pytest.hookimpl(trylast=True)

@@ -11,7 +11,6 @@ class ATMConfiguration:
     """Configuration class to read config parameters (either from env or from "global_config.json")."""
 
     def __init__(self):
-        """Constructor."""
         self.config = {}
         config_file_name = os.path.join("config", "global_config.json")
         if os.path.exists(os.path.abspath(config_file_name)):
