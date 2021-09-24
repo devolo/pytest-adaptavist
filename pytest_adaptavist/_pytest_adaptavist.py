@@ -80,7 +80,7 @@ class PytestAdaptavist:
             if self.test_run_key and self.test_run_key not in self.test_run_keys:
                 self.test_run_keys.append(self.test_run_key)
 
-    def create_item_collection(self, items: List[Item], collected_project_keys: List[str], collected_items: Dict):
+    def create_item_collection(self, items: List[Item], collected_project_keys: List[str], collected_items: Dict[str, List[Function]]):
         """Create the list of test methods to be executed and included in adaptavist report."""
         if self.adaptavist and (self.project_key or self.test_run_key):
             if self.test_case_keys:
@@ -160,7 +160,7 @@ class PytestAdaptavist:
 
         return True
 
-    def setup_item_collection(self, items: List[Item], collected_project_keys: List[str], collected_items: Dict):
+    def setup_item_collection(self, items: List[Item], collected_project_keys: List[str], collected_items: Dict[str, List[Function]]):
         """Setup and prepare collection of available test methods."""
 
         # define the test case keys to be processed

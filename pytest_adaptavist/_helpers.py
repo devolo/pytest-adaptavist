@@ -91,7 +91,7 @@ def intersection(list_a: List, list_b: List) -> List:
     return sorted(set(list_a) & set(list_b), key=list_a.index)
 
 
-def apply_test_case_range(collected_items: Dict[str, List[Function]], test_case_range: List[str]):
+def apply_test_case_range(collected_items: Dict[str, List[Function]], test_case_range: List[str]) -> Dict[str:List[Function]]:
     """Apply test case range(s) by skipping excluded test cases."""
 
     if not collected_items or not test_case_range:
