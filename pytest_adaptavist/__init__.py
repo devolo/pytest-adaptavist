@@ -126,7 +126,7 @@ def pytest_configure_node(node: Node):
 @pytest.hookimpl()
 def pytest_report_teststatus(report: TestReport) -> Optional[Tuple[str, str, Tuple[str, Dict[str, bool]]]]:
     """Return result-category, shortletter and verbose word for status reporting."""
-    if getattr(report, "block", False):
+    if getattr(report, "blocked", False):
         return "blocked", "b", ("BLOCKED", {"blue": True})
     return None
 

@@ -389,7 +389,7 @@ class PytestAdaptavist:
 
     @pytest.hookimpl()
     def pytest_assume_fail(self, lineno: int, entry: str):  # pylint: disable=unused-argument
-        """Store stacke in-case of assumption failure."""
+        """Store stack in-case of assumption failure."""
         stack = inspect.stack()
         for index, stack_entry in enumerate(stack):
             if stack_entry.function == "check" and stack_entry.filename.endswith("metablock.py"):
