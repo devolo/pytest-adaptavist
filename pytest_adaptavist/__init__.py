@@ -27,6 +27,15 @@ except PackageNotFoundError:
 META_BLOCK_TIMEOUT = 600
 
 
+class XdistHooks:
+
+    @pytest.hookimpl(trylast=True)
+    def pytest_configure_node(self, node: Node):
+        """This is called in case of using xdist to pass data to worker nodes."""
+        if node.config.pluginmanager.hasplugin("xdist"):
+            node.workerinput["options"] = {"dist": node.config.option.dist, "numprocesses": node.config.option.numprocesses}
+
+
 @pytest.hookimpl(trylast=True)
 def pytest_configure(config: Config):
     """Prepare and start logging/reporting (called at the beginning of the test process)."""
@@ -35,6 +44,9 @@ def pytest_configure(config: Config):
     config.addinivalue_line("markers", "testcase: mark test method as test case implementation (for internal use only)")
     config.addinivalue_line("markers", "project(project_key): mark test method to be related to given project (used to create appropriate test case key")
     config.addinivalue_line("markers", "block(reason): mark test method to be blocked")
+
+    if config.pluginmanager.hasplugin("xdist"):
+        config.pluginmanager.register(XdistHooks())
 
     if config.getoption("-h") or config.getoption("--help"):
         return
@@ -116,14 +128,7 @@ def pytest_addoption(parser: Parser):
     group.addoption("--adaptavist", action="store_true", default=False, help="Enable adaptavist reporting (default: False)")
 
 
-@pytest.hookimpl(trylast=True)
-def pytest_configure_node(node: Node):
-    """This is called in case of using xdist to pass data to worker nodes."""
-    if node.config.pluginmanager.hasplugin("xdist"):
-        node.workerinput["options"] = {"dist": node.config.option.dist, "numprocesses": node.config.option.numprocesses}
-
-
-@pytest.hookimpl()
+@pytest.hookimpl(tryfirst=True)
 def pytest_report_teststatus(report: TestReport) -> Optional[Tuple[str, str, Tuple[str, Dict[str, bool]]]]:
     """Return result-category, shortletter and verbose word for status reporting."""
     if getattr(report, "blocked", False):

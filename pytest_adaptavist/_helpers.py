@@ -2,10 +2,11 @@
 
 import subprocess
 from contextlib import suppress
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import pytest
 from _pytest.nodes import Item
+from _pytest.python import Function
 from _pytest.reports import TestReport
 from _pytest.runner import CallInfo
 from adaptavist.const import STATUS_BLOCKED, STATUS_FAIL, STATUS_IN_PROGRESS, STATUS_NOT_EXECUTED, STATUS_PASS
@@ -55,10 +56,10 @@ def get_code_base_url() -> Optional[str]:
     return code_base
 
 
-def get_item_name_and_spec(nodeid: str) -> Tuple[str, Optional[str]]:
+def get_spec(nodeid: str) -> Optional[str]:
     """Split item nodeid into function name and - if existing - callspec res. parameterization."""
     tokens = nodeid.split("[", 1)
-    return tokens[0].strip(), "[" + tokens[1].strip() if len(tokens) > 1 else None
+    return "[" + tokens[1].strip() if len(tokens) > 1 else None
 
 
 def get_item_nodeid(item: Item) -> str:
@@ -90,7 +91,7 @@ def intersection(list_a: List, list_b: List) -> List:
     return sorted(set(list_a) & set(list_b), key=list_a.index)
 
 
-def apply_test_case_range(collected_items, test_case_range):
+def apply_test_case_range(collected_items: Dict[str, List[Function]], test_case_range: List[str]):
     """Apply test case range(s) by skipping excluded test cases."""
 
     if not collected_items or not test_case_range:

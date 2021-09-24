@@ -6,6 +6,7 @@ import re
 import sys
 import time
 from datetime import datetime
+from types import TracebackType
 from typing import Any, Dict, List, Optional
 
 import pytest
@@ -14,6 +15,7 @@ from _pytest.config import Config
 from _pytest.main import Session
 from _pytest.mark.structures import Mark
 from _pytest.nodes import Item
+from _pytest.outcomes import OutcomeException
 from _pytest.reports import TestReport
 from _pytest.runner import CallInfo
 from _pytest.terminal import TerminalReporter
@@ -22,7 +24,7 @@ from adaptavist.const import PRIORITY_HIGH, STATUS_BLOCKED, STATUS_FAIL, STATUS_
 from pytest_assume.plugin import Assumption, FailedAssumption
 
 from ._atm_configuration import ATMConfiguration
-from ._helpers import apply_test_case_range, calc_test_result_status, get_item_name_and_spec, get_item_nodeid, handle_failed_assumptions, html_row, intersection
+from ._helpers import apply_test_case_range, calc_test_result_status, get_item_nodeid, get_spec, handle_failed_assumptions, html_row, intersection
 
 
 class PytestAdaptavist:
@@ -199,7 +201,7 @@ class PytestAdaptavist:
                     collected_project_keys.append(project_key)
 
                 # initialize refresh info
-                _, specs = get_item_name_and_spec(get_item_nodeid(item))
+                specs = get_spec(get_item_nodeid(item))
                 self.test_refresh_info[project_key + "-" + test_case_key + (specs or "")] = None
 
                 # mark this item with appropriate info (easier to read from when creating test results)
@@ -459,7 +461,7 @@ class PytestAdaptavist:
                 "exc_info": is_unexpected_exception(self.item_status_info[item.fullname].get("exc_info", (None, None, None))[0])
             }
 
-    def build_exception_info(self, item_name, exc_type, exc_value, traceback) -> str:
+    def build_exception_info(self, item_name: str, exc_type: type, exc_value: OutcomeException, traceback: TracebackType) -> str:
         """Generate description info about exceptions."""
         exc_info = ""
         if exc_type and (exc_type, exc_value, traceback) != self.item_status_info[item_name].get("exc_info", None):
@@ -560,10 +562,10 @@ class PytestAdaptavist:
             test_case_key = marker.kwargs["test_case_key"]
             test_step_key = marker.kwargs["test_step_key"]
 
-            _, specs = get_item_name_and_spec(get_item_nodeid(item))
+            specs = get_spec(get_item_nodeid(item))
             self.create_report(test_case_key, test_step_key, call.stop - call.start, skip_status, report.passed, self.test_result_data[item.fullname], specs)
 
-    def setup_report(self, worker_input):
+    def setup_report(self, worker_input: Dict[str, Any]):
         """Setup adaptavist report.
 
             Creates a new test run (and test plan) if needed as follows:

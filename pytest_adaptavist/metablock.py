@@ -5,12 +5,14 @@ import re
 import signal
 from datetime import datetime
 from enum import IntEnum
+from types import TracebackType
 from typing import Any, Optional
 
 import pytest
 from _pytest.fixtures import FixtureRequest
+from _pytest.python import Function
 
-from ._helpers import get_item_name_and_spec, get_item_nodeid, html_row
+from ._helpers import get_item_nodeid, get_spec, html_row
 from ._pytest_adaptavist import PytestAdaptavist
 
 COLORMAP = {
@@ -79,7 +81,7 @@ class MetaBlock:
         signal.alarm(self.timeout)
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type: type, exc_value: Exception, traceback: TracebackType):
         signal.alarm(0)
         self.stop = datetime.now().timestamp()
         if exc_type is TimeoutError:
@@ -142,14 +144,14 @@ class MetaBlock:
                 # pytest_runtest_makereport takes care about reporting in both cases
                 return exc_type is MetaBlockAborted  # suppress MetaBlockAborted exception
 
-            _, specs = get_item_name_and_spec(get_item_nodeid(self.item))
+            specs = get_spec(get_item_nodeid(self.item))
             self.adaptavist.create_report(test_case_key, self.step, self.stop - self.start, skip_status, passed, self.data, specs)
 
         self.data["done"] = True  # tell pytest_runtest_makereport that this item has been processed already
 
         return exc_type is MetaBlockAborted  # suppress MetaBlockAborted exception
 
-    def check(self, condition, message: Optional[str] = None, action_on_fail: Action = Action.NONE, **kwargs: Any):
+    def check(self, condition: bool, message: Optional[str] = None, action_on_fail: Action = Action.NONE, **kwargs: Any):
         """Check given condition.
 
             :param condition: the condition to be checked
@@ -245,7 +247,7 @@ class MetaBlock:
             pytest.assume(expr=condition, msg=message_on_fail)  # pylint: disable=no-member
 
 
-def build_terminal_report(when, item, status=None, step=None, level=1):
+def build_terminal_report(when: str, item: Function, status: str = None, step: int = None, level: int = 1):
     """Generate (pretty) terminal output.
         :param when: The call info ("setup", "call").
         :param item: The item to report.
