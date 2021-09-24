@@ -33,7 +33,7 @@ class XdistHooks:
     def pytest_configure_node(self, node: Node):
         """This is called in case of using xdist to pass data to worker nodes."""
         if node.config.pluginmanager.hasplugin("xdist"):
-            node.workerinput["options"] = {"dist": node.config.option.dist, "numprocesses": node.config.option.numprocesses}
+            node.workerinput["options"] = {"dist": node.config.option.dist, "numprocesses": node.config.option.numprocesses}  # type: ignore
 
 
 @pytest.hookimpl(trylast=True)
@@ -60,7 +60,7 @@ def pytest_configure(config: Config):
         __tracebackhide__ = True  # pylint: disable=unused-variable
         raise Blocked(msg=msg)
 
-    pytest.block = block
+    pytest.block = block  # type: ignore
 
     # Store metadata for later usage (e.g. adaptavist traceability).
     metadata = getattr(config, "_metadata", os.environ)
