@@ -16,6 +16,7 @@ from _pytest.main import Session
 from _pytest.mark.structures import Mark
 from _pytest.nodes import Item
 from _pytest.outcomes import OutcomeException
+from _pytest.python import Function
 from _pytest.reports import TestReport
 from _pytest.runner import CallInfo
 from _pytest.terminal import TerminalReporter
