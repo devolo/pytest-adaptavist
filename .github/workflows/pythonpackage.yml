@@ -32,7 +32,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8
         flake8 pytest_adaptavist --count --show-source --statistics --max-line-length 160
-        flake8 . --count --exit-zero --statistics
+        flake8 . --count --exit-zero --statistics --max-line-length 160
     - name: Lint with pylint
       run: |
         python -m pip install pylint pytest
