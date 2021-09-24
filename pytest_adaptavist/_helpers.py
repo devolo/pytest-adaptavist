@@ -57,7 +57,7 @@ def get_code_base_url() -> Optional[str]:
 
 
 def get_spec(nodeid: str) -> Optional[str]:
-    """Split item nodeid into function name and - if existing - callspec res. parameterization."""
+    """Split item nodeid - if existing - callspec res. parameterization."""
     tokens = nodeid.split("[", 1)
     return "[" + tokens[1].strip() if len(tokens) > 1 else None
 
