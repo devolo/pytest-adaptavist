@@ -67,6 +67,7 @@ def get_item_nodeid(item: Item) -> str:
     # note: pytest's item.nodeid could be modified by third party, so build a local one here
     if item.location and len(item.location) > 2:
         return item.location[0].replace("\\", "/") + "::" + item.location[2].replace(".", "::")
+    return ""
 
 
 def html_row(condition: bool, message: str) -> str:

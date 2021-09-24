@@ -7,7 +7,7 @@ import sys
 import time
 from datetime import datetime
 from types import TracebackType
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import pytest
 from _pytest._io.saferepr import saferepr
@@ -59,7 +59,7 @@ class PytestAdaptavist:
         self.test_run_key = ""
         self.test_case_order: List[str] = []
         self.test_case_keys: List[str] = []
-        self.test_environment: List[str] = []
+        self.test_environment: str = ""
         self.test_case_range: List[str] = []
         self.test_plan_folder = ""
         self.test_run_folder = ""
@@ -109,7 +109,7 @@ class PytestAdaptavist:
                 ordered_collected_items = {key: collected_items[key] for key in self.test_case_order if key in collected_items}
                 ordered_collected_items.update({key: collected_items[key] for key in collected_items if key not in ordered_collected_items})
                 ordered_collected_items = apply_test_case_range(ordered_collected_items, self.test_case_range)
-                ordered_items = [item for sublist in ordered_collected_items.values() for item in sublist]
+                ordered_items: List[Union[Function, Item]] = [item for sublist in ordered_collected_items.values() for item in sublist]
                 ordered_items.extend([item for item in items if item not in ordered_items])
                 items[:] = ordered_items
 
@@ -133,7 +133,7 @@ class PytestAdaptavist:
 
         entry = self.test_environment or self.cfg.get("test_environment", []) or []
         test_environments = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
-        self.test_environment = test_environments[index if index < len(test_environments) else -1] if test_environments else None
+        self.test_environment = test_environments[index if index < len(test_environments) else -1] if test_environments else ""
 
         entry = self.test_case_keys or self.cfg.get("test_case_keys", []) or []
         self.test_case_keys = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
@@ -161,7 +161,7 @@ class PytestAdaptavist:
 
         return True
 
-    def setup_item_collection(self, items: List[Item], collected_project_keys: List[str], collected_items: Dict[str, List[Function]]):
+    def setup_item_collection(self, items: List[Item], collected_project_keys: List[str], collected_items: Dict[str, List[Item]]):
         """Setup and prepare collection of available test methods."""
 
         # define the test case keys to be processed
@@ -176,11 +176,11 @@ class PytestAdaptavist:
 
         # run over all found test methods and collect the relevant
         for item in items:
-            item.fullname = get_item_nodeid(item)
+            item.fullname = get_item_nodeid(item)  # type: ignore
             # initialize item's status info
-            self.item_status_info[item.fullname] = {}
+            self.item_status_info[item.fullname] = {}  # type:ignore
             # initialize item's test result data (see meta_data function down below)
-            self.test_result_data[item.fullname] = {"comment": None, "attachment": None}
+            self.test_result_data[item.fullname] = {"comment": None, "attachment": None}  # type:ignore
 
             # check for valid test case method signature test_[<project>_]T<test case>[_<test step>]
             # (project key and step index are optional)
@@ -189,7 +189,7 @@ class PytestAdaptavist:
                 _, project_key, test_case_key, _, test_step_key = result.groups()
 
                 if not project_key:
-                    project_key = getattr(item.cls, "project_key", None)
+                    project_key = getattr(item.cls, "project_key", None)  # type:ignore
 
                     marker = item.get_closest_marker("project")
                     if marker is not None:
@@ -228,11 +228,11 @@ class PytestAdaptavist:
             :param pytest.test_case_keys: as option to run only a subset of implemented test cases
         """
         for item in items:
-            item.fullname = get_item_nodeid(item)
+            item.fullname = get_item_nodeid(item)  # type:ignore
             # initialize item's status info
-            self.item_status_info[item.fullname] = {}
+            self.item_status_info[item.fullname] = {}  # type:ignore
             # initialize item's test result data (see meta_data function down below)
-            self.test_result_data[item.fullname] = {"comment": None, "attachment": None}
+            self.test_result_data[item.fullname] = {"comment": None, "attachment": None}  # type:ignore
 
         # store items for later usage
         self.items = items
@@ -256,14 +256,14 @@ class PytestAdaptavist:
 
         if skip_status:
             skip_reason = skip_status.kwargs.get("reason", "")
-            if not skip_reason and self.test_result_data[item.fullname].get("blocked") is True:
-                skip_reason = self.test_result_data[item.fullname].get("comment", "")
+            if not skip_reason and self.test_result_data[item.fullname].get("blocked") is True:  # type: ignore
+                skip_reason = self.test_result_data[item.fullname].get("comment", "")  # type: ignore
 
-            pytest.block(msg=skip_reason)
+            pytest.block(msg=skip_reason)  # type: ignore
 
     def create_report(self,
                       test_case_key: str,
-                      test_step_key: Optional[str],
+                      test_step_key: Optional[int],
                       execute_time: float,
                       skip_status: Optional[Mark],
                       passed: bool,
@@ -339,7 +339,7 @@ class PytestAdaptavist:
                                                            test_case_key=test_case_key,
                                                            step=int(test_step_key),
                                                            attachment=attachment,
-                                                           filename=test_result_data.get("filename"))
+                                                           filename=test_result_data.get("filename", ""))
 
             # adjust parent test result status according to current test script results
             test_result = self.adaptavist.get_test_result(test_run_key, test_case_key)
@@ -388,7 +388,7 @@ class PytestAdaptavist:
                 self.adaptavist.add_test_result_attachment(test_run_key=test_run_key,
                                                            test_case_key=test_case_key,
                                                            attachment=attachment,
-                                                           filename=test_result_data.get("filename"))
+                                                           filename=test_result_data.get("filename", ""))
 
     @pytest.hookimpl()
     def pytest_assume_fail(self, lineno: int, entry: str):  # pylint: disable=unused-argument
@@ -401,7 +401,7 @@ class PytestAdaptavist:
         (frame, _, _, _, contextlist) = inspect.stack()[test_call_index][0:5]
         local_locals = ["%-10s = %s" % (name, saferepr(val)) for name, val in frame.f_locals.items()]
         self.failed_assumptions_step.append([])
-        self.FAILED_ASSUMPTIONS.append(Assumption(contextlist[0].lstrip(), frame, local_locals))
+        self.FAILED_ASSUMPTIONS.append(Assumption((contextlist or [""])[0].lstrip(), frame, local_locals))
 
     @pytest.hookimpl()
     def pytest_assume_summary_report(self, failed_assumptions: List[Assumption]):
@@ -409,7 +409,7 @@ class PytestAdaptavist:
         for failed_assumption, f in zip(failed_assumptions, self.FAILED_ASSUMPTIONS):
             frame, filename, lineno, _, codecontext = inspect.getouterframes(failed_assumption.tb.tb_frame)[2][0:5]
             msg = frame.f_locals.get("message_on_fail")
-            context = msg or codecontext[0].lstrip()
+            context = msg or ((codecontext or [""])[0]).lstrip()
             local_entry = f"{os.path.relpath(filename)}:{lineno}: AssumptionFailure\n\t{context}"
             failed_assumption.locals = f.locals
             failed_assumption.entry = local_entry
@@ -427,7 +427,7 @@ class PytestAdaptavist:
         :param report: The report object.
         :param skip_status: pytest marker, may hold either a pytest.mark.skip or pytest.mark.block
         """
-        description = (skip_status.kwargs.get("reason") if skip_status else "") or self.test_result_data[item.fullname].get("comment") or ""
+        description = (skip_status.kwargs.get("reason") if skip_status else "") or self.test_result_data[item.fullname].get("comment") or ""  # type: ignore
 
         if call.when != "teardown" or call.excinfo:
             test_case_key = None
@@ -442,7 +442,7 @@ class PytestAdaptavist:
                     priority = test_case_info.get("priority", None)
 
             if (not (call.excinfo and call.excinfo.type is pytest.skip.Exception) and not skip_status and test_case_key):
-                subkeys = [key for key in self.test_result_data if key != item.fullname and key.startswith(item.fullname)]
+                subkeys = [key for key in self.test_result_data if key != item.fullname and key.startswith(item.fullname)]  # type: ignore
                 for key in subkeys:
                     description = "<br>".join((description,
                                                f"{key}{' blocked' if self.test_result_data[key].get('blocked', None) is True else ''}:",
@@ -459,10 +459,10 @@ class PytestAdaptavist:
                 "status": outcome,
                 "duration": report.duration,
                 "details": description or "",
-                "exc_info": is_unexpected_exception(self.item_status_info[item.fullname].get("exc_info", (None, None, None))[0])
+                "exc_info": is_unexpected_exception(self.item_status_info[item.fullname].get("exc_info", (None, None, None))[0])  # type: ignore
             }
 
-    def build_exception_info(self, item_name: str, exc_type: type, exc_value: OutcomeException, traceback: TracebackType) -> str:
+    def build_exception_info(self, item_name: str, exc_type: type, exc_value: Union[BaseException, Exception], traceback: TracebackType) -> str:
         """Generate description info about exceptions."""
         exc_info = ""
         if exc_type and (exc_type, exc_value, traceback) != self.item_status_info[item_name].get("exc_info", None):
@@ -495,12 +495,12 @@ class PytestAdaptavist:
             }))
 
         report.user_properties.append(("nodeid", get_item_nodeid(item)))
-        report.user_properties.append(("docstr", inspect.cleandoc(item.obj.__doc__ or "")))
+        report.user_properties.append(("docstr", inspect.cleandoc(item.obj.__doc__ or "")))  # type: ignore
 
         if call.when not in ("call", "setup"):
             return
         if item.get_closest_marker("block"):
-            report.blocked = True
+            report.blocked = True  # type: ignore
 
         skip_status = item.get_closest_marker("block") or item.get_closest_marker("skip")
 
@@ -511,20 +511,22 @@ class PytestAdaptavist:
                 for user_property in report.user_properties:
                     if user_property[0] == "atmcfg":
                         del user_property[1]["test_environment"]
-            if (not call.excinfo and not skip_status and self.test_result_data[item.fullname].get("blocked", None) is not True):
+            if (not call.excinfo and not skip_status and self.test_result_data[item.fullname].get("blocked", None) is not True):  # type: ignore
                 # no skipped or blocked methods to report
                 return
 
         # if method was blocked dynamically (during call) an appropriate marker is used
         # to handle the reporting in the same way as for statically blocked methods
         # (status will be reported as "Blocked" with given comment in Adaptavist)
-        if not skip_status and (call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)
-                                or not call.excinfo and self.test_result_data[item.fullname].get("blocked", None) is True):
-            reason = self.test_result_data[item.fullname].get("comment", None) or (str(
-                call.excinfo.value).partition("\n")[0] if call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception) else "")
-            skip_status = pytest.mark.block(reason=reason) if ((call.excinfo and call.excinfo.type is pytest.block.Exception)
-                                                               or self.test_result_data[item.fullname].get("blocked", None) is True) else pytest.mark.skip(
-                                                                   reason=reason)
+        if not skip_status and (call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)  # type: ignore
+                                or not call.excinfo and self.test_result_data[item.fullname].get("blocked", None) is True):  # type: ignore
+            reason = self.test_result_data[item.fullname].get("comment", None) or (str(  # type: ignore
+                call.excinfo.value).partition("\n")[0] if call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception) else ""
+                                                                                   )  # type: ignore
+            skip_status = pytest.mark.block(
+                reason=reason) if ((call.excinfo and call.excinfo.type is pytest.block.Exception)  # type: ignore
+                                   or self.test_result_data[item.fullname].get("blocked", None) is True) else pytest.mark.skip(  # type: ignore
+                                       reason=reason)
             if report.outcome != "skipped":
                 report.outcome = "skipped"  # to mark this as SKIPPED in pytest reports
                 report.longrepr = (__file__,
@@ -533,17 +535,19 @@ class PytestAdaptavist:
 
         # report exceptions
         if call.excinfo:
-            exc_info = self.build_exception_info(item.fullname, call.excinfo.type, call.excinfo.value, getattr(call.excinfo.traceback[-1], "_rawentry"))
+            exc_info = self.build_exception_info(item.fullname, call.excinfo.type, call.excinfo.value, getattr(call.excinfo.traceback[-1],
+                                                                                                               "_rawentry"))  # type: ignore
 
-            if (exc_info and exc_info not in (self.test_result_data[item.fullname].get("comment", None) or "")
+            if (exc_info and exc_info not in (self.test_result_data[item.fullname].get("comment", None) or "")  # type: ignore
                     and (call.excinfo.type is not pytest.skip.Exception) and not skip_status):
-                self.test_result_data[item.fullname]["comment"] = "".join(
-                    (self.test_result_data[item.fullname].get("comment", None) or "", html_row(False, exc_info)))
+                self.test_result_data[item.fullname]["comment"] = "".join(  # type: ignore
+                    (self.test_result_data[item.fullname].get("comment", None) or "", html_row(False, exc_info)))  # type: ignore
 
         # handling failed assumptions
         handle_failed_assumptions(item, call, report)
 
-        self.build_report_description(item, call, report, skip_status)
+        if skip_status:
+            self.build_report_description(item, call, report, skip_status)
 
         # build_terminal_report(when="call", item=item, status=report.outcome if not skip_status else ("blocked" if skip_status.name == "block" else "skipped"))
 
@@ -553,7 +557,7 @@ class PytestAdaptavist:
             # adaptavist reporting disabled: no need to proceed here
             return
 
-        if self.test_result_data[item.fullname].get("done", False):
+        if self.test_result_data[item.fullname].get("done", False):  # type: ignore
             # this item has been reported already within a meta block context (see below)
             return
 
@@ -564,7 +568,8 @@ class PytestAdaptavist:
             test_step_key = marker.kwargs["test_step_key"]
 
             specs = get_spec(get_item_nodeid(item))
-            self.create_report(test_case_key, test_step_key, call.stop - call.start, skip_status, report.passed, self.test_result_data[item.fullname], specs)
+            self.create_report(test_case_key, test_step_key, call.stop - call.start, skip_status, report.passed, self.test_result_data[item.fullname],
+                               specs)  # type: ignore
 
     def setup_report(self, worker_input: Dict[str, Any]):
         """Setup adaptavist report.
