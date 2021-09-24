@@ -67,7 +67,7 @@ def get_item_nodeid(item: Item) -> str:
     # note: pytest's item.nodeid could be modified by third party, so build a local one here
     if item.location and len(item.location) > 2:
         return item.location[0].replace("\\", "/") + "::" + item.location[2].replace(".", "::")
-    return item.fspath.relto(item.config.rootdir).replace("\\", "/") + "::" + item.getmodpath().replace(".", "::")
+    return item.fspath.relto(item.config.rootdir).replace("\\", "/") + "::" + item.getmodpath().replace(".", "::")  # type:ignore
 
 
 def html_row(condition: bool, message: str) -> str:
@@ -128,7 +128,7 @@ def handle_failed_assumptions(item: Item, call: CallInfo, report: TestReport):
         evalxfail = getattr(item, '_evalxfail', None)
         if evalxfail and evalxfail.wasvalid() and evalxfail.istrue():
             report.outcome = "skipped"
-            report.wasxfail = evalxfail.getexplanation()
+            report.wasxfail = evalxfail.getexplanation()  # type: ignore
         else:
             summary = 'Failed Assumptions: %s' % len(getattr(pytest, "_failed_assumptions", []))
             if report.longrepr:
