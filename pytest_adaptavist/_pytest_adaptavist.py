@@ -418,7 +418,7 @@ class PytestAdaptavist:
             if getattr(pytest, "_showlocals") \
             else "".join(failed_assumption.repr() for failed_assumption in self.FAILED_ASSUMPTIONS)
 
-    def build_report_description(self, item: Item, call: CallInfo, report: TestReport, skip_status: Mark):
+    def build_report_description(self, item: Item, call: CallInfo, report: TestReport, skip_status: Optional[Mark]):
         """
         Generate standard test results for given item.
 
