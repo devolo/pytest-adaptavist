@@ -58,8 +58,8 @@ def pytest_configure(config: Config):
     metadata = getattr(config, "_metadata", os.environ)
 
     build_usr = getpass.getuser().lower() if not config.getoption("restrict_user") else config.getoption("restrict_user")
-    # if not atm_user_is_valid(build_usr):
-    #     raise ValueError("User is not known in adaptavist")
+    if not atm_user_is_valid(build_usr):
+        raise ValueError("User is not known in adaptavist")
 
     build_url = metadata.get("BUILD_URL")
     jenkins_url = metadata.get("JENKINS_URL")
