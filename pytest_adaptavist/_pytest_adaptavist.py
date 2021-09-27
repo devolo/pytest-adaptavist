@@ -58,7 +58,7 @@ class PytestAdaptavist:
         self.test_run_key = ""
         self.test_case_order: List[str] = []
         self.test_case_keys: List[str] = []
-        self.test_environment: str = ""
+        self.test_environment: Optional[str] = ""
         self.test_case_range: List[str] = []
         self.test_plan_folder = ""
         self.test_run_folder = ""
@@ -520,13 +520,15 @@ class PytestAdaptavist:
         # if method was blocked dynamically (during call) an appropriate marker is used
         # to handle the reporting in the same way as for statically blocked methods
         # (status will be reported as "Blocked" with given comment in Adaptavist)
-        if not skip_status and (call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)  # type: ignore
-                                or not call.excinfo and self.test_result_data[fullname].get("blocked", None) is True):
-            reason = self.test_result_data[fullname].get("comment", None) or \
-                str(call.excinfo.value).partition("\n")[0] if call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception) else ""  # type: ignore
+        def _call_info():
+            return call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)
+
+        if not skip_status and (_call_info()  # type: ignore
+                                or not call.excinfo and self.test_result_data[fullname].get("blocked")):
+            reason = self.test_result_data[fullname].get("comment") or \
+                str(call.excinfo.value).partition("\n")[0] if _call_info() else ""  # type: ignore
             skip_status = pytest.mark.block(reason=reason) if ((call.excinfo and call.excinfo.type is pytest.block.Exception)  # type: ignore
-                                                               or self.test_result_data[fullname].get("blocked", None) is True) else pytest.mark.skip(
-                                                                   reason=reason)
+                                                               or self.test_result_data[fullname].get("blocked")) else pytest.mark.skip(reason=reason)
             if report.outcome != "skipped":
                 report.outcome = "skipped"  # to mark this as SKIPPED in pytest reports
                 report.longrepr = (__file__,
@@ -544,8 +546,7 @@ class PytestAdaptavist:
         # handling failed assumptions
         handle_failed_assumptions(item, call, report)
 
-        if skip_status:
-            self.build_report_description(item, call, report, skip_status)
+        self.build_report_description(item, call, report, skip_status)
 
         # build_terminal_report(when="call", item=item, status=report.outcome if not skip_status else ("blocked" if skip_status.name == "block" else "skipped"))
 

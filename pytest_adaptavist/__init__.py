@@ -1,5 +1,6 @@
 """This module provides a set of pytest hooks for generating Adaptavist test run results from test reports."""
 
+import getpass
 import logging
 import os
 from importlib.metadata import PackageNotFoundError, version
@@ -56,7 +57,10 @@ def pytest_configure(config: Config):
     # Store metadata for later usage (e.g. adaptavist traceability).
     metadata = getattr(config, "_metadata", os.environ)
 
-    build_usr = "jenkins"  # TODO: REVERT THIS!!!!
+    build_usr = getpass.getuser().lower() if not config.getoption("restrict_user") else config.getoption("restrict_user")
+    # if not atm_user_is_valid(build_usr):
+    #     raise ValueError("User is not known in adaptavist")
+
     build_url = metadata.get("BUILD_URL")
     jenkins_url = metadata.get("JENKINS_URL")
     code_base = metadata.get("GIT_URL", get_code_base_url())
@@ -82,16 +86,9 @@ def pytest_configure(config: Config):
 
     # => automated flag set and executedby = "jenkins" means official test run
     # => automated flag set and executedby != "jenkins" means inofficial test run (not valid with respect to DoD)
-    if build_usr == "jenkins" and build_url and jenkins_url and build_url.startswith(jenkins_url) and branch != "origin/master":
-        # disable reporting
-        setattr(config.option, "adaptavist", False)
 
-    if build_usr != "jenkins" and not atm_user_is_valid(build_usr):
-        # disable reporting
-        setattr(config.option, "adaptavist", False)
-
-    # TODO: REMOVE BEFORE RELEASE!!!!!!!
-    setattr(config.option, "adaptavist", True)
+    if config.getoption("restrict_branch") and branch != config.getoption("restrict_branch_name"):
+        raise ValueError("ASADSDAS")
 
     if adaptavist.reporter:
         adaptavist.reporter.section("ATM build meta data", bold=True)
@@ -116,7 +113,16 @@ class Blocked(Skipped):
 def pytest_addoption(parser: Parser):
     """Add options to control plugin."""
     group = parser.getgroup("adaptavist", "adaptavist test reporting")
-    group.addoption("--adaptavist", action="store_true", default=False, help="Enable adaptavist reporting (default: False)")
+
+    def add_option_ini(option, dest, default=None, type=None, **kwargs):
+        group.addoption(option, dest=dest, **kwargs)
+        kwargs.pop("store", "")
+        parser.addini(dest, default=default, type=type, help="default value for " + option)
+
+    add_option_ini("--adaptavist", dest="adaptavist", type="bool", action="store_true", help="Enable adaptavist reporting (default: False)")
+    add_option_ini("--restrict-user", dest="restrict_user", help="Useful help message")
+    add_option_ini("--restrict-branch", dest="restrict_branch", default=False, type="bool", action="store_true", help="Useful help message")
+    add_option_ini("--restrict-branch-name", dest="restrict_branch_name", default="origin/master", help="Useful help message")
 
 
 @pytest.hookimpl(tryfirst=True)
