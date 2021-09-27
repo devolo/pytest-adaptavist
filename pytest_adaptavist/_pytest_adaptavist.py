@@ -511,7 +511,7 @@ class PytestAdaptavist:
                 # setup report only if adaptavist reporting is enabled
                 self.setup_report(getattr(item.config, "workerinput", {}))
                 for user_property in report.user_properties:
-                    if user_property[0] == "atmcfg":
+                    if user_property[0] == "atmcfg" and isinstance(user_property[1], dict):
                         del user_property[1]["test_environment"]
             if (not call.excinfo and not skip_status and self.test_result_data[fullname].get("blocked", None) is not True):
                 # no skipped or blocked methods to report
@@ -525,9 +525,9 @@ class PytestAdaptavist:
             reason = self.test_result_data[fullname].get("comment", None) or \
                 str(call.excinfo.value).partition("\n")[0] \
                     if call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception) else ""  # type: ignore
-            skip_status = pytest.mark.block(
-                reason=reason) if ((call.excinfo and call.excinfo.type is pytest.block.Exception)  # type: ignore
-                                   or self.test_result_data[fullname].get("blocked", None) is True) else pytest.mark.skip(reason=reason)
+            skip_status = pytest.mark.block(reason=reason) if ((call.excinfo and call.excinfo.type is pytest.block.Exception)  # type: ignore
+                                                               or self.test_result_data[fullname].get("blocked", None) is True) else pytest.mark.skip(
+                                                                   reason=reason)
             if report.outcome != "skipped":
                 report.outcome = "skipped"  # to mark this as SKIPPED in pytest reports
                 report.longrepr = (__file__,
@@ -538,8 +538,8 @@ class PytestAdaptavist:
         if call.excinfo:
             exc_info = self.build_exception_info(fullname, call.excinfo.type, call.excinfo.value, getattr(call.excinfo.traceback[-1], "_rawentry"))
 
-            if (exc_info and exc_info not in (self.test_result_data[fullname].get("comment", None) or "")
-                    and (call.excinfo.type is not pytest.skip.Exception) and not skip_status):
+            if (exc_info and exc_info not in (self.test_result_data[fullname].get("comment", None) or "") and (call.excinfo.type is not pytest.skip.Exception)
+                    and not skip_status):
                 self.test_result_data[fullname]["comment"] = "".join((self.test_result_data[fullname].get("comment", None) or "", html_row(False, exc_info)))
 
         # handling failed assumptions

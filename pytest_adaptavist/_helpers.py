@@ -56,10 +56,10 @@ def get_code_base_url() -> Optional[str]:
     return code_base
 
 
-def get_spec(nodeid: str) -> Optional[str]:
+def get_spec(nodeid: str) -> str:
     """Split item nodeid - if existing - callspec res. parameterization."""
     tokens = nodeid.split("[", 1)
-    return "[" + tokens[1].strip() if len(tokens) > 1 else None
+    return "[" + tokens[1].strip() if len(tokens) > 1 else ""
 
 
 def get_item_nodeid(item: Item) -> str:
