@@ -523,8 +523,7 @@ class PytestAdaptavist:
         if not skip_status and (call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)  # type: ignore
                                 or not call.excinfo and self.test_result_data[fullname].get("blocked", None) is True):
             reason = self.test_result_data[fullname].get("comment", None) or \
-                str(call.excinfo.value).partition("\n")[0] \
-                    if call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception) else ""  # type: ignore
+                str(call.excinfo.value).partition("\n")[0] if call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception) else ""  # type: ignore
             skip_status = pytest.mark.block(reason=reason) if ((call.excinfo and call.excinfo.type is pytest.block.Exception)  # type: ignore
                                                                or self.test_result_data[fullname].get("blocked", None) is True) else pytest.mark.skip(
                                                                    reason=reason)
