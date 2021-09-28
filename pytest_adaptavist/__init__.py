@@ -10,12 +10,11 @@ import pytest
 from _pytest.config import Config
 from _pytest.config.argparsing import Parser
 from _pytest.fixtures import FixtureRequest
-from _pytest.logging import get_option_ini
 from _pytest.outcomes import Skipped, _with_exception
 from _pytest.reports import TestReport
 
 from ._atm_configuration import atm_user_is_valid
-from ._helpers import get_code_base_url
+from ._helpers import get_code_base_url, get_option_ini, get_option_ini_bool
 from ._pytest_adaptavist import PytestAdaptavist
 from ._xdist import XdistHooks
 from .metablock import MetaBlock
@@ -48,7 +47,8 @@ def pytest_configure(config: Config):
         raise Blocked(msg=msg)
 
     pytest.block = block  # type: ignore
-    if not get_option_ini(config, "adaptavist"):
+
+    if not get_option_ini_bool(config, "adaptavist"):
         return
 
     if config.pluginmanager.hasplugin("xdist"):
@@ -63,7 +63,7 @@ def pytest_configure(config: Config):
     build_usr = getpass.getuser().lower() if not get_option_ini(config, "restrict_user") else get_option_ini(config, "restrict_user")
 
     if not atm_user_is_valid(build_usr):
-        raise ValueError("User is not known in adaptavist")
+        raise ValueError(f"User {build_usr} is not known in adaptavist")
 
     build_url = metadata.get("BUILD_URL")
     jenkins_url = metadata.get("JENKINS_URL")
@@ -76,32 +76,16 @@ def pytest_configure(config: Config):
         if code_base and code_base.startswith("git@") \
         else code_base
 
-    # only report results to adaptavist if:
-    #     - branch is master
-    #     - user is jenkins
-    #     - env is jenkins
-    # note: we might need the possibility to create adaptavist results from a local test run (beit for testing purpose or whatever)
-
-    # if user is jenkins
-    #   if branch is master then report using getpass.getuser()
-    #   else disable report
-    # else
-    #   report using getpass.getuser()
-
-    # => automated flag set and executedby = "jenkins" means official test run
-    # => automated flag set and executedby != "jenkins" means inofficial test run (not valid with respect to DoD)
-
-    if get_option_ini(config, "restrict_branch") and branch != get_option_ini(config, "restrict_branch_name"):
-        raise ValueError("ASADSDAS")
+    if get_option_ini_bool(config, "restrict_branch") and branch != get_option_ini(config, "restrict_branch_name"):
+        raise ValueError("Useful message")
 
     if adaptavist.reporter:
         adaptavist.reporter.section("ATM build meta data", bold=True)
-
         adaptavist.reporter.line(f"build_usr: {build_usr or 'unknown'}")
         adaptavist.reporter.line(f"build_url: {build_usr or 'unknown'}")
         adaptavist.reporter.line(
             f"code_base: {code_base or 'unknown'} {(branch or 'unknown') if code_base else ''} {(commit or 'unknown') if code_base and branch else ''}")
-        adaptavist.reporter.line(f"reporting: {'enabled' if getattr(config.option, 'adaptavist', False) else 'disabled'}")
+        adaptavist.reporter.line("reporting: enabled")
 
     logger = logging.getLogger("pytest-adaptavist")
     logger_handler = logging.StreamHandler()
@@ -118,15 +102,15 @@ def pytest_addoption(parser: Parser):
     """Add options to control plugin."""
     group = parser.getgroup("adaptavist", "adaptavist test reporting")
 
-    def add_option_ini(option, dest, default=None, type=None, **kwargs):
+    def add_option_ini(option, dest, default=None, option_type=None, **kwargs):
         group.addoption(option, dest=dest, **kwargs)
         kwargs.pop("store", "")
 
-        parser.addini(dest, default=default, type=type, help="default value for " + option)
+        parser.addini(dest, default=default, type=option_type, help="default value for " + option)
 
-    add_option_ini("--adaptavist", dest="adaptavist", type="bool", action="store_true", help="Enable adaptavist reporting (default: False)")
+    add_option_ini("--adaptavist", dest="adaptavist", option_type="bool", action="store_true", help="Enable adaptavist reporting (default: False)")
     add_option_ini("--restrict-user", dest="restrict_user", help="Useful help message")
-    add_option_ini("--restrict-branch", dest="restrict_branch", action="store_true", default=False, type="bool", help="Useful help message")
+    add_option_ini("--restrict-branch", dest="restrict_branch", action="store_true", option_type="bool", help="Useful help message")
     add_option_ini("--restrict-branch-name", dest="restrict_branch_name", default="origin/master", help="Useful help message")
 
 

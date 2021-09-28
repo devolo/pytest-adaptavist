@@ -2,9 +2,10 @@
 
 import subprocess
 from contextlib import suppress
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import pytest
+from _pytest.config import Config
 from _pytest.nodes import Item
 from _pytest.python import Function
 from _pytest.reports import TestReport
@@ -54,6 +55,17 @@ def get_code_base_url() -> Optional[str]:
     with suppress(subprocess.CalledProcessError):
         code_base = subprocess.check_output("git config --get remote.origin.url".split()).decode("utf-8").strip()
     return code_base
+
+
+def get_option_ini_bool(config: Config, value: str) -> bool:
+    return any((config.getini(value), config.getoption(value)))
+
+
+def get_option_ini(config: Config, value: str) -> Any:
+    ret = config.getoption(value)  # 'default' arg won't work as expected
+    if ret is None:
+        ret = config.getini(value)
+    return ret
 
 
 def get_spec(nodeid: str) -> str:
