@@ -10,6 +10,7 @@ import pytest
 from _pytest.config import Config
 from _pytest.config.argparsing import Parser
 from _pytest.fixtures import FixtureRequest
+from _pytest.logging import get_option_ini
 from _pytest.outcomes import Skipped, _with_exception
 from _pytest.reports import TestReport
 
@@ -37,12 +38,6 @@ def pytest_configure(config: Config):
     config.addinivalue_line("markers", "project(project_key): mark test method to be related to given project (used to create appropriate test case key")
     config.addinivalue_line("markers", "block(reason): mark test method to be blocked")
 
-    if config.pluginmanager.hasplugin("xdist"):
-        config.pluginmanager.register(XdistHooks())
-
-    if config.getoption("-h") or config.getoption("--help"):
-        return
-
     adaptavist = PytestAdaptavist(config)
     config.pluginmanager.register(adaptavist, "_adaptavist")
 
@@ -53,11 +48,20 @@ def pytest_configure(config: Config):
         raise Blocked(msg=msg)
 
     pytest.block = block  # type: ignore
+    if not get_option_ini(config, "adaptavist"):
+        return
+
+    if config.pluginmanager.hasplugin("xdist"):
+        config.pluginmanager.register(XdistHooks())
+
+    if config.getoption("-h") or config.getoption("--help"):
+        return
 
     # Store metadata for later usage (e.g. adaptavist traceability).
     metadata = getattr(config, "_metadata", os.environ)
 
-    build_usr = getpass.getuser().lower() if not config.getoption("restrict_user") else config.getoption("restrict_user")
+    build_usr = getpass.getuser().lower() if not get_option_ini(config, "restrict_user") else get_option_ini(config, "restrict_user")
+
     if not atm_user_is_valid(build_usr):
         raise ValueError("User is not known in adaptavist")
 
@@ -87,7 +91,7 @@ def pytest_configure(config: Config):
     # => automated flag set and executedby = "jenkins" means official test run
     # => automated flag set and executedby != "jenkins" means inofficial test run (not valid with respect to DoD)
 
-    if config.getoption("restrict_branch") and branch != config.getoption("restrict_branch_name"):
+    if get_option_ini(config, "restrict_branch") and branch != get_option_ini(config, "restrict_branch_name"):
         raise ValueError("ASADSDAS")
 
     if adaptavist.reporter:
@@ -117,11 +121,12 @@ def pytest_addoption(parser: Parser):
     def add_option_ini(option, dest, default=None, type=None, **kwargs):
         group.addoption(option, dest=dest, **kwargs)
         kwargs.pop("store", "")
+
         parser.addini(dest, default=default, type=type, help="default value for " + option)
 
     add_option_ini("--adaptavist", dest="adaptavist", type="bool", action="store_true", help="Enable adaptavist reporting (default: False)")
     add_option_ini("--restrict-user", dest="restrict_user", help="Useful help message")
-    add_option_ini("--restrict-branch", dest="restrict_branch", default=False, type="bool", action="store_true", help="Useful help message")
+    add_option_ini("--restrict-branch", dest="restrict_branch", action="store_true", default=False, type="bool", help="Useful help message")
     add_option_ini("--restrict-branch-name", dest="restrict_branch_name", default="origin/master", help="Useful help message")
 
 
