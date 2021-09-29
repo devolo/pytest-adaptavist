@@ -24,7 +24,14 @@ from adaptavist.const import PRIORITY_HIGH, STATUS_BLOCKED, STATUS_FAIL, STATUS_
 from pytest_assume.plugin import Assumption, FailedAssumption
 
 from ._atm_configuration import ATMConfiguration
-from ._helpers import apply_test_case_range, calc_test_result_status, get_item_nodeid, get_spec, handle_failed_assumptions, html_row, intersection
+from ._helpers import (apply_test_case_range,
+                       calc_test_result_status,
+                       get_item_nodeid,
+                       get_option_ini,
+                       get_spec,
+                       handle_failed_assumptions,
+                       html_row,
+                       intersection)
 
 
 class PytestAdaptavist:
@@ -64,6 +71,7 @@ class PytestAdaptavist:
         self.test_run_folder = ""
         self.test_plan_suffix = ""
         self.test_run_suffix = ""
+        self.enabled = get_option_ini(config, "adaptavist")
 
         self.cfg = ATMConfiguration()
         self.adaptavist: Adaptavist = Adaptavist(self.cfg.get("jira_server", ""), self.cfg.get("jira_username", ""), self.cfg.get("jira_password", ""))
@@ -82,7 +90,7 @@ class PytestAdaptavist:
 
     def create_item_collection(self, items: List[Item], collected_project_keys: List[str], collected_items: Dict[str, List[Function]]):
         """Create the list of test methods to be executed and included in adaptavist report."""
-        if self.adaptavist and (self.project_key or self.test_run_key):
+        if self.enabled and (self.project_key or self.test_run_key):
             if self.test_case_keys:
                 # add any specified test cases, even if they are not implemented
                 collected_items.update({key: [] for key in self.test_case_keys if key not in collected_items})

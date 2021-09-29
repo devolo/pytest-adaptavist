@@ -65,7 +65,6 @@ class MetaBlock:
         self.timeout = timeout
         self.adaptavist: PytestAdaptavist = request.config.pluginmanager.getplugin("_adaptavist")
         self.data = self.adaptavist.test_result_data.setdefault(fullname + ("_" + str(step) if step else ""), {"comment": None, "attachment": None})
-        self.failed_assumptions = getattr(pytest, "_failed_assumptions", [])[:]
 
     @staticmethod
     def _timeout_handler(signum, frame):
@@ -109,7 +108,7 @@ class MetaBlock:
             if (exc_info and exc_info not in (self.data.get("comment") or "") and (exc_type is not pytest.skip.Exception) and not skip_status):
                 self.data["comment"] = "".join((self.data.get("comment", None) or "", html_row(False, exc_info)))
 
-        passed = not exc_type and (len(self.adaptavist.failed_assumptions_step) <= len(self.failed_assumptions))
+        passed = not exc_type and (len(self.adaptavist.failed_assumptions_step) <= len(getattr(pytest, "_failed_assumptions", [])[:]))
         status = ("passed" if passed else "failed") if not skip_status else ("blocked" if
                                                                              (skip_status.name == "block" or self.data.get("blocked")) else "skipped")
 

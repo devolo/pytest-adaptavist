@@ -62,10 +62,7 @@ def get_option_ini_bool(config: Config, value: str) -> bool:
 
 
 def get_option_ini(config: Config, value: str) -> Any:
-    ret = config.getoption(value)  # 'default' arg won't work as expected
-    if ret is None:
-        ret = config.getini(value)
-    return ret
+    return config.getoption(value) or config.getini(value)
 
 
 def get_spec(nodeid: str) -> str:

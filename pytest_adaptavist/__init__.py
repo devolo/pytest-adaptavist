@@ -48,14 +48,11 @@ def pytest_configure(config: Config):
 
     pytest.block = block  # type: ignore
 
-    if not get_option_ini_bool(config, "adaptavist"):
+    if not get_option_ini(config, "adaptavist"):
         return
 
     if config.pluginmanager.hasplugin("xdist"):
         config.pluginmanager.register(XdistHooks())
-
-    if config.getoption("-h") or config.getoption("--help"):
-        return
 
     # Store metadata for later usage (e.g. adaptavist traceability).
     metadata = getattr(config, "_metadata", os.environ)
@@ -76,7 +73,7 @@ def pytest_configure(config: Config):
         if code_base and code_base.startswith("git@") \
         else code_base
 
-    if get_option_ini_bool(config, "restrict_branch") and branch != get_option_ini(config, "restrict_branch_name"):
+    if get_option_ini(config, "restrict_branch") and branch != get_option_ini(config, "restrict_branch_name"):
         raise ValueError("Useful message")
 
     if adaptavist.reporter:
@@ -88,9 +85,6 @@ def pytest_configure(config: Config):
         adaptavist.reporter.line("reporting: enabled")
 
     logger = logging.getLogger("pytest-adaptavist")
-    logger_handler = logging.StreamHandler()
-    logger_handler.setFormatter(logging.Formatter('%(message)s'))
-    logger.addHandler(logger_handler)
     logger.propagate = False
 
 
