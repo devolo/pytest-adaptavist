@@ -99,8 +99,8 @@ class PytestAdaptavist:
             if not self.test_run_key:
                 # only include those test cases that are part of collected projects (including test database)
                 search_mask = f"""projectKey IN ("{'", "'.join(collected_project_keys + ["TEST"])}")"""
-                test_cases = [test_case["key"] for test_case in self.adaptavist.get_test_cases(
-                    search_mask=search_mask)] if items and getattr(items[0].config.option, "adaptavist") else list(collected_items.keys())
+                test_cases = [test_case["key"]
+                              for test_case in self.adaptavist.get_test_cases(search_mask=search_mask)] if items else list(collected_items.keys())
             else:
                 # only include those test cases that are part of this test run
                 test_run = self.adaptavist.get_test_run(self.test_run_key)
@@ -163,8 +163,6 @@ class PytestAdaptavist:
             self.test_run_folder = self.cfg.get("test_run_folder", None)
         if not self.test_run_suffix:
             self.test_run_suffix = self.cfg.get("test_run_suffix", "test run " + datetime.now().strftime("%Y%m%d%H%M"))
-        if getattr(pytest, "skip_ntc_methods", None) is None:
-            self.skip_ntc_methods = self.cfg.get_bool("skip_ntc_methods", False)
 
         return True
 
@@ -219,7 +217,7 @@ class PytestAdaptavist:
                     item.add_marker(pytest.mark.skip(reason="skipped as requested"))
                 else:
                     collected_items.setdefault(project_key + "-" + test_case_key, []).append(item)
-            elif self.skip_ntc_methods:
+            elif self.cfg.get_bool("skip_ntc_methods", False):
                 # skip methods that are no test case methods
                 item.add_marker(pytest.mark.skip)
 
@@ -508,7 +506,7 @@ class PytestAdaptavist:
 
         if call.when not in ("call", "setup"):
             return
-        if item.get_closest_marker("block"):
+        if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):
             report.blocked = True  # type: ignore
 
         skip_status = item.get_closest_marker("block") or item.get_closest_marker("skip")

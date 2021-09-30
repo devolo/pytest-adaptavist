@@ -14,7 +14,7 @@ from _pytest.outcomes import Skipped, _with_exception
 from _pytest.reports import TestReport
 
 from ._atm_configuration import atm_user_is_valid
-from ._helpers import get_code_base_url, get_option_ini, get_option_ini_bool
+from ._helpers import get_code_base_url, get_option_ini
 from ._pytest_adaptavist import PytestAdaptavist
 from ._xdist import XdistHooks
 from .metablock import MetaBlock
@@ -52,7 +52,7 @@ def pytest_configure(config: Config):
         return
 
     if config.pluginmanager.hasplugin("xdist"):
-        config.pluginmanager.register(XdistHooks())
+        config.pluginmanager.register(XdistHooks(), "_xdist_adaptavist")
 
     # Store metadata for later usage (e.g. adaptavist traceability).
     metadata = getattr(config, "_metadata", os.environ)

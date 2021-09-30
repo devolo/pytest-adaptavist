@@ -57,10 +57,6 @@ def get_code_base_url() -> Optional[str]:
     return code_base
 
 
-def get_option_ini_bool(config: Config, value: str) -> bool:
-    return any((config.getini(value), config.getoption(value)))
-
-
 def get_option_ini(config: Config, value: str) -> Any:
     return config.getoption(value) or config.getini(value)
 
@@ -74,7 +70,7 @@ def get_spec(nodeid: str) -> str:
 def get_item_nodeid(item: Item) -> str:
     """Build item node id."""
     # note: pytest's item.nodeid could be modified by third party, so build a local one here
-    if item.location and len(item.location) > 2:
+    if getattr(item, "location", False) and len(item.location) > 2:
         return item.location[0].replace("\\", "/") + "::" + item.location[2].replace(".", "::")
     return ""
 
