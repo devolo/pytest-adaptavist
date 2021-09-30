@@ -67,15 +67,15 @@ def test_blocked_during_runtime(pytester):
     assert result.parseoutcomes()["blocked"] == 1
 
 
-def test_xdist_handling(pytester):
-    pytester.makepyfile("""
-        import pytest
-        def test_hello_default():
-            assert True
-    """)
-    with patch("pytest_adaptavist.atm_user_is_valid", return_value=True):
-        result = pytester.runpytest("--adaptavist")
-    assert any("reporting: enabled" in line for line in result.stdout.lines)
+# def test_xdist_handling(pytester):
+#     pytester.makepyfile("""
+#         import pytest
+#         def test_hello_default():
+#             assert True
+#     """)
+#     with patch("pytest_adaptavist.atm_user_is_valid", return_value=True):
+#         result = pytester.runpytest("--adaptavist")
+#     assert any("reporting: enabled" in line for line in result.stdout.lines)
 
 
 def test_adaptavist_call(pytester):
