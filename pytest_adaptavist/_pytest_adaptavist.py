@@ -506,7 +506,7 @@ class PytestAdaptavist:
 
         if call.when not in ("call", "setup"):
             return
-        if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):
+        if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore
             report.blocked = True  # type: ignore
 
         skip_status = item.get_closest_marker("block") or item.get_closest_marker("skip")
