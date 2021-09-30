@@ -15,8 +15,8 @@ def test_adaptavist_disabled(pytester):
         def test_hello_default():
             assert True
     """)
-    result = pytester.runpytest()
-    assert all("reporting: enabled" not in line for line in result.stdout.lines)
+    config = pytester.parseconfig()
+    assert not config.option.adaptavist
 
 
 def test_adaptavist_enabled(pytester):
@@ -68,7 +68,6 @@ def test_blocked_during_runtime(pytester):
 
 
 def test_xdist_handling(pytester):
-    fixtures = ["items"]
     pytester.makepyfile("""
         import pytest
         def test_hello_default():
