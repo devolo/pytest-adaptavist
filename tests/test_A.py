@@ -1,4 +1,5 @@
 import logging
+import os
 from unittest.mock import patch
 
 import pytest
@@ -79,7 +80,6 @@ def test_blocked_during_runtime(pytester):
 
 
 def test_adaptavist_call(pytester):
-    import os
     pytester.makepyfile("""
         import pytest
         @pytest.mark.project("test")
@@ -102,7 +102,38 @@ def test_adaptavist_call(pytester):
                             with patch("adaptavist.Adaptavist.create_test_result") as ctr:
                                 pytester.runpytest("--adaptavist")
                                 ctr.assert_called_once_with(test_run_key="TEST-C1", test_case_key="TEST-T123", environment="", status=None)
-                                # data= {"comment": "", "environment": None, "assignedTo": "markus.bong", "exectedBy": "markus.bong", "status": None})
+
+
+def test_adaptavist_call_metablock(pytester):
+    pytester.makepyfile("""
+        import pytest
+        @pytest.mark.project("test")
+        def test_TEST_T123(meta_block):
+            with meta_block(1):
+                assert True
+            with meta_block(2):
+                assert True
+            with meta_block(3):
+                assert False
+    """)
+    pytester.mkdir("config")
+    os.chdir("config")
+    with open("global_config.json", "w") as f:
+        f.write('{"project_key": "TEST", "test_run_key":"TEST-C1"}')
+    os.environ["JIRA_SERVER"] = "https://test.com"
+    pytester.chdir()
+    r_value = [{"key": "TEST-T123"}]
+    with patch("adaptavist.Adaptavist.get_test_result", return_value={"scriptResults": [{"status": "Pass", "index": "0"}], "status": "Pass"}):
+        with patch("adaptavist.Adaptavist.get_test_run", return_value={"items": [{"testCaseKey": "TEST-T123"}]}):
+            with patch("adaptavist.Adaptavist.get_test_cases", return_value=r_value):
+                with patch("adaptavist.Adaptavist.get_test_run_by_name", return_value={"key": "TEST_RUN_TEST"}):
+                    with patch("requests.post") as mock_post, patch("pytest_adaptavist.atm_user_is_valid", return_value=True), patch("requests.put") as mock_put:
+                        with patch("adaptavist.Adaptavist.get_test_case", return_value={"name": "TEST-T123", "priority": "Normal"}):
+                            with patch("adaptavist.Adaptavist.create_test_result") as ctr:
+                                with patch("adaptavist.Adaptavist.edit_test_result_status") as etrs:
+                                    pytester.runpytest("--adaptavist")
+                                    etrs.call_count == 4
+                                # TODO: There are some calls made against adaptavist.
 
 
 # @pytest.mark.block()
