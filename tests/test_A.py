@@ -136,6 +136,35 @@ def test_adaptavist_call_metablock(pytester):
                                 # TODO: There are some calls made against adaptavist.
 
 
+def test_meta_block_timeout(pytester):
+    pytester.makepyfile("""
+        import pytest
+        from time import sleep
+        @pytest.mark.project("test")
+        def test_TEST_T123(meta_block):
+            with meta_block(1, 1):
+                sleep(2)
+                assert True
+    """)
+    pytester.mkdir("config")
+    os.chdir("config")
+    with open("global_config.json", "w") as f:
+        f.write('{"project_key": "TEST", "test_run_key":"TEST-C1"}')
+    os.environ["JIRA_SERVER"] = "https://test.com"
+    pytester.chdir()
+    r_value = [{"key": "TEST-T123"}]
+    with patch("adaptavist.Adaptavist.get_test_result", return_value={"scriptResults": [{"status": "Pass", "index": "0"}], "status": "Pass"}):
+        with patch("adaptavist.Adaptavist.get_test_run", return_value={"items": [{"testCaseKey": "TEST-T123"}]}):
+            with patch("adaptavist.Adaptavist.get_test_cases", return_value=r_value):
+                with patch("adaptavist.Adaptavist.get_test_run_by_name", return_value={"key": "TEST_RUN_TEST"}):
+                    with patch("requests.post") as mock_post, patch("pytest_adaptavist.atm_user_is_valid", return_value=True), patch("requests.put") as mock_put:
+                        with patch("adaptavist.Adaptavist.get_test_case", return_value={"name": "TEST-T123", "priority": "Normal"}):
+                            with patch("adaptavist.Adaptavist.create_test_result") as ctr:
+                                with patch("adaptavist.Adaptavist.edit_test_result_status") as etrs:
+                                    report = pytester.runpytest("--adaptavist")
+                                    report.parseoutcomes()["skipped"] == 1
+
+
 # @pytest.mark.block()
 # def test_TEST_T970(meta_block):
 #         with meta_block() as mb:
