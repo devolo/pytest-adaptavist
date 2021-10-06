@@ -72,7 +72,7 @@ class MetaBlock:
 
     def __enter__(self):
         if self.step:
-            # gibt's pretty --> pretty prüfen ob pretty an ist.
+            # TODO: gibt's pretty --> pretty prüfen ob pretty an ist.
             # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)')
             build_terminal_report(when="setup", item=self.item, step=self.step, level=2)
         self.start = datetime.now().timestamp()
@@ -227,6 +227,7 @@ class MetaBlock:
             seen = True
             for item in self.adaptavist.items:
                 if not seen:
+                    item.add_marker("skip")
                     self.adaptavist.test_result_data[fullname]["blocked"] = True
                     self.adaptavist.test_result_data[fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
                 seen = item.name != self.item.name
@@ -236,6 +237,7 @@ class MetaBlock:
             seen = True
             for item in self.adaptavist.items:
                 if not seen:
+                    item.add_marker("skip")
                     self.adaptavist.test_result_data[fullname]["blocked"] = True
                     self.adaptavist.test_result_data[fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
                 seen = item.name != self.item.name

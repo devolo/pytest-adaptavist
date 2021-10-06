@@ -658,34 +658,32 @@ class PytestAdaptavist:
     def pytest_unconfigure(self, config: Config):
         """This is called before test process is exited."""
 
-        if config.getoption("-h") or config.getoption("--help"):
+        # create and output Adaptavist test cycle information
+        if not self.enabled or not self.reporter:
             return
 
-        # create and output Adaptavist test cycle information
-        if getattr(config.option, "adaptavist", False) and self.reporter:
+        self.reporter.section("ATM test cycle info", bold=True)
 
-            self.reporter.section("ATM test cycle info", bold=True)
+        self.reporter.line("project_key:   %s" % getattr(self, "project_key", None))
+        self.reporter.line("test_plan_key: %s" % getattr(self, "test_plan_key", None))
+        self.reporter.line("test_run_key:  %s" % getattr(self, "test_run_key", None))
+        if getattr(self, "test_run_keys", None) and getattr(self, "test_run_keys", [None]) != [getattr(self, "test_run_key", None)]:
+            self.reporter.line("cycle_key(s):  %s" % ", ".join(self.test_run_keys))
 
-            self.reporter.line("project_key:   %s" % getattr(self, "project_key", None))
-            self.reporter.line("test_plan_key: %s" % getattr(self, "test_plan_key", None))
-            self.reporter.line("test_run_key:  %s" % getattr(self, "test_run_key", None))
-            if getattr(self, "test_run_keys", None) and getattr(self, "test_run_keys", [None]) != [getattr(self, "test_run_key", None)]:
-                self.reporter.line("cycle_key(s):  %s" % ", ".join(self.test_run_keys))
+        traceability = None
+        test_summary = None
+        score_matrix = None
+        base_url = ATMConfiguration().get("jira_server", "")
+        if base_url and getattr(self, "project_key", None) and getattr(self, "test_run_key", None):
+            # pylint: disable=line-too-long
+            cycle_string = "%22%2C%20%22".join(self.test_run_keys) if getattr(self, "test_run_keys", None) else self.test_run_key or ""
+            traceability = f"{base_url}/secure/Tests.jspa#/reports/traceability/report/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TRACEABILITY_REPORT.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"
+            test_summary = f"{base_url}/secure/Tests.jspa#/reports/testresults/board/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_BOARD.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"
+            score_matrix = f"{base_url}/secure/Tests.jspa#/reports/testresults/scorecard/coverage/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_SCORECARD_BY_COVERAGE.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"
 
-            traceability = None
-            test_summary = None
-            score_matrix = None
-            base_url = ATMConfiguration().get("jira_server", "")
-            if base_url and getattr(self, "project_key", None) and getattr(self, "test_run_key", None):
-                # pylint: disable=line-too-long
-                cycle_string = "%22%2C%20%22".join(self.test_run_keys) if getattr(self, "test_run_keys", None) else self.test_run_key or ""
-                traceability = f"{base_url}/secure/Tests.jspa#/reports/traceability/report/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TRACEABILITY_REPORT.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"
-                test_summary = f"{base_url}/secure/Tests.jspa#/reports/testresults/board/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_BOARD.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"
-                score_matrix = f"{base_url}/secure/Tests.jspa#/reports/testresults/scorecard/coverage/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_SCORECARD_BY_COVERAGE.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"
-
-            self.reporter.line("traceability:  %s" % traceability)
-            self.reporter.line("test_summary:  %s" % test_summary)
-            self.reporter.line("score_matrix:  %s" % score_matrix)
+        self.reporter.line("traceability:  %s" % traceability)
+        self.reporter.line("test_summary:  %s" % test_summary)
+        self.reporter.line("score_matrix:  %s" % score_matrix)
 
     @pytest.hookimpl(hookwrapper=True, tryfirst=True)
     def pytest_sessionfinish(self, session: Session, exitstatus: int):
