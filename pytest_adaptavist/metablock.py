@@ -260,10 +260,10 @@ class MetaBlock:
 
 
 def build_terminal_report(when: str,
-                         item: pytest.Function,
-                         status: Literal["passed", "failed", "skipped", "blocked"] | None = None,
-                         step: int | None = None,
-                         level: int = 1):
+                          item: pytest.Function,
+                          status: Literal["passed", "failed", "skipped", "blocked"] | None = None,
+                          step: int | None = None,
+                          level: int = 1):
     """Generate (pretty) terminal output.
         :param when: The call info ("setup", "call").
         :param item: The item to report.
