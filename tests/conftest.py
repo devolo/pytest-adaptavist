@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-pytest_plugins = ("pytester",)
+pytest_plugins = ("pytester", )
 
 
 @pytest.fixture(autouse=True)

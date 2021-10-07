@@ -25,12 +25,10 @@ def test_adaptavist_enabled(pytester: pytest.Pytester):
     config = pytester.parseconfig("--adaptavist")
     assert config.getoption("adaptavist")
 
-    pytester.makeini(
-        """
+    pytester.makeini("""
         [pytest]
         adaptavist = 1
-        """
-    )
+    """)
     config = pytester.parseconfig()
     assert config.getini("adaptavist")
 
@@ -38,15 +36,13 @@ def test_adaptavist_enabled(pytester: pytest.Pytester):
 @pytest.mark.usefixtures("valid_user")
 def test_block_decorator(pytester: pytest.Pytester):
     """Test block decorator."""
-    pytester.makepyfile(
-        """
+    pytester.makepyfile("""
         import pytest
 
         @pytest.mark.block()
         def test_dummy():
             assert True
-        """
-    )
+    """)
     outcome = pytester.runpytest().parseoutcomes()
     assert outcome["blocked"] == 1
     assert "passed" not in outcome
@@ -55,15 +51,13 @@ def test_block_decorator(pytester: pytest.Pytester):
 @pytest.mark.usefixtures("valid_user")
 def test_block_call(pytester: pytest.Pytester):
     """Test calling block."""
-    pytester.makepyfile(
-        """
+    pytester.makepyfile("""
         import pytest
 
         def test_dummy():
             pytest.block()
             assert True
-        """
-    )
+    """)
     outcome = pytester.runpytest().parseoutcomes()
     assert outcome["blocked"] == 1
     assert "passed" not in outcome
@@ -82,14 +76,12 @@ def test_block_call(pytester: pytest.Pytester):
 
 def test_adaptavist_reporting(pytester: pytest.Pytester, adaptavist: Tuple[MagicMock, MagicMock, MagicMock]):
     """Test reporting results to Adaptavist."""
-    pytester.makepyfile(
-        """
+    pytester.makepyfile("""
         import pytest
 
         def test_TEST_T123():
             assert True
-        """
-    )
+    """)
     ctr, _, _ = adaptavist
     pytester.runpytest("--adaptavist")
     ctr.assert_called_once_with(test_run_key="TEST-C1", test_case_key="TEST-T123", environment="")

@@ -37,14 +37,14 @@ def pytest_addoption(parser: Parser):
         kwargs.pop("store", "")
         parser.addini(dest, default=default, type=option_type, help="default value for " + option)
 
-    add_option_ini("--adaptavist", dest="adaptavist", option_type="bool", action="store_true",
-                   help="Enable adaptavist reporting (default: False).")
-    add_option_ini("--restrict-user", dest="restrict_user",
-                   help="Only send data to Adaptavist, if this user is executing the tests.")
-    add_option_ini("--restrict-branch", dest="restrict_branch", action="store_true", option_type="bool",
+    add_option_ini("--adaptavist", dest="adaptavist", option_type="bool", action="store_true", help="Enable adaptavist reporting (default: False).")
+    add_option_ini("--restrict-user", dest="restrict_user", help="Only send data to Adaptavist, if this user is executing the tests.")
+    add_option_ini("--restrict-branch",
+                   dest="restrict_branch",
+                   action="store_true",
+                   option_type="bool",
                    help="Only send data to Adaptavist, if a certain branch is used.")
-    add_option_ini("--restrict-branch-name", dest="restrict_branch_name", default="origin/master",
-                   help="Branch to restrict to (default: origin/master)")
+    add_option_ini("--restrict-branch-name", dest="restrict_branch_name", default="origin/master", help="Branch to restrict to (default: origin/master)")
 
 
 @pytest.hookimpl(trylast=True)

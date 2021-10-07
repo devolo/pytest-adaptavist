@@ -186,7 +186,8 @@ class PytestAdaptavist:
             if getattr(pytest, "_showlocals") \
             else "".join(failed_assumption.repr() for failed_assumption in self.FAILED_ASSUMPTIONS)
 
-    def create_report(self, test_case_key: str,
+    def create_report(self,
+                      test_case_key: str,
                       test_step_key: int | None,
                       execute_time: float,
                       skip_status: Mark | None,
