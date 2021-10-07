@@ -40,7 +40,7 @@ class MetaBlockAborted(Exception):
 class MetaBlock:
     """
     Context Manager class used for processing/reporting single test blocks/steps.
-    
+
     :param request:
     :param timeout:
     :param step:
