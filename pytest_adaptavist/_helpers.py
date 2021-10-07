@@ -1,19 +1,20 @@
 """Helper methods used by the module."""
 
+from __future__ import annotations
+
 import subprocess
 from contextlib import suppress
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
 from _pytest.config import Config
-from _pytest.nodes import Item
 from _pytest.python import Function
 from _pytest.reports import TestReport
 from _pytest.runner import CallInfo
 from adaptavist.const import STATUS_BLOCKED, STATUS_FAIL, STATUS_IN_PROGRESS, STATUS_NOT_EXECUTED, STATUS_PASS
 
 
-def calc_test_result_status(step_results: List[Dict[str, str]]) -> str:
+def calc_test_result_status(step_results: list[dict[str, str]]) -> str:
     """Calculate overall test result status from list of step results.
 
         According to Adaptavist test management:
@@ -49,7 +50,7 @@ def calc_test_result_status(step_results: List[Dict[str, str]]) -> str:
     return [k for k, v in status_map.items() if v == status][0]
 
 
-def get_code_base_url() -> Optional[str]:
+def get_code_base_url() -> str | None:
     """Get current code base url."""
     code_base = None
     with suppress(subprocess.CalledProcessError):
@@ -58,16 +59,17 @@ def get_code_base_url() -> Optional[str]:
 
 
 def get_option_ini(config: Config, value: str) -> Any:
+    """Get option from cli or ini configuration."""
     return config.getoption(value) or config.getini(value)
 
 
 def get_spec(nodeid: str) -> str:
-    """Split item nodeid - if existing - callspec res. parameterization."""
+    """Get callspec from item nodeid."""
     tokens = nodeid.split("[", 1)
     return "[" + tokens[1].strip() if len(tokens) > 1 else ""
 
 
-def get_item_nodeid(item: Item) -> str:
+def get_item_nodeid(item: pytest.Item) -> str:
     """Build item node id."""
     # note: pytest's item.nodeid could be modified by third party, so build a local one here
     if getattr(item, "location", False) and len(item.location) > 2:
@@ -91,12 +93,12 @@ def html_row(condition: bool, message: str) -> str:
             color: white; font-family: monospace; font-size: 10pt; font-weight: bold;'>{badge_text}</span>{message}</div>"
 
 
-def intersection(list_a: List, list_b: List) -> List:
+def intersection(list_a: list, list_b: list) -> list:
     """Return the intersection of two lists (maintaining the item order of the first list)."""
     return sorted(set(list_a) & set(list_b), key=list_a.index)
 
 
-def apply_test_case_range(collected_items: Dict[str, List[Function]], test_case_range: List[str]) -> Dict[str, List[Function]]:
+def apply_test_case_range(collected_items: dict[str, list[Function]], test_case_range: list[str]) -> dict[str, list[Function]]:
     """Apply test case range(s) by skipping excluded test cases."""
 
     if not collected_items or not test_case_range:
@@ -122,8 +124,10 @@ def apply_test_case_range(collected_items: Dict[str, List[Function]], test_case_
     return collected_items
 
 
-def handle_failed_assumptions(item: Item, call: CallInfo, report: TestReport):
+def handle_failed_assumptions(item: pytest.Item, call: CallInfo, report: TestReport):
     """Handle failed assumptions (simulating pytest-assume, if not available)."""
+
+    # TODO: Can't this method go completely? pytest_assume is a mandatory requirement, so we always return early, don't we?
 
     if hasattr(pytest, "assume"):
         # use 3rd party handling

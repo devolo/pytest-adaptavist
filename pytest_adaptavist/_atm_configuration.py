@@ -1,8 +1,10 @@
 """Read config parameters."""
 
+from __future__ import annotations
+
 import json
 import os
-from typing import Any, Optional
+from typing import Any
 
 from adaptavist import Adaptavist
 
@@ -27,7 +29,7 @@ class ATMConfiguration:
             return self.config.get(key) or default
         return os.environ.get(key) or os.environ.get(key.upper()) or self.config.get("cfg_" + key) or self.config.get(key) or default
 
-    def get_bool(self, key: str, default: Any = None) -> Optional[bool]:
+    def get_bool(self, key: str, default: Any = None) -> bool | None:
         """Get boolean value either from environment or from config file."""
 
         result = self.get(key=key, default=default)

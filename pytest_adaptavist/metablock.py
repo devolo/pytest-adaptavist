@@ -1,16 +1,18 @@
 """Process reporting of tests or test steps."""
 
+from __future__ import annotations
+
 import inspect
 import re
 import signal
 from datetime import datetime
 from enum import IntEnum
-from types import TracebackType
-from typing import Any, Optional
+from types import FrameType, TracebackType
+from typing import Any
 
 import pytest
-from _pytest.fixtures import FixtureRequest
-from _pytest.python import Function
+from _pytest._io import TerminalWriter
+from _pytest.terminal import TerminalReporter
 
 from ._helpers import get_item_nodeid, get_spec, html_row
 from ._pytest_adaptavist import PytestAdaptavist
@@ -36,7 +38,13 @@ class MetaBlockAborted(Exception):
 
 
 class MetaBlock:
-    """Context Manager class used for processing/reporting single test blocks/steps."""
+    """
+    Context Manager class used for processing/reporting single test blocks/steps.
+    
+    :param request:
+    :param timeout:
+    :param step:
+    """
 
     class Action(IntEnum):
         """if condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')"""
@@ -55,7 +63,7 @@ class MetaBlock:
         """if condition fails, skip execution of this block/test, set it to 'Blocked' and exit session"""
         EXIT_SESSION = -1
 
-    def __init__(self, request: FixtureRequest, timeout: int, step: Optional[int] = None):
+    def __init__(self, request: pytest.FixtureRequest, timeout: int, step: int | None = None):
         fullname = get_item_nodeid(request.node)
         self.item = request.node
         self.item_name = self.item.name + ("_" + str(step) if step else "")
@@ -67,7 +75,7 @@ class MetaBlock:
         self.data = self.adaptavist.test_result_data.setdefault(fullname + ("_" + str(step) if step else ""), {"comment": None, "attachment": None})
 
     @staticmethod
-    def _timeout_handler(signum, frame):
+    def _timeout_handler(signum: int, frame: FrameType):
         raise TimeoutError("The test step exceeded its timewindow and timed out")
 
     def __enter__(self):
@@ -152,7 +160,7 @@ class MetaBlock:
 
         return exc_type is MetaBlockAborted  # suppress MetaBlockAborted exception
 
-    def check(self, condition: bool, message: Optional[str] = None, action_on_fail: Action = Action.NONE, **kwargs: Any):
+    def check(self, condition: bool, message: str | None = None, action_on_fail: Action = Action.NONE, **kwargs: Any):
         """Check given condition.
 
             :param condition: the condition to be checked
@@ -251,7 +259,7 @@ class MetaBlock:
             pytest.assume(expr=condition, msg=message_on_fail)  # type:ignore  # pylint: disable=no-member
 
 
-def build_terminal_report(when: str, item: Function, status: str = "", step: int = None, level: int = 1):
+def build_terminal_report(when: str, item: pytest.Function, status: str = "", step: int | None = None, level: int = 1):
     """Generate (pretty) terminal output.
         :param when: The call info ("setup", "call").
         :param item: The item to report.
@@ -266,18 +274,19 @@ def build_terminal_report(when: str, item: Function, status: str = "", step: int
     source_code = "".join(source_list[0][line - source_list[1]:])
     docs = re.findall(r"^[\s]*\"\"\"(.*?)\"\"\"", source_code, re.DOTALL | re.MULTILINE | re.IGNORECASE)
     doc_string = inspect.cleandoc(docs[0]) if docs else ""
-    reporter = item.config.pluginmanager.getplugin("terminalreporter") or None
+    terminal_reporter: TerminalReporter | None = item.config.pluginmanager.getplugin("terminalreporter")
+    terminal_writer: TerminalWriter = item.config.get_terminal_writer()
 
-    if reporter:
+    if terminal_reporter:
         if when == "setup":
             if step and item.config.option.verbose > 1:
-                reporter.write_sep("-", "Step " + str(step), bold=True)
-                reporter.write(doc_string + ("\n" if doc_string else ""))
+                terminal_reporter.write_sep("-", "Step " + str(step), bold=True)
+                terminal_reporter.write(doc_string + ("\n" if doc_string else ""))
         elif when == "call":
             if not step:
-                reporter.write_sep("-", bold=True)
-                fill = getattr(reporter, "_tw").fullwidth - getattr(reporter, "_width_of_current_line") - 1
-                reporter.write_line(status.upper().rjust(fill), **COLORMAP.get(status))
+                terminal_reporter.write_sep("-", bold=True)
+                fill = terminal_writer.fullwidth - terminal_writer.width_of_current_line - 1
+                terminal_reporter.write_line(status.upper().rjust(fill), **COLORMAP.get(status))
             if step and item.config.option.verbose > 1:
-                fill = getattr(reporter, "_tw").fullwidth - getattr(reporter, "_width_of_current_line") - 1
-                reporter.write_line(status.upper().rjust(fill), **COLORMAP.get(status))
+                fill = terminal_writer.fullwidth - terminal_writer.width_of_current_line - 1
+                terminal_reporter.write_line(status.upper().rjust(fill), **COLORMAP.get(status))
