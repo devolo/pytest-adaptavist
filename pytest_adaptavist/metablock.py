@@ -8,7 +8,7 @@ import signal
 from datetime import datetime
 from enum import IntEnum
 from types import FrameType, TracebackType
-from typing import Any
+from typing import Any, Literal
 
 import pytest
 from _pytest._io import TerminalWriter
@@ -117,8 +117,8 @@ class MetaBlock:
                 self.data["comment"] = "".join((self.data.get("comment", None) or "", html_row(False, exc_info)))
 
         passed = not exc_type and (len(self.adaptavist.failed_assumptions_step) <= len(getattr(pytest, "_failed_assumptions", [])[:]))
-        status = ("passed" if passed else "failed") if not skip_status else ("blocked" if
-                                                                             (skip_status.name == "block" or self.data.get("blocked")) else "skipped")
+        status: Literal["passed", "failed", "skipped", "blocked"] = ("passed" if passed else "failed") if not skip_status \
+            else ("blocked" if (skip_status.name == "block" or self.data.get("blocked")) else "skipped")
 
         # custom item callback
         prefix = getattr(self.item.config, "workerinput", {}).get("workerid") \
@@ -259,7 +259,11 @@ class MetaBlock:
             pytest.assume(expr=condition, msg=message_on_fail)  # type:ignore  # pylint: disable=no-member
 
 
-def build_terminal_report(when: str, item: pytest.Function, status: str = "", step: int | None = None, level: int = 1):
+def build_terminal_report(when: str,
+                         item: pytest.Function,
+                         status: Literal["passed", "failed", "skipped", "blocked"] | None = None,
+                         step: int | None = None,
+                         level: int = 1):
     """Generate (pretty) terminal output.
         :param when: The call info ("setup", "call").
         :param item: The item to report.
@@ -282,11 +286,11 @@ def build_terminal_report(when: str, item: pytest.Function, status: str = "", st
             if step and item.config.option.verbose > 1:
                 terminal_reporter.write_sep("-", "Step " + str(step), bold=True)
                 terminal_reporter.write(doc_string + ("\n" if doc_string else ""))
-        elif when == "call":
+        elif when == "call" and status:
             if not step:
                 terminal_reporter.write_sep("-", bold=True)
                 fill = terminal_writer.fullwidth - terminal_writer.width_of_current_line - 1
-                terminal_reporter.write_line(status.upper().rjust(fill), **COLORMAP.get(status))
+                terminal_reporter.write_line(status.upper().rjust(fill), **COLORMAP[status])
             if step and item.config.option.verbose > 1:
                 fill = terminal_writer.fullwidth - terminal_writer.width_of_current_line - 1
-                terminal_reporter.write_line(status.upper().rjust(fill), **COLORMAP.get(status))
+                terminal_reporter.write_line(status.upper().rjust(fill), **COLORMAP[status])
