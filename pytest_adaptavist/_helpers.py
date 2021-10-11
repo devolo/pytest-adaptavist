@@ -9,8 +9,6 @@ from typing import Any
 import pytest
 from _pytest.config import Config
 from _pytest.python import Function
-from _pytest.reports import TestReport
-from _pytest.runner import CallInfo
 from adaptavist.const import STATUS_BLOCKED, STATUS_FAIL, STATUS_IN_PROGRESS, STATUS_NOT_EXECUTED, STATUS_PASS
 
 
