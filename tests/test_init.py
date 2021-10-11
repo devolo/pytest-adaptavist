@@ -33,8 +33,8 @@ def test_adaptavist_enabled(pytester: pytest.Pytester):
     assert config.getini("adaptavist")
 
 
-@pytest.mark.usefixtures("valid_user")
-def test_block_decorator(pytester: pytest.Pytester, adaptavist):
+@pytest.mark.usefixtures("adaptavist")
+def test_block_decorator(pytester: pytest.Pytester):
     """Test block decorator."""
     pytester.makepyfile("""
         import pytest
@@ -48,8 +48,8 @@ def test_block_decorator(pytester: pytest.Pytester, adaptavist):
     assert "passed" not in outcome
 
 
-@pytest.mark.usefixtures("valid_user")
-def test_block_call(pytester: pytest.Pytester, adaptavist):
+@pytest.mark.usefixtures("adaptavist")
+def test_block_call(pytester: pytest.Pytester):
     """Test calling block."""
     pytester.makepyfile("""
         import pytest
@@ -87,7 +87,8 @@ def test_adaptavist_reporting(pytester: pytest.Pytester, adaptavist: Tuple[Magic
     ctr.assert_called_once_with(test_run_key="TEST-C1", test_case_key="TEST-T123", environment="")
 
 
-def test_unknown_user(pytester: pytest.Pytester, adaptavist: Tuple[MagicMock, MagicMock, MagicMock]):
+@pytest.mark.usefixtures("adaptavist")
+def test_unknown_user(pytester: pytest.Pytester):
     """Test the correct behaviour of an unknonwn user."""
     pytester.makepyfile("""
         import pytest
