@@ -208,7 +208,6 @@ def test_meta_block_fail_method(pytester: pytest.Pytester, adaptavist: Tuple[Mag
 def test_meta_block_stop_context(pytester: pytest.Pytester, adaptavist: Tuple[MagicMock, MagicMock, MagicMock]):
     """Test Action.STOP_CONTEXT. The second check in meta_block 1 must not be executed, but step 2 must be executed."""
 
-    # TODO: This testcase is not working yet
     pytester.makepyfile("""
         import pytest
 
@@ -219,16 +218,18 @@ def test_meta_block_stop_context(pytester: pytest.Pytester, adaptavist: Tuple[Ma
             with meta_block(2) as mb_2:
                 mb_2.check(True)
     """)
-    pytester.runpytest("--adaptavist")
+    report = pytester.runpytest("--adaptavist", "-vv")
     _, _, etss = adaptavist
     assert etss.call_count == 2
+    check_line = report.outlines.index('------------------------------------ Step 2 ------------------------------------') + 1
+    assert report.outlines[check_line].lstrip() == "PASSED"
+    assert report.parseoutcomes()["skipped"] == 1
 
 
 @pytest.mark.usefixtures("adaptavist")
 def test_meta_block_stop_method(pytester: pytest.Pytester):
     """Test Action.STOP_METHOD. We expect to not see step 2 and the second check of meta_block 1. TEST-T124 must be executed normally."""
 
-    # TODO: Make this test case independent from output
     pytester.makepyfile("""
         import pytest
 
@@ -291,7 +292,7 @@ def test_meta_block_check_fail_session(pytester: pytest.Pytester):
             with meta_block(1):
                 assert True
     """)
-    report = pytester.runpytest("--adaptavist")
+    report = pytester.runpytest("--adaptavist", "-vv")
     outcome = report.parseoutcomes()
     assert outcome["passed"] == 1
     assert outcome["failed"] == 1
