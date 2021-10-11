@@ -9,7 +9,7 @@ import sys
 import time
 from datetime import datetime
 from types import TracebackType
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from _pytest._io.saferepr import saferepr
@@ -47,11 +47,11 @@ class PytestAdaptavist:
         self.reporter: TerminalReporter = config.pluginmanager.getplugin("terminalreporter")
         self.build_url = ""
         self.code_base = ""
-        self.test_plan_key: Optional[str] = ""
+        self.test_plan_key: str | None = None
         self.test_run_key = ""
         self.test_case_order: list[str] = []
         self.test_case_keys: list[str] = []
-        self.test_environment: str | None = ""
+        self.test_environment: str | None = None
         self.test_case_range: list[str] = []
         self.test_plan_folder = ""
         self.test_run_folder = ""
@@ -201,10 +201,7 @@ class PytestAdaptavist:
             # create new test result to prevent accumulation of data
             # when using an existing test run key multiple times
             self.adaptavist.create_test_result(test_run_key=self.test_run_key, test_case_key=test_case_key, environment=self.test_environment)
-
-            # refetch result
             test_result = self.adaptavist.get_test_result(self.test_run_key, test_case_key)
-
             self.test_refresh_info[test_case_key + specs] = self.test_run_key
 
         # touch parametrized/repeated items
@@ -229,7 +226,7 @@ class PytestAdaptavist:
         if test_step_key:
 
             # in case of parameterization or repetition the status will be Fail if one iteration failed
-            last_result: dict[str, str] = next((result for result in test_result.get("scriptResults", []) if result["index"] == int(test_step_key) - 1), {})
+            last_result: dict[str, str] = next((result for result in test_result.get("scriptResults", []) if result["index"] == test_step_key - 1), {})
 
             if skip_status and last_result.get("status") != STATUS_FAIL:
                 status = STATUS_BLOCKED if skip_status.name == "block" else STATUS_NOT_EXECUTED
@@ -241,7 +238,7 @@ class PytestAdaptavist:
 
             self.adaptavist.edit_test_script_status(test_run_key=self.test_run_key,
                                                     test_case_key=test_case_key,
-                                                    step=int(test_step_key),
+                                                    step=test_step_key,
                                                     environment=self.test_environment,
                                                     status=status,
                                                     comment=comments if (specs or last_result.get("status") != STATUS_FAIL) else None)
@@ -249,7 +246,7 @@ class PytestAdaptavist:
             if attachment:
                 self.adaptavist.add_test_script_attachment(test_run_key=self.test_run_key,
                                                            test_case_key=test_case_key,
-                                                           step=int(test_step_key),
+                                                           step=test_step_key,
                                                            attachment=attachment,
                                                            filename=test_result_data.get("filename", ""))
 
@@ -552,9 +549,9 @@ class PytestAdaptavist:
         if base_url and getattr(self, "project_key", None) and getattr(self, "test_run_key", None):
             # pylint: disable=line-too-long
             cycle_string = "%22%2C%20%22".join(self.test_run_keys) if getattr(self, "test_run_keys", None) else self.test_run_key or ""
-            traceability = f"{base_url}/secure/Tests.jspa#/reports/traceability/report/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TRACEABILITY_REPORT.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"
-            test_summary = f"{base_url}/secure/Tests.jspa#/reports/testresults/board/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_BOARD.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"
-            score_matrix = f"{base_url}/secure/Tests.jspa#/reports/testresults/scorecard/coverage/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_SCORECARD_BY_COVERAGE.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"
+            traceability = f"{base_url}/secure/Tests.jspa#/reports/traceability/report/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TRACEABILITY_REPORT.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"  # noqa
+            test_summary = f"{base_url}/secure/Tests.jspa#/reports/testresults/board/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_BOARD.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"  # noqa
+            score_matrix = f"{base_url}/secure/Tests.jspa#/reports/testresults/scorecard/coverage/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_SCORECARD_BY_COVERAGE.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"  # noqa
 
         self.reporter.line("traceability:  %s" % traceability)
         self.reporter.line("test_summary:  %s" % test_summary)
@@ -683,7 +680,7 @@ class PytestAdaptavist:
                     collected_project_keys.append(project_key)
 
                 # initialize refresh info
-                specs = get_spec(get_item_nodeid(item))
+                specs = get_spec(fullname)
                 self.test_refresh_info[project_key + "-" + test_case_key + (specs or "")] = None
 
                 # mark this item with appropriate info (easier to read from when creating test results)

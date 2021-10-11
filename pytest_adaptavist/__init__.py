@@ -93,8 +93,9 @@ def pytest_configure(config: Config):
         else code_base
 
     # Check, if correct branch is used
-    if get_option_ini(config, "restrict_branch") and branch != get_option_ini(config, "restrict_branch_name"):
-        raise ValueError("Useful message")
+    restrict_branch_name = get_option_ini(config, "restrict_branch_name")
+    if get_option_ini(config, "restrict_branch") and branch != restrict_branch_name:
+        raise ValueError(f'The branch "{branch}" cannot be used to report as reporting is restricted to "{restrict_branch_name}" by configuration.')
 
     # Print a header with useful information
     if adaptavist.reporter:
