@@ -64,7 +64,7 @@ class PytestAdaptavist:
 
         self.atm_configure(config)
 
-    def atm_configure(self, config: Config) -> bool:
+    def atm_configure(self, config: Config):
         """Setup adaptavist reporting based on given requirements (config)."""
         if not self.project_key:
             self.project_key = self.cfg.get("project_key", None)
