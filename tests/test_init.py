@@ -97,7 +97,7 @@ def test_unknown_user(pytester: pytest.Pytester, adaptavist: Tuple[MagicMock, Ma
     """)
     with patch("pytest_adaptavist.atm_user_is_valid", return_value=False):
         report = pytester.runpytest("--adaptavist")
-        assert any("INTERNALERROR> ValueError: User vscode is not known in Adaptavist" in x for x in report.outlines)
+        assert any("is not known in Adaptavist" in x for x in report.outlines)
 
         report = pytester.runpytest()
-        assert all("INTERNALERROR> ValueError: User vscode is not known in Adaptavist" not in x for x in report.outlines)
+        assert all(" is not known in Adaptavist" not in x for x in report.outlines)
