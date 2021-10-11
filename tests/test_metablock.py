@@ -272,7 +272,6 @@ def test_meta_block_check_stop_session(pytester: pytest.Pytester):
     assert outcome["passed"] == 1
     assert outcome["skipped"] == 1
     assert outcome["blocked"] == 1
-    # TODO: It seems like the Test are sorted differently. Maybe of the config fixture. That results in not getting the expecting result.
 
 
 @pytest.mark.usefixtures("adaptavist")

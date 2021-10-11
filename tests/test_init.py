@@ -1,7 +1,7 @@
 """Test general plugin functionality."""
 
 from typing import Tuple
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -34,7 +34,7 @@ def test_adaptavist_enabled(pytester: pytest.Pytester):
 
 
 @pytest.mark.usefixtures("valid_user")
-def test_block_decorator(pytester: pytest.Pytester):
+def test_block_decorator(pytester: pytest.Pytester, adaptavist):
     """Test block decorator."""
     pytester.makepyfile("""
         import pytest
@@ -49,7 +49,7 @@ def test_block_decorator(pytester: pytest.Pytester):
 
 
 @pytest.mark.usefixtures("valid_user")
-def test_block_call(pytester: pytest.Pytester):
+def test_block_call(pytester: pytest.Pytester, adaptavist):
     """Test calling block."""
     pytester.makepyfile("""
         import pytest
@@ -85,3 +85,19 @@ def test_adaptavist_reporting(pytester: pytest.Pytester, adaptavist: Tuple[Magic
     ctr, _, _ = adaptavist
     pytester.runpytest("--adaptavist")
     ctr.assert_called_once_with(test_run_key="TEST-C1", test_case_key="TEST-T123", environment="")
+
+
+def test_unknown_user(pytester: pytest.Pytester, adaptavist: Tuple[MagicMock, MagicMock, MagicMock]):
+    """Test the correct behaviour of an unknonwn user."""
+    pytester.makepyfile("""
+        import pytest
+
+        def test_TEST_T123():
+            assert True
+    """)
+    with patch("pytest_adaptavist.atm_user_is_valid", return_value=False):
+        report = pytester.runpytest("--adaptavist")
+        assert any("INTERNALERROR> ValueError: User vscode is not known in Adaptavist" in x for x in report.outlines)
+
+        report = pytester.runpytest()
+        assert all("INTERNALERROR> ValueError: User vscode is not known in Adaptavist" not in x for x in report.outlines)

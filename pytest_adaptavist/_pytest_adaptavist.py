@@ -23,14 +23,7 @@ from adaptavist.const import PRIORITY_HIGH, STATUS_BLOCKED, STATUS_FAIL, STATUS_
 from pytest_assume.plugin import Assumption, FailedAssumption
 
 from ._atm_configuration import ATMConfiguration
-from ._helpers import (apply_test_case_range,
-                       calc_test_result_status,
-                       get_item_nodeid,
-                       get_option_ini,
-                       get_spec,
-                       handle_failed_assumptions,
-                       html_row,
-                       intersection)
+from ._helpers import apply_test_case_range, calc_test_result_status, get_item_nodeid, get_option_ini, get_spec, html_row, intersection
 
 
 class PytestAdaptavist:
@@ -48,7 +41,6 @@ class PytestAdaptavist:
         self.test_result_data: dict[str, Any] = {}
         self.report: dict[str, Any] = {}
         self.project_key: str | None = None
-        self.test_case_key = None  # TODO: Is this ever set to something else than None?
         self.test_run_keys: list[str] = []
         self.items: list[pytest.Item] = []
         self.failed_assumptions_step: list[Assumption] = []
@@ -110,8 +102,6 @@ class PytestAdaptavist:
         if not self.test_run_suffix:
             self.test_run_suffix = self.cfg.get("test_run_suffix", "test run " + datetime.now().strftime("%Y%m%d%H%M"))
 
-        return True
-
     @pytest.hookimpl(trylast=True)
     def pytest_collection_modifyitems(self, session: pytest.Session, config: Config, items: list[pytest.Item]):  # pylint: disable=unused-argument
         """Collect items matching given requirements and prepare adaptavist reporting."""
@@ -124,9 +114,6 @@ class PytestAdaptavist:
 
         # store items for later usage
         self.items = items
-
-        if not self.atm_configure(config):
-            return
 
         collected_project_keys: list[str] = []
         collected_items: dict[str, Any] = {}
@@ -207,7 +194,7 @@ class PytestAdaptavist:
         """
         test_run_key = self.test_run_key  # TODO: Is this local copy really needed?
 
-        if not (test_run_key or test_case_key in (self.test_case_key or [])):
+        if not (test_run_key or test_case_key in (self.test_case_keys or [])):
             return
 
         test_result = self.adaptavist.get_test_result(test_run_key, test_case_key)
@@ -442,9 +429,6 @@ class PytestAdaptavist:
                     and not skip_status):
                 self.test_result_data[fullname]["comment"] = "".join((self.test_result_data[fullname].get("comment", None) or "", html_row(False, exc_info)))
 
-        # handling failed assumptions
-        handle_failed_assumptions(item, call, report)
-
         self._build_report_description(item, call, report, skip_status)
 
         # build_terminal_report(when="call", item=item, status=report.outcome if not skip_status else ("blocked" if skip_status.name == "block" else "skipped"))
@@ -666,7 +650,7 @@ class PytestAdaptavist:
         # define the test case keys to be processed
         test_case_keys = self.test_case_keys
 
-        if self.test_case_key:
+        if self.test_run_key:
             test_run = self.adaptavist.get_test_run(self.test_run_key)
             test_cases = [item["testCaseKey"] for item in test_run.get("items", [])]
 
