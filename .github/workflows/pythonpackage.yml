@@ -44,22 +44,22 @@ jobs:
         python -m pip install mypy
         mypy --ignore-missing-imports pytest_adaptavist
 
-    lintTests:
-      name: Lint tests
-      runs-on: ubuntu-latest
-      steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-      - name: Lint with pylint
-        run: |
-          python -m pip install pylint pytest pylint-pytests
-          python -m pip install -e .
-          pylint --errors-only --score=n --load-plugins pylint_pytest tests
-          pylint --exit-zero --score=n --disable=C,E,R --enable=useless-suppression --load-plugins pylint_pytest tests
+  lint_tests:
+    name: Lint tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Lint with pylint
+      run: |
+        python -m pip install pylint pytest pylint-pytests
+        python -m pip install -e .
+        pylint --errors-only --score=n --load-plugins pylint_pytest tests
+        pylint --exit-zero --score=n --disable=C,E,R --enable=useless-suppression --load-plugins pylint_pytest tests
 
   test:
     name: Test with Python ${{ matrix.python-version }}
