@@ -134,7 +134,7 @@ class PytestAdaptavist:
 
             pytest.block(msg=skip_reason)  # type: ignore
 
-    # TODO: Why does this method run without the hookimpl decorator?
+    @pytest.hookimpl()
     def pytest_runtest_logreport(self, report: TestReport):
         """Process the test report produced for each of the setup, call and teardown runtest phases of an item."""
         user_properties: dict[str, Any] = dict(report.user_properties)
@@ -192,22 +192,20 @@ class PytestAdaptavist:
         :param test_result_data:
         :param specs:
         """
-        test_run_key = self.test_run_key  # TODO: Is this local copy really needed?
-
-        if not (test_run_key or test_case_key in (self.test_case_keys or [])):
+        if not (self.test_run_key or test_case_key in (self.test_case_keys or [])):
             return
 
-        test_result = self.adaptavist.get_test_result(test_run_key, test_case_key)
+        test_result = self.adaptavist.get_test_result(self.test_run_key, test_case_key)
 
-        if not test_result or self.test_refresh_info[test_case_key + specs] != test_run_key:
+        if not test_result or self.test_refresh_info[test_case_key + specs] != self.test_run_key:
             # create new test result to prevent accumulation of data
             # when using an existing test run key multiple times
-            self.adaptavist.create_test_result(test_run_key=test_run_key, test_case_key=test_case_key, environment=self.test_environment)
+            self.adaptavist.create_test_result(test_run_key=self.test_run_key, test_case_key=test_case_key, environment=self.test_environment)
 
             # refetch result
-            test_result = self.adaptavist.get_test_result(test_run_key, test_case_key)
+            test_result = self.adaptavist.get_test_result(self.test_run_key, test_case_key)
 
-            self.test_refresh_info[test_case_key + specs] = test_run_key
+            self.test_refresh_info[test_case_key + specs] = self.test_run_key
 
         # touch parametrized/repeated items
         for key in self.test_refresh_info:
@@ -241,7 +239,7 @@ class PytestAdaptavist:
             comments = ((header + "<br>" + "parameterization " + specs + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
                 (description + "<br>") if description else "") + (last_result.get("comment", "") if specs else "")
 
-            self.adaptavist.edit_test_script_status(test_run_key=test_run_key,
+            self.adaptavist.edit_test_script_status(test_run_key=self.test_run_key,
                                                     test_case_key=test_case_key,
                                                     step=int(test_step_key),
                                                     environment=self.test_environment,
@@ -249,14 +247,14 @@ class PytestAdaptavist:
                                                     comment=comments if (specs or last_result.get("status") != STATUS_FAIL) else None)
 
             if attachment:
-                self.adaptavist.add_test_script_attachment(test_run_key=test_run_key,
+                self.adaptavist.add_test_script_attachment(test_run_key=self.test_run_key,
                                                            test_case_key=test_case_key,
                                                            step=int(test_step_key),
                                                            attachment=attachment,
                                                            filename=test_result_data.get("filename", ""))
 
             # adjust parent test result status according to current test script results
-            test_result = self.adaptavist.get_test_result(test_run_key, test_case_key)
+            test_result = self.adaptavist.get_test_result(self.test_run_key, test_case_key)
             status = calc_test_result_status(test_result.get("scriptResults", []))
 
             comments = ""
@@ -270,7 +268,7 @@ class PytestAdaptavist:
             # find the right position to insert comments of this test execution (in case of parametrized or repeated test methods)
             index = test_result.get("comment", "").find("---------------------------------------- ")
 
-            self.adaptavist.edit_test_result_status(test_run_key=test_run_key,
+            self.adaptavist.edit_test_result_status(test_run_key=self.test_run_key,
                                                     test_case_key=test_case_key,
                                                     environment=self.test_environment,
                                                     status=status,
@@ -291,7 +289,7 @@ class PytestAdaptavist:
             comments = ((header + "<br>" + "parameterization " + specs + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
                 (description + "<br>") if description else "") + test_result.get("comment", "")
 
-            self.adaptavist.edit_test_result_status(test_run_key=test_run_key,
+            self.adaptavist.edit_test_result_status(test_run_key=self.test_run_key,
                                                     test_case_key=test_case_key,
                                                     environment=self.test_environment,
                                                     status=status,
@@ -299,7 +297,7 @@ class PytestAdaptavist:
                                                     execute_time=execute_time)
 
             if attachment:
-                self.adaptavist.add_test_result_attachment(test_run_key=test_run_key,
+                self.adaptavist.add_test_result_attachment(test_run_key=self.test_run_key,
                                                            test_case_key=test_case_key,
                                                            attachment=attachment,
                                                            filename=test_result_data.get("filename", ""))
