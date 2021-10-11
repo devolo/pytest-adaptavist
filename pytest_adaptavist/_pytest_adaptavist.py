@@ -9,7 +9,7 @@ import sys
 import time
 from datetime import datetime
 from types import TracebackType
-from typing import Any
+from typing import Any, Optional
 
 import pytest
 from _pytest._io.saferepr import saferepr
@@ -47,7 +47,7 @@ class PytestAdaptavist:
         self.reporter: TerminalReporter = config.pluginmanager.getplugin("terminalreporter")
         self.build_url = ""
         self.code_base = ""
-        self.test_plan_key = ""
+        self.test_plan_key: Optional[str] = ""
         self.test_run_key = ""
         self.test_case_order: list[str] = []
         self.test_case_keys: list[str] = []
@@ -481,13 +481,13 @@ class PytestAdaptavist:
                                                                           folder=self.test_plan_folder)
 
             if not self.test_run_key:
-                test_plan_name = self.adaptavist.get_test_plan(test_plan_key=self.test_plan_key).get("name", None) if self.test_plan_key else None
+                test_plan_name = self.adaptavist.get_test_plan(test_plan_key=self.test_plan_key).get("name", None) if self.test_plan_key else ""
                 test_run_name = f"{test_plan_name or self.project_key} {self.test_run_suffix}"
 
                 # create new test run either in master (normal sequential mode) or worker0 (load balanced mode) only or - if requested - in each worker
                 distribution = worker_input.get("options", {}).get("dist", None)
                 if not worker_input or (worker_input.get("workerid", "gw0") in [None, "gw0"]) or (distribution == "each"):
-                    self.test_run_key = self.adaptavist.get_test_run_by_name(test_run_name).get("key", None) if (distribution != "each") else None
+                    self.test_run_key = self.adaptavist.get_test_run_by_name(test_run_name).get("key", None) if (distribution != "each") else ""
                     test_run_name += f" {worker_input.get('workerid', 'gw0').split('gw')[1]}" if (
                         distribution == "each" and (not self.test_environment or self.test_environment not in test_run_name)) else ""
 
@@ -496,7 +496,7 @@ class PytestAdaptavist:
                                                                             test_plan_key=self.test_plan_key,
                                                                             test_run_name=test_run_name,
                                                                             test_cases=self.test_case_keys,
-                                                                            folder=self.test_run_folder)
+                                                                            folder=self.test_run_folder) or ""
 
                         self.test_refresh_info[self.test_run_key] = self.test_plan_key
 
