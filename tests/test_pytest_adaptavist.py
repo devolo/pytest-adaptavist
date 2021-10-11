@@ -39,9 +39,8 @@ def test_skip_no_test_case_methods(pytester: pytest.Pytester):
 
 
 def test_early_return_on_no_config(pytester: pytest.Pytester, adaptavist: Tuple[MagicMock, MagicMock, MagicMock]):
-    """Test the early return in pytest_collection_modifyitems if config can not be loaded."""
+    """Test the early return in create_report if config is not valid."""
 
-    # TODO: How can atm_configure ever be False?
     pytester.makepyfile("""
         import pytest
 
