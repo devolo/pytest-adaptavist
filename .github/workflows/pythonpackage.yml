@@ -31,42 +31,27 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install flake8
-        flake8 pytest_adaptavist --count --show-source --statistics --max-line-length 160
-        flake8 . --count --exit-zero --statistics --max-line-length 160
-    - name: Lint with pylint
-      run: |
-        python -m pip install pylint pytest
-        python -m pip install -e .
-        pylint --errors-only --score=n pytest_adaptavist
-        pylint --exit-zero --score=n --disable=C,E,R --enable=useless-suppression pytest_adaptavist
-    - name: Lint with mypy
-      run: |
-        python -m pip install mypy
-        mypy --ignore-missing-imports pytest_adaptavist
-
-  lint_tests:
-    name: Lint tests
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout sources
-      uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
+        flake8 pytest_adaptavist --count --show-source --statistics
+        flake8 . --count --exit-zero --statistics
     - name: Lint with pylint
       run: |
         python -m pip install pylint pytest pylint-pytest
         python -m pip install -e .
+        pylint --errors-only --score=n pytest_adaptavist
+        pylint --exit-zero --score=n --disable=C,E,R --enable=useless-suppression pytest_adaptavist
         pylint --errors-only --score=n --load-plugins pylint_pytest tests
         pylint --exit-zero --score=n --disable=C,E,R --enable=useless-suppression --load-plugins pylint_pytest tests
+    - name: Lint with mypy
+      run: |
+        python -m pip install mypy
+        mypy --ignore-missing-imports pytest_adaptavist
 
   test:
     name: Test with Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9, "3.10"]
+        python-version: ["3.8", "3.9", "3.10"]
     steps:
     - name: Checkout sources
       uses: actions/checkout@v2
