@@ -4,7 +4,7 @@ import pytest
 from _pytest.nodes import Node
 
 
-class XdistHooks:  # pylint: disable=too-few-public-methods
+class XdistHooks:
     """Hooks for xdist"""
 
     @staticmethod
