@@ -1,3 +1,5 @@
+"""Constants used by the module."""
+
 COLORMAP = {
     "passed": {
         "green": True, "bold": True
@@ -12,3 +14,5 @@ COLORMAP = {
         "yellow": True, "bold": True
     }
 }
+
+META_BLOCK_TIMEOUT = 600

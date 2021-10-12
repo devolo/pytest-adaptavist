@@ -17,15 +17,15 @@ from ._atm_configuration import atm_user_is_valid
 from ._helpers import get_code_base_url, get_option_ini
 from ._pytest_adaptavist import PytestAdaptavist
 from ._xdist import XdistHooks
+from .constants import META_BLOCK_TIMEOUT
 from .metablock import MetaBlock
+
 
 try:
     __version__ = version("adaptavist")
 except PackageNotFoundError:
     # package is not installed - e.g. pulled and run locally
     __version__ = "0.0.0"
-
-META_BLOCK_TIMEOUT = 600
 
 
 def pytest_addoption(parser: Parser):
