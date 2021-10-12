@@ -426,8 +426,6 @@ class PytestAdaptavist:
 
         self._build_report_description(item, call, report, skip_status)
 
-        # build_terminal_report(when="call", item=item, status=report.outcome if not skip_status else ("blocked" if skip_status.name == "block" else "skipped"))
-
         report.user_properties.append(("report", self.report[fullname]))
 
         if not getattr(item.config.option, "adaptavist", False):

@@ -155,8 +155,8 @@ def test_meta_block_timeout(pytester: pytest.Pytester):
                 sleep(2)
                 assert True
     """)
-    report = pytester.runpytest("--adaptavist")
-    assert report.parseoutcomes()["skipped"] == 1
+    outcome = pytester.runpytest("--adaptavist").parseoutcomes()
+    assert outcome["skipped"] == 1
 
 
 @pytest.mark.usefixtures("adaptavist")
@@ -214,20 +214,21 @@ def test_meta_block_stop_context(pytester: pytest.Pytester, adaptavist: Tuple[Ma
         def test_TEST_T123(meta_block):
             with meta_block(1) as mb_1:
                 mb_1.check(False, action_on_fail=mb_1.Action.STOP_CONTEXT)
-                mb_1.check(False)
+                mb_1.check(False, message_on_fail="THIS SHOULD NOT BE DISPLAYED")
             with meta_block(2) as mb_2:
                 mb_2.check(True)
     """)
     report = pytester.runpytest("--adaptavist", "-vv")
     _, _, etss = adaptavist
+    for call in etss.call_args_list:
+        assert "THIS SHOULD NOT BE DISPLAYED" not in call.kwargs["comment"]
     assert etss.call_count == 2
-    check_line = report.outlines.index('------------------------------------ Step 2 ------------------------------------') + 1
-    assert report.outlines[check_line].lstrip() == "PASSED"
+    assert etss.call_args.kwargs["step"] == 2
+    assert etss.call_args.kwargs["status"] == "Pass"
     assert report.parseoutcomes()["skipped"] == 1
 
 
-@pytest.mark.usefixtures("adaptavist")
-def test_meta_block_stop_method(pytester: pytest.Pytester):
+def test_meta_block_stop_method(pytester: pytest.Pytester, adaptavist: Tuple[MagicMock, MagicMock, MagicMock]):
     """Test Action.STOP_METHOD. We expect to not see step 2 and the second check of meta_block 1. TEST-T124 must be executed normally."""
 
     pytester.makepyfile("""
@@ -244,10 +245,12 @@ def test_meta_block_stop_method(pytester: pytest.Pytester):
             with meta_block(1) as mb_1:
                 mb_1.check(True)
     """)
-    report = pytester.runpytest("--adaptavist", "-vv")
-    assert all("THIS SHOULD NOT BE DISPLAYED" not in x for x in report.outlines)
-    assert any("Step 2" not in x for x in report.outlines)
-    assert any("test_TEST_T124 PASSED" in x for x in report.outlines)
+    pytester.runpytest("--adaptavist")
+    _, _, etss = adaptavist
+    assert etss.call_count == 2
+    for call in etss.call_args_list:
+        assert "THIS SHOULD NOT BE DISPLAYED" not in call.kwargs["comment"]
+        assert call.test_case_key != "TEST-T123" or call.step != 2
 
 
 @pytest.mark.usefixtures("adaptavist")
@@ -268,8 +271,7 @@ def test_meta_block_check_stop_session(pytester: pytest.Pytester):
             with meta_block(1) as mb_1:
                 mb_1.check(True)
     """)
-    report = pytester.runpytest("--adaptavist")
-    outcome = report.parseoutcomes()
+    outcome = pytester.runpytest("--adaptavist").parseoutcomes()
     assert outcome["passed"] == 1
     assert outcome["skipped"] == 1
     assert outcome["blocked"] == 1
@@ -293,20 +295,29 @@ def test_meta_block_check_fail_session(pytester: pytest.Pytester):
             with meta_block(1):
                 assert True
     """)
-    report = pytester.runpytest("--adaptavist", "-vv")
-    outcome = report.parseoutcomes()
-    assert outcome["passed"] == 1
+    outcome = pytester.runpytest("--adaptavist").parseoutcomes()
     assert outcome["failed"] == 1
     assert outcome["blocked"] == 1
-    # TODO: It seems like the Test are sorted differently. Maybe of the config fixture. That results in not getting the expecting result.
+    assert outcome["passed"] == 1
+
+    with patch("adaptavist.Adaptavist.get_test_run",
+               return_value={"items": [{
+                   "testCaseKey": "TEST-T123"
+               }, {
+                   "testCaseKey": "TEST-T124"
+               }, {
+                   "testCaseKey": "TEST-T121"
+               }]}):
+        outcome = pytester.runpytest("--adaptavist").parseoutcomes()
+        assert outcome["failed"] == 1
+        assert outcome["blocked"] == 2
 
 
-@pytest.mark.usefixtures("adaptavist")
-def test_meta_block_exit_session(pytester: pytest.Pytester):
+def test_meta_block_exit_session(pytester: pytest.Pytester, adaptavist: Tuple[MagicMock, MagicMock, MagicMock]):
     """Test Action.EXIT_SESSION. We expect that TEST_T123 fails and exits the whole session."""
     pytester.makepyfile("""
         import pytest
-        @pytest.mark.project("test")
+
         def test_TEST_T123(meta_block):
             with meta_block(1) as mb_1:
                 mb_1.check(False, action_on_fail=mb_1.Action.EXIT_SESSION)
@@ -314,13 +325,13 @@ def test_meta_block_exit_session(pytester: pytest.Pytester):
             with meta_block(2) as mb_2:
                 mb_2.check(True)
 
-        @pytest.mark.project("test")
         def test_TEST_T124(meta_block):
             with meta_block(1) as mb_1:
                 mb_1.check(True)
     """)
-    report = pytester.runpytest("--adaptavist", "-vv")
-    assert all("THIS SHOULD NOT BE DISPLAYED" not in x for x in report.outlines)
-    assert any("Step 2" not in x for x in report.outlines)
-    assert all("test_TEST_T124" not in x for x in report.outlines)
-    assert report.parseoutcomes().get("passed") is None
+
+    pytester.runpytest("--adaptavist")
+    _, _, etss = adaptavist
+    assert etss.call_count == 1
+    for call in etss.call_args_list:
+        assert call.kwargs["status"] != "Pass"

@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
+import inspect
+import re
 import subprocess
 from contextlib import suppress
-from typing import Any
+from typing import Any, Literal
 
 import pytest
+from _pytest._io import TerminalWriter
 from _pytest.config import Config
 from _pytest.python import Function
+from _pytest.terminal import TerminalReporter
 from adaptavist.const import STATUS_BLOCKED, STATUS_FAIL, STATUS_IN_PROGRESS, STATUS_NOT_EXECUTED, STATUS_PASS
+
+from .constants import COLORMAP
 
 
 def calc_test_result_status(step_results: list[dict[str, str]]) -> str:
@@ -120,3 +126,30 @@ def apply_test_case_range(collected_items: dict[str, list[Function]], test_case_
             i += 2
 
     return collected_items
+
+
+def build_terminal_report(when: str, item: pytest.Function, step: int, status: Literal["passed", "failed", "skipped", "blocked"] | None = None, level: int = 1):
+    """Generate (pretty) terminal output.
+        :param when: The call info ("setup", "call").
+        :param item: The item to report.
+        :param status: The status ("passed", "failed", "skipped", "blocked").
+        :param item: The step index to report.
+        :param level: The stack trace level (1 = the caller's level, 2 = the caller's caller level, 3 = ...).
+    """
+
+    # extract doc string from source
+    (frame, _, line, _, _) = inspect.stack()[level][0:5]
+    source_list = inspect.getsourcelines(frame)
+    source_code = "".join(source_list[0][line - source_list[1]:])
+    docs = re.findall(r"^[\s]*\"\"\"(.*?)\"\"\"", source_code, re.DOTALL | re.MULTILINE | re.IGNORECASE)
+    doc_string = inspect.cleandoc(docs[0]) if docs else ""
+    terminal_reporter: TerminalReporter | None = item.config.pluginmanager.getplugin("terminalreporter")
+    terminal_writer: TerminalWriter = item.config.get_terminal_writer()
+
+    if terminal_reporter and item.config.option.verbose > 1:
+        if when == "setup":
+            terminal_reporter.write_sep("-", "Step " + str(step), bold=True)
+            terminal_reporter.write(doc_string + ("\n" if doc_string else ""))
+        elif when == "call" and status:
+            fill = terminal_writer.fullwidth - terminal_writer.width_of_current_line - 1
+            terminal_reporter.write_line(status.upper().rjust(fill), **COLORMAP[status])

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import inspect
-import re
 import signal
 from datetime import datetime
 from enum import IntEnum
@@ -11,26 +9,9 @@ from types import FrameType, TracebackType
 from typing import Any, Literal
 
 import pytest
-from _pytest._io import TerminalWriter
-from _pytest.terminal import TerminalReporter
 
-from ._helpers import get_item_nodeid, get_spec, html_row
+from ._helpers import build_terminal_report, get_item_nodeid, get_spec, html_row
 from ._pytest_adaptavist import PytestAdaptavist
-
-COLORMAP = {
-    "passed": {
-        "green": True, "bold": True
-    },
-    "failed": {
-        "red": True, "bold": True
-    },
-    "blocked": {
-        "blue": True, "bold": True
-    },
-    "skipped": {
-        "yellow": True, "bold": True
-    }
-}
 
 
 class MetaBlockAborted(Exception):
@@ -80,7 +61,6 @@ class MetaBlock:
 
     def __enter__(self):
         if self.step:
-            # TODO: gibt's pretty --> pretty prüfen ob pretty an ist.
             # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)')
             build_terminal_report(when="setup", item=self.item, step=self.step, level=2)
         self.start = datetime.now().timestamp()
@@ -242,9 +222,8 @@ class MetaBlock:
             pytest.skip(msg=f"Blocked. {self.item_name} failed: {message_on_fail}")
         elif action_on_fail == self.Action.FAIL_SESSION:
             # FAIL_SESSION: skip execution of this block/test, set it to 'Fail' and block following tests
-            seen = True
             for item in self.adaptavist.items:
-                if not seen:
+                if item.name not in self.item.name:
                     item.add_marker("skip")
                     self.adaptavist.test_result_data[fullname]["blocked"] = True
                     self.adaptavist.test_result_data[fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
@@ -257,40 +236,3 @@ class MetaBlock:
         else:
             # CONTINUE: try to collect failed assumption, set result to 'Fail' and continue
             pytest.assume(expr=condition, msg=message_on_fail)  # type:ignore  # pylint: disable=no-member
-
-
-def build_terminal_report(when: str,
-                          item: pytest.Function,
-                          status: Literal["passed", "failed", "skipped", "blocked"] | None = None,
-                          step: int | None = None,
-                          level: int = 1):
-    """Generate (pretty) terminal output.
-        :param when: The call info ("setup", "call").
-        :param item: The item to report.
-        :param status: The status ("passed", "failed", "skipped", "blocked").
-        :param item: The step index to report.
-        :param level: The stack trace level (1 = the caller's level, 2 = the caller's caller level, 3 = ...).
-    """
-
-    # extract doc string from source
-    (frame, _, line, _, _) = inspect.stack()[level][0:5]
-    source_list = inspect.getsourcelines(frame)
-    source_code = "".join(source_list[0][line - source_list[1]:])
-    docs = re.findall(r"^[\s]*\"\"\"(.*?)\"\"\"", source_code, re.DOTALL | re.MULTILINE | re.IGNORECASE)
-    doc_string = inspect.cleandoc(docs[0]) if docs else ""
-    terminal_reporter: TerminalReporter | None = item.config.pluginmanager.getplugin("terminalreporter")
-    terminal_writer: TerminalWriter = item.config.get_terminal_writer()
-
-    if terminal_reporter:
-        if when == "setup":
-            if step and item.config.option.verbose > 1:
-                terminal_reporter.write_sep("-", "Step " + str(step), bold=True)
-                terminal_reporter.write(doc_string + ("\n" if doc_string else ""))
-        elif when == "call" and status:
-            if not step:
-                terminal_reporter.write_sep("-", bold=True)
-                fill = terminal_writer.fullwidth - terminal_writer.width_of_current_line - 1
-                terminal_reporter.write_line(status.upper().rjust(fill), **COLORMAP[status])
-            if step and item.config.option.verbose > 1:
-                fill = terminal_writer.fullwidth - terminal_writer.width_of_current_line - 1
-                terminal_reporter.write_line(status.upper().rjust(fill), **COLORMAP[status])
