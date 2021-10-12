@@ -277,6 +277,7 @@ def test_meta_block_check_stop_session(pytester: pytest.Pytester):
 
 @pytest.mark.usefixtures("adaptavist")
 def test_meta_block_check_fail_session(pytester: pytest.Pytester):
+    """Test Action.FAIL_SESSION. We expect that TEST_T121 is executed. TEST_T123 fails and fails the whole session."""
     pytester.makepyfile("""
         import pytest
 
@@ -302,6 +303,7 @@ def test_meta_block_check_fail_session(pytester: pytest.Pytester):
 
 @pytest.mark.usefixtures("adaptavist")
 def test_meta_block_exit_session(pytester: pytest.Pytester):
+    """Test Action.EXIT_SESSION. We expect that TEST_T123 fails and exits the whole session."""
     pytester.makepyfile("""
         import pytest
         @pytest.mark.project("test")

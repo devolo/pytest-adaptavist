@@ -89,7 +89,7 @@ def test_adaptavist_reporting(pytester: pytest.Pytester, adaptavist: Tuple[Magic
 
 @pytest.mark.usefixtures("adaptavist")
 def test_unknown_user(pytester: pytest.Pytester):
-    """Test the correct behaviour of an unknown user."""
+    """Test the correct behavior of an unknown user."""
     pytester.makepyfile("""
         import pytest
 
