@@ -20,7 +20,6 @@ from ._xdist import XdistHooks
 from .constants import META_BLOCK_TIMEOUT
 from .metablock import MetaBlock
 
-
 try:
     __version__ = version("adaptavist")
 except PackageNotFoundError:

@@ -535,11 +535,11 @@ class PytestAdaptavist:
 
         self.reporter.section("ATM test cycle info", bold=True)
 
-        self.reporter.line("project_key:   %s" % getattr(self, "project_key", None))
-        self.reporter.line("test_plan_key: %s" % getattr(self, "test_plan_key", None))
-        self.reporter.line("test_run_key:  %s" % getattr(self, "test_run_key", None))
+        self.reporter.line(f"project_key:   {getattr(self, 'project_key', None)}")
+        self.reporter.line(f"test_plan_key: {getattr(self, 'test_plan_key', None)}")
+        self.reporter.line(f"test_run_key:  {getattr(self, 'test_run_key', None)}")
         if getattr(self, "test_run_keys", None) and getattr(self, "test_run_keys", [None]) != [getattr(self, "test_run_key", None)]:
-            self.reporter.line("cycle_key(s):  %s" % ", ".join(self.test_run_keys))
+            self.reporter.line(f"cycle_key(s):  {', '.join(self.test_run_keys)}")
 
         traceability = None
         test_summary = None
@@ -552,9 +552,9 @@ class PytestAdaptavist:
             test_summary = f"{base_url}/secure/Tests.jspa#/reports/testresults/board/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_BOARD.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"  # noqa
             score_matrix = f"{base_url}/secure/Tests.jspa#/reports/testresults/scorecard/coverage/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TEST_RESULTS_SCORECARD_BY_COVERAGE.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"  # noqa
 
-        self.reporter.line("traceability:  %s" % traceability)
-        self.reporter.line("test_summary:  %s" % test_summary)
-        self.reporter.line("score_matrix:  %s" % score_matrix)
+        self.reporter.line(f"traceability:  {traceability}")
+        self.reporter.line(f"test_summary:  {test_summary}")
+        self.reporter.line(f"score_matrix:  {score_matrix}")
 
     @pytest.hookimpl(hookwrapper=True, tryfirst=True)
     def pytest_sessionfinish(self, session: pytest.Session, exitstatus: int):
