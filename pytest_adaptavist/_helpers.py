@@ -19,23 +19,24 @@ from .constants import COLORMAP
 
 
 def calc_test_result_status(step_results: list[dict[str, str]]) -> str:
-    """Calculate overall test result status from list of step results.
+    """
+    Calculate overall test result status from list of step results.
 
-        According to Adaptavist test management:
+    According to Adaptavist test management:
 
-            Blocked & Not Executed -> Blocked
-            Blocked & In Progress -> Blocked
-            Blocked & Pass -> Blocked
-            Blocked & Fail -> Fail
+        Blocked & Not Executed -> Blocked
+        Blocked & In Progress -> Blocked
+        Blocked & Pass -> Blocked
+        Blocked & Fail -> Fail
 
-            Fail & Not Executed -> Fail
-            Fail & In Progress -> Fail
-            Fail & Pass -> Fail
+        Fail & Not Executed -> Fail
+        Fail & In Progress -> Fail
+        Fail & Pass -> Fail
 
-            Pass & Not Executed -> In Progress
-            Pass & In Progress -> In Progress
+        Pass & Not Executed -> In Progress
+        Pass & In Progress -> In Progress
 
-            In Progress & Not Executed -> In Progress
+        In Progress & Not Executed -> In Progress
     """
     # map representing status as binary/hex number to be used with & operator
     status_map = {
@@ -129,12 +130,14 @@ def apply_test_case_range(collected_items: dict[str, list[Function]], test_case_
 
 
 def build_terminal_report(when: str, item: pytest.Function, step: int, status: Literal["passed", "failed", "skipped", "blocked"] | None = None, level: int = 1):
-    """Generate (pretty) terminal output.
-        :param when: The call info ("setup", "call").
-        :param item: The item to report.
-        :param status: The status ("passed", "failed", "skipped", "blocked").
-        :param item: The step index to report.
-        :param level: The stack trace level (1 = the caller's level, 2 = the caller's caller level, 3 = ...).
+    """
+    Generate terminal output.
+
+    :param when: The call info ("setup", "call")
+    :param item: The item to report
+    :param status: The status ("passed", "failed", "skipped", "blocked")
+    :param item: The step index to report
+    :param level: The stack trace level (1 = the caller's level, 2 = the caller's caller level, 3 = ...)
     """
 
     # extract doc string from source

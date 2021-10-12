@@ -28,20 +28,20 @@ class MetaBlock:
     """
 
     class Action(IntEnum):
-        """if condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')"""
+        """If condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')."""
         NONE = 0
         FAIL_CONTEXT = 0
-        """if condition fails, skip execution of this block/test, set it to 'Fail' and continue with next test (just like 'assert')"""
+        """If condition fails, skip execution of this block/test, set it to 'Fail' and continue with next test (just like 'assert')."""
         FAIL_METHOD = 1
-        """if condition fails, skip execution of this block, set it to 'Blocked' and continue with next block"""
+        """If condition fails, skip execution of this block, set it to 'Blocked' and continue with next block."""
         STOP_CONTEXT = 2
-        """if condition fails, skip execution of this block/test, set it to 'Blocked' and continue with next test"""
+        """If condition fails, skip execution of this block/test, set it to 'Blocked' and continue with next test."""
         STOP_METHOD = 3
-        """if condition fails, skip execution of this block/test, set it to 'Blocked' and block following tests as well"""
+        """If condition fails, skip execution of this block/test, set it to 'Blocked' and block following tests as well."""
         STOP_SESSION = 4
-        """if condition fails, skip execution of this block/test, set it to 'Fail' and block following tests"""
+        """If condition fails, skip execution of this block/test, set it to 'Fail' and block following tests."""
         FAIL_SESSION = 5
-        """if condition fails, skip execution of this block/test, set it to 'Blocked' and exit session"""
+        """If condition fails, skip execution of this block/test, set it to 'Blocked' and exit session."""
         EXIT_SESSION = -1
 
     def __init__(self, request: pytest.FixtureRequest, timeout: int, step: int | None = None):
@@ -59,7 +59,7 @@ class MetaBlock:
     def _timeout_handler(signum: int, frame: FrameType):
         raise TimeoutError("The test step exceeded its timewindow and timed out")
 
-    def __enter__(self):
+    def __enter__(self) -> MetaBlock:
         if self.step:
             # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)')
             build_terminal_report(when="setup", item=self.item, step=self.step, level=2)
@@ -69,7 +69,7 @@ class MetaBlock:
         signal.alarm(self.timeout)
         return self
 
-    def __exit__(self, exc_type: type, exc_value: Exception, traceback: TracebackType):
+    def __exit__(self, exc_type: type, exc_value: Exception, traceback: TracebackType) -> bool:
         signal.alarm(0)
         self.stop = datetime.now().timestamp()
         fullname = get_item_nodeid(self.item)
@@ -141,23 +141,17 @@ class MetaBlock:
         return exc_type is MetaBlockAborted  # suppress MetaBlockAborted exception
 
     def check(self, condition: bool, message: str | None = None, action_on_fail: Action = Action.NONE, **kwargs: Any):
-        """Check given condition.
+        """
+        Check given condition.
 
-            :param condition: the condition to be checked
-            :param message: the info test in case of failed condition
-            :param action_on_fail: action in case of failed condition (default: continue, just like 'assume')
-                    Action.FAIL_CONTEXT: if condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')
-                    Action.FAIL_METHOD: if condition fails, skip execution of this block/test, set it to 'Fail' and continue with next test (just like 'assert')
-                    Action.STOP_CONTEXT: if condition fails, skip execution of this block, set it to 'Blocked' and continue with next block
-                    Action.STOP_METHOD: if condition fails, skip execution of this block/test, set it to 'Blocked' and continue with next test
-                    Action.STOP_SESSION: if condition fails, skip execution of this block/test, set it to 'Blocked' and block following tests as well
-                    Action.EXIT_SESSION: if condition fails, skip execution of this block/test, set it to 'Blocked' and exit session
-            :param kwargs: Arbitrary list of keyword arguments
-                    attachment: The attachment as filepath name or file-like object.
-                    filename: The optional filename.
-                    message_on_fail: the info test in case of failed condition (same as message)
-                    message_on_pass: the info test in case of passed condition
-                    description: optional details about test results (f.e. can be a html table or more)
+        :param condition: The condition to be checked
+        :param message: The info test in case of failed condition
+        :param action_on_fail: A ction in case of failed condition (default: continue, just like 'assume')
+        :key attachment: The attachment as filepath name or file-like object
+        :key filename: The optional filename
+        :key message_on_fail: The info test in case of failed condition (same as message)
+        :key message_on_pass: The info test in case of passed condition
+        :key description: Optional details about test results (f.e. can be a html table or more)
         """
 
         attachment = kwargs.pop("attachment", None)
@@ -197,6 +191,7 @@ class MetaBlock:
         self._process_condition(action_on_fail, condition, message_on_fail)
 
     def _process_condition(self, action_on_fail: Action, condition: bool, message_on_fail: str):
+        """Process condition depending on action_on_fail."""
         fullname = get_item_nodeid(self.item)
         if action_on_fail == self.Action.FAIL_METHOD:
             # FAIL_METHOD: skip execution of this block/test, set it to 'Fail' and continue with next test
