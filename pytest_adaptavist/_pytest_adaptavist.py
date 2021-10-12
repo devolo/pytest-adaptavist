@@ -161,13 +161,13 @@ class PytestAdaptavist:
     @pytest.hookimpl()
     def pytest_assume_summary_report(self, failed_assumptions: list[Assumption]) -> str:
         """Manipulate the summary that prints at the end."""
-        for failed_assumption, f in zip(failed_assumptions, self.FAILED_ASSUMPTIONS):
-            frame, filename, lineno, _, codecontext = inspect.getouterframes(failed_assumption.tb.tb_frame)[2][0:5]
+        for failed_assumption in zip(failed_assumptions, self.FAILED_ASSUMPTIONS):
+            frame, filename, lineno, _, codecontext = inspect.getouterframes(failed_assumption[0].tb.tb_frame)[2][0:5]
             msg = frame.f_locals.get("message_on_fail")
             context = msg or ((codecontext or [""])[0]).lstrip()
             local_entry = f"{os.path.relpath(filename)}:{lineno}: AssumptionFailure\n\t{context}"
-            failed_assumption.locals = f.locals
-            failed_assumption.entry = local_entry
+            failed_assumption[0].locals = failed_assumption[1].locals
+            failed_assumption[0].entry = local_entry
 
         return "".join(failed_assumption.longrepr() for failed_assumption in self.FAILED_ASSUMPTIONS) \
             if getattr(pytest, "_showlocals") \
@@ -446,20 +446,21 @@ class PytestAdaptavist:
             self.create_report(test_case_key, test_step_key, call.stop - call.start, skip_status, report.passed, self.test_result_data[fullname], specs)
 
     def _setup_report(self, worker_input: dict[str, Any]):
-        """Setup adaptavist report.
+        """
+        Setup adaptavist report.
 
-            Creates a new test run (and test plan) if needed as follows:
-            * if test run key is specified then report to that one
-            * else if a test plan suffix is specified, create a new test plan (if not yet existing) and a new test run linked to that
-            * else if test plan key is given, create a new test run linked to that test plan
-            * else create a new test run just for given project
+        Creates a new test run (and test plan) if needed as follows:
+            * If test run key is specified then report to that one
+            * Else if a test plan suffix is specified, create a new test plan (if not yet existing) and a new test run linked to that
+            * Else if test plan key is given, create a new test run linked to that test plan
+            * Else create a new test run just for given project
 
-            Apart from that, a new test plan is created if the given test plan suffix does not match any existing test plan.
-            Finally, both test plan and test run are interconnected.
+        Apart from that, a new test plan is created if the given test plan suffix does not match any existing test plan.
+        Finally, both test plan and test run are interconnected.
 
-            naming convention:
-            new test plans are named like "<project key> <test plan suffix>" (where test plan suffix must be unique)
-            new test runs are named like "<test plan name or project key> <test run suffix> <datetime now>"
+        Naming convention:
+            * New test plans are named like "<project key> <test plan suffix>" (where test plan suffix must be unique)
+            * New test runs are named like "<test plan name or project key> <test run suffix> <datetime now>"
         """
 
         if self.project_key and self.test_case_keys:
