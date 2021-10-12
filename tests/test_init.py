@@ -1,9 +1,11 @@
 """Test general plugin functionality."""
 
+import os
 from typing import Tuple
 from unittest.mock import MagicMock, patch
 
 import pytest
+from _pytest.config import ExitCode
 
 
 @pytest.mark.parametrize("marker", ["mark.block", "mark.project", "mark.testcase"])
@@ -64,10 +66,11 @@ def test_block_call(pytester: pytest.Pytester):
 
 
 @pytest.mark.usefixtures("adaptavist")
-def test_xdist_handling(pytester):
+def test_xdist_handling(pytester: pytest.Pytester):
     """Test coexistence with xdist."""
     pytester.makepyfile("""
         import pytest
+
         def test_dummy():
             assert True
     """)
@@ -103,7 +106,27 @@ def test_unknown_user(pytester: pytest.Pytester):
     """)
     with patch("pytest_adaptavist.atm_user_is_valid", return_value=False):
         report = pytester.runpytest("--adaptavist")
-        assert any("is not known in Adaptavist" in x for x in report.outlines)
-
+        assert report.ret == ExitCode.INTERNAL_ERROR
         report = pytester.runpytest()
-        assert all(" is not known in Adaptavist" not in x for x in report.outlines)
+        assert report.ret == ExitCode.OK
+
+
+@pytest.mark.usefixtures("adaptavist")
+def test_invalid_branch(pytester: pytest.Pytester):
+    """Test the correct behavior of an invalid branch."""
+    pytester.makepyfile("""
+        import pytest
+
+        def test_TEST_T123():
+            assert True
+    """)
+    os.environ["GIT_BRANCH"] = "test"
+    report = pytester.runpytest("--adaptavist", "--restrict-branch")
+    assert report.ret == ExitCode.INTERNAL_ERROR
+    report = pytester.runpytest("--restrict-branch")
+    assert report.ret == ExitCode.OK
+    report = pytester.runpytest("--adaptavist", "--restrict-branch", "--restrict-branch-name=test")
+    assert report.ret == ExitCode.OK
+    os.environ["GIT_BRANCH"] = "origin/master"
+    report = pytester.runpytest("--adaptavist", "--restrict-branch")
+    assert report.ret == ExitCode.OK
