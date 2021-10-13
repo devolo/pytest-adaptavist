@@ -43,7 +43,6 @@ class TestPytestAdaptavistUnit:
         hook_record = pytester.inline_run("--adaptavist")
         assert hook_record.matchreport().head_line == "test_T123"
 
-
     @pytest.mark.usefixtures("adaptavist")
     def test_skip_no_test_case_methods(self, pytester: pytest.Pytester):
         """Test if a test method which is not a valid adaptavist test case is skipped, if 'skip_ntc_methods' is set"""
