@@ -24,7 +24,7 @@ def test_T4(meta_block):
     with meta_block(1) as mb_1:
         mb_1.check(True)
     with meta_block(2) as mb_2:
-        pytest.block("Testing block")
+        pytest.block("Testing block")  # pylint: disable=no-member
         mb_2.check(False)
 
 
