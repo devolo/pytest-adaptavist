@@ -66,4 +66,4 @@ jobs:
         pip install -e .
     - name: Test with pytest
       run: |
-        pytest --cov=pytest_adaptavist
+        pytest --cov=pytest_adaptavist tests/unit_tests
