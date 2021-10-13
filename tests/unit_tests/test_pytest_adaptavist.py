@@ -90,7 +90,7 @@ def test_bcd(pytester: pytest.Pytester, adaptavist: Tuple[MagicMock, MagicMock, 
 
 
 @pytest.mark.usefixtures("adaptavist")
-def test_test_result_attachment(pytester: pytest.Pytester):
+def test_result_attachment(pytester: pytest.Pytester):
     """Test that an attachment is correctly attached to the testcase (not to the step)."""
     pytester.makepyfile("""
         import pytest
@@ -104,3 +104,26 @@ def test_test_result_attachment(pytester: pytest.Pytester):
     assert atra.call_count == 1
     assert atra.call_args.kwargs["attachment"] == "ATTACHMENT"
     assert atra.call_args.kwargs["filename"] == "test.txt"
+
+
+def test_skipped_test_cases_keys(pytester: pytest.Pytester, adaptavist: Tuple[MagicMock, MagicMock, MagicMock]):
+    """Test that testcases which are not defined in test_case_keys are skipped."""
+    pytester.makepyfile("""
+        import pytest
+
+        def test_T125(meta_block):
+            with meta_block() as mb:
+                mb.check(False)
+
+        def test_T123(meta_block):
+            with meta_block() as mb:
+                mb.check(True)
+    """)
+    with open("config/global_config.json", "w", encoding="utf8") as file:
+        file.write('{"project_key": "TEST", "test_run_key":"TEST-C1", "test_case_keys": ["TEST-T123"]}')
+    _, etrs, _ = adaptavist
+    outcome = pytester.runpytest("--adaptavist", "-vv").parseoutcomes()
+    assert outcome["passed"] == 1
+    assert outcome["blocked"] == 1
+    assert etrs.call_args.kwargs["test_case_key"] == "TEST-T125"
+    assert "skipped as requested" in etrs.call_args.kwargs["comment"]
