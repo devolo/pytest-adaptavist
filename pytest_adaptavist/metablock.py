@@ -47,6 +47,7 @@ class MetaBlock:
     def __init__(self, request: pytest.FixtureRequest, timeout: int, step: int | None = None):
         fullname = get_item_nodeid(request.node)
         self.item = request.node
+        self.items = request.session.items
         self.item_name = self.item.name + ("_" + str(step) if step else "")
         self.step = step
         self.start = datetime.now().timestamp()
@@ -208,7 +209,7 @@ class MetaBlock:
             # STOP_SESSION: skip execution of this block/test, set it to 'Blocked' and block following tests as well
             self.data["blocked"] = True
             seen = True
-            for item in self.adaptavist.items:
+            for item in self.items:
                 if not seen:
                     item.add_marker("skip")
                     self.adaptavist.test_result_data[fullname]["blocked"] = True
@@ -217,7 +218,7 @@ class MetaBlock:
             pytest.skip(msg=f"Blocked. {self.item_name} failed: {message_on_fail}")
         elif action_on_fail == self.Action.FAIL_SESSION:
             # FAIL_SESSION: skip execution of this block/test, set it to 'Fail' and block following tests
-            for item in self.adaptavist.items:
+            for item in self.items:
                 if item.name not in self.item.name:
                     item.add_marker("skip")
                     self.adaptavist.test_result_data[fullname]["blocked"] = True
@@ -227,7 +228,7 @@ class MetaBlock:
         elif action_on_fail == self.Action.EXIT_SESSION:
             # EXIT_SESSION: skip execution of this block/test, set it to 'Blocked' and exit session
             self.data["blocked"] = True
-            pytest.exit(msg="Exiting pytest. {self.item_name} failed: {message_on_fail}")
+            pytest.exit(msg=f"Exiting pytest. {self.item_name} failed: {message_on_fail}")
         else:
             # CONTINUE: try to collect failed assumption, set result to 'Fail' and continue
             pytest.assume(expr=condition, msg=message_on_fail)  # type:ignore  # pylint: disable=no-member

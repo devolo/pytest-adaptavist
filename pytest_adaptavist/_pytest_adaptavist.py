@@ -42,7 +42,6 @@ class PytestAdaptavist:
         self.report: dict[str, Any] = {}
         self.project_key: str | None = None
         self.test_run_keys: list[str] = []
-        self.items: list[pytest.Item] = []
         self.failed_assumptions_step: list[Assumption] = []
         self.reporter: TerminalReporter = config.pluginmanager.getplugin("terminalreporter")
         self.build_url = ""
@@ -111,9 +110,6 @@ class PytestAdaptavist:
             self.item_status_info[fullname] = {}
             # initialize item's test result data (see meta_data function down below)
             self.test_result_data[fullname] = {"comment": None, "attachment": None}
-
-        # store items for later usage
-        self.items = items
 
         collected_project_keys: list[str] = []
         collected_items: dict[str, Any] = {}
@@ -635,8 +631,6 @@ class PytestAdaptavist:
             # define the list of test cases to be included in adaptavist report
             # (intersection of collected pytest cases and existing test cases)
             self.test_case_keys = intersection(list(ordered_collected_items.keys()), test_cases)
-
-        self.items = items  # for later usage
 
     def _setup_item_collection(self, items: list[pytest.Item], collected_project_keys: list[str], collected_items: dict[str, list[pytest.Item]]):
         """Setup and prepare collection of available test methods."""
