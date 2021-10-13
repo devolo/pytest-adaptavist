@@ -74,7 +74,7 @@ def test_skipped_test_cases(pytester: pytest.Pytester, adaptavist: Tuple[MagicMo
     assert etrs.call_args.kwargs["status"] == "Not Executed"
 
 
-def test_bcd(pytester: pytest.Pytester, adaptavist: Tuple[MagicMock, MagicMock, MagicMock]):
+def test_test_case_reporting(pytester: pytest.Pytester, adaptavist: Tuple[MagicMock, MagicMock, MagicMock]):
     """Test that a testcase is reported correctly. The steps must not reported in this test."""
     pytester.makepyfile("""
         import pytest
@@ -83,10 +83,22 @@ def test_bcd(pytester: pytest.Pytester, adaptavist: Tuple[MagicMock, MagicMock, 
             with meta_block() as mb:
                 mb.check(True)
     """)
-    pytester.runpytest("--adaptavist")
-    _, etrs, _ = adaptavist
-    assert etrs.call_count == 1
-    assert etrs.call_args.kwargs["status"] == "Pass"
+    with patch("adaptavist.Adaptavist.get_test_result", return_value={"scriptResults": [{"index": "0"}]}):
+        pytester.runpytest("--adaptavist")
+        _, etrs, _ = adaptavist
+        assert etrs.call_count == 1
+        assert etrs.call_args.kwargs["status"] == "Pass"
+
+        pytester.makepyfile("""
+            import pytest
+
+            def test_T123(meta_block):
+                with meta_block() as mb:
+                    mb.check(False)
+        """)
+        pytester.runpytest("--adaptavist")
+        assert etrs.call_count == 2
+        assert etrs.call_args.kwargs["status"] == "Fail"
 
 
 @pytest.mark.usefixtures("adaptavist")
