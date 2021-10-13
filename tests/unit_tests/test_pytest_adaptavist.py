@@ -2,6 +2,7 @@
 
 from typing import Tuple
 from unittest.mock import MagicMock, patch
+import pkg_resources
 
 import pytest
 
@@ -57,9 +58,11 @@ def test_early_return_on_no_config(pytester: pytest.Pytester, adaptavist: Tuple[
     assert etss.call_count == 0
 
 
-@pytest.mark.xfail(reason="As long as adaptavist package didn't release the constant fix, this test will fail.")
+@pytest.mark.xfail(pkg_resources.get_distribution("adaptavist").version == '2.0.0',
+                   reason="As long as adaptavist package didn't release the constant fix, this test will fail.")
 def test_skipped_test_cases(pytester: pytest.Pytester, adaptavist: Tuple[MagicMock, MagicMock, MagicMock]):
     """Test that a skipped test case is reported as 'Not Executed'."""
+
     pytester.makepyfile("""
         import pytest
 
