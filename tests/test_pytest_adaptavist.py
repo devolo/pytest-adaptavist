@@ -59,10 +59,8 @@ class TestPytestAdaptavistUnit:
         report = pytester.runpytest("--adaptavist")
         assert report.parseoutcomes()["blocked"] == 1
 
-
     def test_early_return_on_no_config(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test the early return in create_report if config is not valid."""
-
         pytester.makepyfile("""
             import pytest
 
@@ -78,12 +76,10 @@ class TestPytestAdaptavistUnit:
         assert etrs.call_count == 0
         assert etss.call_count == 0
 
-
     @pytest.mark.xfail(pkg_resources.get_distribution("adaptavist").version == '2.0.0',
                        reason="As long as adaptavist package didn't release the constant fix, this test will fail.")
     def test_skipped_test_cases(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test that a skipped test case is reported as 'Not Executed'."""
-
         pytester.makepyfile("""
             import pytest
 
@@ -97,7 +93,6 @@ class TestPytestAdaptavistUnit:
         _, etrs, _ = adaptavist
         assert etrs.call_count == 1
         assert etrs.call_args.kwargs["status"] == "Not Executed"
-
 
     def test_test_case_reporting(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test that a testcase is reported correctly. The steps must not reported in this test."""
@@ -125,7 +120,6 @@ class TestPytestAdaptavistUnit:
             assert etrs.call_count == 2
             assert etrs.call_args.kwargs["status"] == "Fail"
 
-
     @pytest.mark.usefixtures("adaptavist")
     def test_result_attachment(self, pytester: pytest.Pytester):
         """Test that an attachment is correctly attached to the testcase (not to the step)."""
@@ -141,7 +135,6 @@ class TestPytestAdaptavistUnit:
         assert atra.call_count == 1
         assert atra.call_args.kwargs["attachment"] == "ATTACHMENT"
         assert atra.call_args.kwargs["filename"] == "test.txt"
-
 
     def test_skipped_test_cases_keys(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test that testcases which are not defined in test_case_keys are skipped."""
