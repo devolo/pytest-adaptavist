@@ -139,9 +139,9 @@ class PytestAdaptavist:
         """Process the test report produced for each of the setup, call and teardown runtest phases of an item."""
         user_properties: dict[str, Any] = dict(report.user_properties)
         if user_properties.get("atmcfg"):
-            self.test_plan_key = user_properties["atmcfg"].get("test_plan_key", "")
-            self.project_key = user_properties["atmcfg"].get("project_key", "")
-            self.test_run_key = user_properties["atmcfg"].get("test_run_key", "")
+            # self.test_plan_key = user_properties["atmcfg"].get("test_plan_key", "")
+            # self.project_key = user_properties["atmcfg"].get("project_key", "")
+            # self.test_run_key = user_properties["atmcfg"].get("test_run_key", "")
             if self.test_run_key and self.test_run_key not in self.test_run_keys:
                 self.test_run_keys.append(self.test_run_key)
 
@@ -154,7 +154,7 @@ class PytestAdaptavist:
                 test_call_index = index + 1
                 break
         (frame, _, _, _, contextlist) = inspect.stack()[test_call_index][0:5]
-        local_locals = ["%-10s = %s" % (name, saferepr(val)) for name, val in frame.f_locals.items()]
+        local_locals = [f"{name:10s} = {saferepr(val)}" for name, val in frame.f_locals.items()]
         self.failed_assumptions_step.append([])
         self.FAILED_ASSUMPTIONS.append(Assumption((contextlist or [""])[0].lstrip(), frame, local_locals))
 
