@@ -37,7 +37,6 @@ class TestMetaBlockUnit:
         pytester.runpytest("--adaptavist")
         assert "We don't want to see this message" not in etss.call_args.kwargs["comment"]
 
-
     def test_message_on_pass(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test the correct usage of the message_on_pass parameter of meta_block check."""
 
@@ -64,7 +63,6 @@ class TestMetaBlockUnit:
         pytester.runpytest("--adaptavist")
         assert "We don't want to see this message" not in etss.call_args.kwargs["comment"]
 
-
     def test_description(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test the correct usage of the description parameter of meta_block check."""
         pytester.makepyfile("""
@@ -78,7 +76,6 @@ class TestMetaBlockUnit:
         _, _, etss = adaptavist
         pytester.runpytest("--adaptavist")
         assert etss.call_args.kwargs["comment"].count("This should be displayed twice") == 2
-
 
     @pytest.mark.usefixtures("adaptavist")
     def test_attachment(self, pytester: pytest.Pytester):
@@ -108,7 +105,6 @@ class TestMetaBlockUnit:
             pytester.runpytest("--adaptavist")
             assert "This is an attachment" in atsa.call_args.kwargs["attachment"]
 
-
     @pytest.mark.usefixtures("adaptavist")
     def test_description_of_test_steps_printed(self, pytester: pytest.Pytester):
         """Test if the description of testcases is printed, if pytest is started with high verbosity."""
@@ -129,7 +125,6 @@ class TestMetaBlockUnit:
         report = pytester.runpytest("--adaptavist", "-vv")
         assert "Description of test step 1" in report.outlines
 
-
     def test_adaptavist_call_metablock(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test if all meta blocks are reported to adaptavist."""
         pytester.makepyfile("""
@@ -147,7 +142,6 @@ class TestMetaBlockUnit:
         pytester.runpytest("--adaptavist")
         assert etrs.call_count == 4  # 3 meta blocks and 1 overall result
 
-
     @pytest.mark.usefixtures("adaptavist")
     def test_meta_block_timeout(self, pytester: pytest.Pytester):
         """Test if a meta block is timed out."""
@@ -163,7 +157,6 @@ class TestMetaBlockUnit:
         outcome = pytester.runpytest("--adaptavist").parseoutcomes()
         assert outcome["skipped"] == 1
 
-
     @pytest.mark.usefixtures("adaptavist")
     def test_meta_block_check_unknown_arguments(self, pytester: pytest.Pytester):
         """Test if meta_block handles unknown keyword arguments correctly."""
@@ -176,7 +169,6 @@ class TestMetaBlockUnit:
         """)
         report = pytester.runpytest("--adaptavist")
         assert any(("Unknown arguments: {'unknown_kwargs': 123}" in x for x in report.outlines))
-
 
     def test_meta_block_assume(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test if meta_block is using assume correctly. Step 2 must be executed even if step 1 fails."""
@@ -193,7 +185,6 @@ class TestMetaBlockUnit:
         _, _, etss = adaptavist
         assert etss.call_count == 2
 
-
     def test_meta_block_fail_method(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test Action.FAIL_METHOD. Step 2 must not be executed as step 1 will fail."""
         pytester.makepyfile("""
@@ -208,7 +199,6 @@ class TestMetaBlockUnit:
         pytester.runpytest("--adaptavist")
         _, _, etss = adaptavist
         assert etss.call_count == 1
-
 
     def test_meta_block_stop_context(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test Action.STOP_CONTEXT. The second check in meta_block 1 must not be executed, but step 2 must be executed."""
@@ -231,7 +221,6 @@ class TestMetaBlockUnit:
         assert etss.call_args.kwargs["step"] == 2
         assert etss.call_args.kwargs["status"] == "Pass"
         assert report.parseoutcomes()["skipped"] == 1
-
 
     def test_meta_block_stop_method(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test Action.STOP_METHOD. We expect to not see step 2 and the second check of meta_block 1. TEST-T124 must be executed normally."""
@@ -257,7 +246,6 @@ class TestMetaBlockUnit:
             assert "THIS SHOULD NOT BE DISPLAYED" not in call.kwargs["comment"]
             assert call.test_case_key != "TEST-T123" or call.step != 2
 
-
     @pytest.mark.usefixtures("adaptavist")
     def test_meta_block_check_stop_session(self, pytester: pytest.Pytester):
         """Test Action.STOP_SESSION. We expect that TEST_T121 is executed. TEST_T123 fails and prevent execution of TEST_T124"""
@@ -280,7 +268,6 @@ class TestMetaBlockUnit:
         assert outcome["passed"] == 1
         assert outcome["skipped"] == 1
         assert outcome["blocked"] == 1
-
 
     @pytest.mark.usefixtures("adaptavist")
     def test_meta_block_check_fail_session(self, pytester: pytest.Pytester):
@@ -305,18 +292,11 @@ class TestMetaBlockUnit:
         assert outcome["blocked"] == 1
         assert outcome["passed"] == 1
 
-        with patch("adaptavist.Adaptavist.get_test_run",
-                return_value={"items": [{
-                    "testCaseKey": "TEST-T123"
-                }, {
-                    "testCaseKey": "TEST-T124"
-                }, {
-                    "testCaseKey": "TEST-T121"
-                }]}):
+        test_runs = {"items": [{"testCaseKey": "TEST-T123"}, {"testCaseKey": "TEST-T124"}, {"testCaseKey": "TEST-T121"}]}
+        with patch("adaptavist.Adaptavist.get_test_run", return_value=test_runs):
             outcome = pytester.runpytest("--adaptavist").parseoutcomes()
             assert outcome["failed"] == 1
             assert outcome["blocked"] == 2
-
 
     def test_meta_block_exit_session(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test Action.EXIT_SESSION. We expect that TEST_T123 fails and exits the whole session."""

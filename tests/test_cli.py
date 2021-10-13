@@ -16,7 +16,6 @@ class TestCliUnit:
         assert not config.getoption("adaptavist")
         assert not config.getini("adaptavist")
 
-
     def test_adaptavist_enabled(self, pytester: pytest.Pytester):
         """Test presence of adaptavist config if enabled."""
         config = pytester.parseconfig("--adaptavist")

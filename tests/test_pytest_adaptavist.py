@@ -80,7 +80,7 @@ class TestPytestAdaptavistUnit:
 
 
     @pytest.mark.xfail(pkg_resources.get_distribution("adaptavist").version == '2.0.0',
-                    reason="As long as adaptavist package didn't release the constant fix, this test will fail.")
+                       reason="As long as adaptavist package didn't release the constant fix, this test will fail.")
     def test_skipped_test_cases(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test that a skipped test case is reported as 'Not Executed'."""
 
