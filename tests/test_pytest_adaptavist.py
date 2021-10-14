@@ -186,5 +186,5 @@ class TestPytestAdaptavistSystem:
         with meta_block(1) as mb_1:
             mb_1.check(True)
         with meta_block(2) as mb_2:
-            pytest.block("Testing block")  # type: ignore  # pylint: disable=no-member
+            pytest.block("Testing block")  # type: ignore
             mb_2.check(False)

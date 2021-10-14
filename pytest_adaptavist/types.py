@@ -14,5 +14,4 @@ class MetaBlockFixture(Protocol):
         ...
 
 
-"""MetaData fixture type."""
 MetaDataFixture = Dict[str, Any]
