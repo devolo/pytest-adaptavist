@@ -2,7 +2,7 @@
 
 import pytest
 
-from pytest_adaptavist import MetaBlock
+from pytest_adaptavist import MetaBlockFixture
 
 from . import system_test_preconditions
 
@@ -37,7 +37,7 @@ class TestDecoratorSystem:
     """Test decorator usage on system test level."""
 
     @pytest.mark.block("TESTING BLOCK DECORATOR")
-    def test_T5(self, meta_block: MetaBlock):
+    def test_T5(self, meta_block: MetaBlockFixture):
         """Test block decorator."""
         with meta_block(1) as mb_1:
             mb_1.check(False)

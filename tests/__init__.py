@@ -13,10 +13,10 @@ def system_test_preconditions() -> bool:
     atmcfg = ATMConfiguration()
 
     if not atmcfg.config or \
-       not "project_key" in atmcfg.config or \
-       not "jira_server" in atmcfg.config or \
-       not "jira_username" in atmcfg.config or \
-       not "jira_password" in atmcfg.config:
+       "project_key" not in atmcfg.config or \
+       "jira_server" not in atmcfg.config or \
+       "jira_username" not in atmcfg.config or \
+       "jira_password" not in atmcfg.config:
         return False
 
     return True

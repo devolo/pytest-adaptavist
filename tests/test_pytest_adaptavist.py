@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pkg_resources
 import pytest
 
-from pytest_adaptavist import MetaBlock
+from pytest_adaptavist import MetaBlockFixture
 
 from . import AdaptavistFixture, system_test_preconditions
 
@@ -162,29 +162,29 @@ class TestPytestAdaptavistUnit:
 class TestPytestAdaptavistSystem:
     """Test connection between pytest and Adaptavist on system test level."""
 
-    def test_T1(self, meta_block: MetaBlock):
+    def test_T1(self, meta_block: MetaBlockFixture):
         """Test passing a test."""
         with meta_block(1) as mb_1:
             mb_1.check(True)
 
     @pytest.mark.xfail
-    def test_T2(self, meta_block: MetaBlock):
+    def test_T2(self, meta_block: MetaBlockFixture):
         """Test failing a test."""
         with meta_block(1) as mb_1:
             mb_1.check(False)
 
     @pytest.mark.xfail
-    def test_T3(self, meta_block: MetaBlock):
+    def test_T3(self, meta_block: MetaBlockFixture):
         """Test reporting steps."""
         with meta_block(1) as mb_1:
             mb_1.check(True)
         with meta_block(2) as mb_2:
             mb_2.check(False)
 
-    def test_T4(self, meta_block: MetaBlock):
+    def test_T4(self, meta_block: MetaBlockFixture):
         """Test blocking a step."""
         with meta_block(1) as mb_1:
             mb_1.check(True)
         with meta_block(2) as mb_2:
-            pytest.block("Testing block")  # pylint: disable=no-member
+            pytest.block("Testing block")  # type: ignore  # pylint: disable=no-member
             mb_2.check(False)

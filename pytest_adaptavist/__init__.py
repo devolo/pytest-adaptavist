@@ -5,7 +5,7 @@ from __future__ import annotations
 import getpass
 import os
 from importlib.metadata import PackageNotFoundError, version
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Literal, Optional, Union
 
 import pytest
 from _pytest.config import Config
@@ -118,6 +118,9 @@ class Blocked(Skipped):
     """Block exception used to abort test execution and set result status to 'Blocked'."""
 
 
+MetaBlockFixture = Union[Callable[[Optional[int]], MetaBlock], Callable[[Optional[int], int], MetaBlock]]
+
+
 @pytest.fixture
 def meta_data(request: pytest.FixtureRequest) -> dict[str, Any]:
     """This can be used to store data inside of test methods."""
@@ -126,7 +129,7 @@ def meta_data(request: pytest.FixtureRequest) -> dict[str, Any]:
 
 
 @pytest.fixture
-def meta_block(request: pytest.FixtureRequest) -> Callable[[int | None, int], MetaBlock]:
+def meta_block(request: pytest.FixtureRequest) -> MetaBlockFixture:
     """
     This fixture can be used to create reports for test blocks/steps immediately during test method call.
 
