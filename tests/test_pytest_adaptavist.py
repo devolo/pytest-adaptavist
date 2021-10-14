@@ -7,7 +7,7 @@ import pytest
 
 from pytest_adaptavist import MetaBlock
 
-from . import AdaptavistFixture
+from . import AdaptavistFixture, system_test_preconditions
 
 
 @pytest.mark.usefixtures("configure")
@@ -158,7 +158,7 @@ class TestPytestAdaptavistUnit:
         assert "skipped as requested" in etrs.call_args.kwargs["comment"]
 
 
-@pytest.mark.skipif(True, reason="Preconditions for system tests not met. Please see README.md")
+@pytest.mark.skipif(not system_test_preconditions(), reason="Preconditions for system tests not met. Please see README.md")
 class TestPytestAdaptavistSystem:
     """Test connection between pytest and Adaptavist on system test level."""
 

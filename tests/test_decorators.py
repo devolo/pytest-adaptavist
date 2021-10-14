@@ -4,6 +4,8 @@ import pytest
 
 from pytest_adaptavist import MetaBlock
 
+from . import system_test_preconditions
+
 
 @pytest.mark.usefixtures("configure")
 class TestDecoratorUnit:
@@ -30,7 +32,7 @@ class TestDecoratorUnit:
         assert "passed" not in outcome
 
 
-@pytest.mark.skipif(True, reason="Preconditions for system tests not met. Please see README.md")
+@pytest.mark.skipif(not system_test_preconditions(), reason="Preconditions for system tests not met. Please see README.md")
 class TestDecoratorSystem:
     """Test decorator usage on system test level."""
 
