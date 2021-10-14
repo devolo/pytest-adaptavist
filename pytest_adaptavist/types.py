@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import Any, Dict, Protocol
 
 from .metablock import MetaBlock
 
 
 class MetaBlockFixture(Protocol):
     """MetaBlock fixture type."""
+
     def __call__(self, step: int | None = ..., timeout: int = ...) -> MetaBlock:
         ...
 
+
 """MetaData fixture type."""
-MetaDataFixture = dict[str, Any]
+MetaDataFixture = Dict[str, Any]
