@@ -5,7 +5,7 @@ from __future__ import annotations
 import getpass
 import os
 from importlib.metadata import PackageNotFoundError, version
-from typing import Any, Callable, Literal, Optional, Union
+from typing import Any, Literal
 
 import pytest
 from _pytest.config import Config
@@ -19,6 +19,7 @@ from ._pytest_adaptavist import PytestAdaptavist
 from ._xdist import XdistHooks
 from .constants import META_BLOCK_TIMEOUT
 from .metablock import MetaBlock
+from .types import MetaBlockFixture, MetaDataFixture
 
 try:
     __version__ = version("adaptavist")
@@ -118,11 +119,8 @@ class Blocked(Skipped):
     """Block exception used to abort test execution and set result status to 'Blocked'."""
 
 
-MetaBlockFixture = Union[Callable[[Optional[int]], MetaBlock], Callable[[Optional[int], int], MetaBlock]]
-
-
 @pytest.fixture
-def meta_data(request: pytest.FixtureRequest) -> dict[str, Any]:
+def meta_data(request: pytest.FixtureRequest) -> MetaDataFixture:
     """This can be used to store data inside of test methods."""
     adaptavist: PytestAdaptavist = request.config.pluginmanager.getplugin("_adaptavist")
     return adaptavist.test_result_data[request.node.fullname]
