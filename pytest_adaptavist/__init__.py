@@ -5,12 +5,12 @@ from __future__ import annotations
 import getpass
 import os
 from importlib.metadata import PackageNotFoundError, version
-from typing import Any, Literal
+from typing import Any, Literal, NoReturn
 
 import pytest
 from _pytest.config import Config
 from _pytest.config.argparsing import Parser
-from _pytest.outcomes import Skipped, _with_exception
+from _pytest.outcomes import OutcomeException, _with_exception
 from _pytest.reports import TestReport
 
 from ._atm_configuration import atm_user_is_valid
@@ -61,7 +61,7 @@ def pytest_configure(config: Config):
 
     # Support for pytest.block
     @_with_exception(Blocked)
-    def block(msg=""):
+    def block(msg="") -> NoReturn:
         __tracebackhide__ = True  # pylint: disable=unused-variable
         raise Blocked(msg=msg)
 
@@ -115,7 +115,7 @@ def pytest_report_teststatus(report: TestReport) -> tuple[str, str, tuple[str, d
     return None
 
 
-class Blocked(Skipped):
+class Blocked(OutcomeException):
     """Block exception used to abort test execution and set result status to 'Blocked'."""
 
 

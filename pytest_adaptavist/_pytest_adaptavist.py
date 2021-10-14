@@ -397,13 +397,11 @@ class PytestAdaptavist:
         # if method was blocked dynamically (during call) an appropriate marker is used
         # to handle the reporting in the same way as for statically blocked methods
         # (status will be reported as "Blocked" with given comment in Adaptavist)
-        def _call_info():
-            return call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)
-
-        if not skip_status and (_call_info()  # type: ignore
+        call_info = call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)  # type: ignore
+        if not skip_status and (call_info  # type: ignore
                                 or not call.excinfo and self.test_result_data[fullname].get("blocked")):
             reason = self.test_result_data[fullname].get("comment") or \
-                str(call.excinfo.value).partition("\n")[0] if _call_info() else ""  # type: ignore
+                str(call.excinfo.value).partition("\n")[0] if call_info else ""  # type: ignore
             skip_status = pytest.mark.block(reason=reason) if ((call.excinfo and call.excinfo.type is pytest.block.Exception)  # type: ignore
                                                                or self.test_result_data[fullname].get("blocked")) else pytest.mark.skip(reason=reason)
             if report.outcome != "skipped":
@@ -691,5 +689,5 @@ class PytestAdaptavist:
 def is_unexpected_exception(exc_type: Exception) -> bool:
     """Check if exception type is unexpected (any exception except AssertionError, pytest.block.Exception, pytest.skip.Exception)."""
     if exc_type and (isinstance(exc_type, (Exception, BaseException)) or issubclass(exc_type, (Exception, BaseException))):
-        return exc_type not in (None, FailedAssumption, AssertionError, pytest.skip.Exception)
+        return exc_type not in (None, FailedAssumption, AssertionError, pytest.block.Exception, pytest.skip.Exception)  # type: ignore
     return False
