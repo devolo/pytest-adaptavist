@@ -31,6 +31,21 @@ class TestDecoratorUnit:
         assert outcome["blocked"] == 1
         assert "passed" not in outcome
 
+        pytester.makepyfile("""
+            import pytest
+
+            @pytest.mark.block()
+            class TestDummy:
+                def test_dummy1():
+                    assert True
+
+                def test_dummy2():
+                    assert True
+        """)
+        outcome = pytester.runpytest().parseoutcomes()
+        assert outcome["blocked"] == 2
+        assert "passed" not in outcome
+
 
 @pytest.mark.skipif(not system_test_preconditions(), reason="Preconditions for system tests not met. Please see README.md")
 class TestDecoratorSystem:
