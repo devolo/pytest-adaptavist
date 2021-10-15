@@ -151,7 +151,7 @@ def build_terminal_report(when: str, item: pytest.Function, step: int, status: L
         source_code = "".join(source_list[0][line - source_list[1]:])
         docs = re.findall(r"^[\s]*\"\"\"(.*?)\"\"\"", source_code, re.DOTALL | re.MULTILINE | re.IGNORECASE)
         doc_string = inspect.cleandoc(docs[0]) if docs else ""
-        
+
         if when == "setup":
             terminal_reporter.write_sep("-", "Step " + str(step), bold=True)
             terminal_reporter.write(doc_string + ("\n" if doc_string else ""))
