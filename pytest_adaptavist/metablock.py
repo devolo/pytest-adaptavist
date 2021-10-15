@@ -189,14 +189,14 @@ class MetaBlock:
         if condition:
             return
 
-        self._process_condition(action_on_fail, condition, message_on_fail)
+        self._process_failed_condition(action_on_fail, message_on_fail)
 
-    def _process_condition(self, action_on_fail: Action, condition: bool, message_on_fail: str):
-        """Process condition depending on action_on_fail."""
+    def _process_failed_condition(self, action_on_fail: Action, message_on_fail: str):
+        """Process failed condition depending on action_on_fail."""
         fullname = get_item_nodeid(self.item)
         if action_on_fail == self.Action.FAIL_METHOD:
             # FAIL_METHOD: skip execution of this block/test, set it to 'Fail' and continue with next test
-            assert condition, message_on_fail
+            assert False, message_on_fail
         elif action_on_fail == self.Action.STOP_CONTEXT:
             # STOP_CONTEXT: skip execution of this block, set it to 'Blocked' and continue with next block
             self.data["blocked"] = True
@@ -224,11 +224,11 @@ class MetaBlock:
                     self.adaptavist.test_result_data[fullname]["blocked"] = True
                     self.adaptavist.test_result_data[fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
                 seen = item.name != self.item.name
-            assert condition, message_on_fail
+            assert False, message_on_fail
         elif action_on_fail == self.Action.EXIT_SESSION:
             # EXIT_SESSION: skip execution of this block/test, set it to 'Blocked' and exit session
             self.data["blocked"] = True
             pytest.exit(msg=f"Exiting pytest. {self.item_name} failed: {message_on_fail}")
         else:
             # CONTINUE: try to collect failed assumption, set result to 'Fail' and continue
-            pytest.assume(expr=condition, msg=message_on_fail)  # type:ignore  # pylint: disable=no-member
+            pytest.assume(expr=False, msg=message_on_fail)  # type:ignore  # pylint: disable=no-member

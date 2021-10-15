@@ -120,12 +120,9 @@ class PytestAdaptavist:
     @pytest.hookimpl(tryfirst=True)
     def pytest_runtest_setup(self, item: pytest.Item):
         """This is called before calling the test item. Used to skip test items dynamically (e.g. triggered by some other item or control function)."""
-        skip_status = item.get_closest_marker("block") or item.get_closest_marker("skip")
-
-        if skip_status:
-            skip_reason = skip_status.kwargs.get("reason", "")
+        if skip_status := (item.get_closest_marker("block") or item.get_closest_marker("skip")):
             fullname = get_item_nodeid(item)
-            if not skip_reason and self.test_result_data[fullname].get("blocked") is True:
+            if not (skip_reason := skip_status.kwargs.get("reason", "")) and self.test_result_data[fullname].get("blocked") is True:
                 skip_reason = self.test_result_data[fullname].get("comment", "")
 
             pytest.block(msg=skip_reason)  # type: ignore
@@ -430,14 +427,16 @@ class PytestAdaptavist:
             # this item has been reported already within a meta block context (see below)
             return
 
-        marker = item.get_closest_marker("testcase")
-        if marker is not None:
-
+        if marker := item.get_closest_marker("testcase"):
             test_case_key = marker.kwargs["test_case_key"]
             test_step_key = marker.kwargs["test_step_key"]
-
-            specs = get_spec(fullname)
-            self.create_report(test_case_key, test_step_key, call.stop - call.start, skip_status, report.passed, self.test_result_data[fullname], specs)
+            self.create_report(test_case_key,
+                               test_step_key,
+                               call.stop - call.start,
+                               skip_status,
+                               report.passed,
+                               self.test_result_data[fullname],
+                               get_spec(fullname))
 
     def _setup_report(self, worker_input: dict[str, Any]):
         """
@@ -538,8 +537,7 @@ class PytestAdaptavist:
         traceability = None
         test_summary = None
         score_matrix = None
-        base_url = ATMConfiguration().get("jira_server", "")
-        if base_url and getattr(self, "project_key", None) and getattr(self, "test_run_key", None):
+        if base_url := ATMConfiguration().get("jira_server", "") and getattr(self, "project_key", None) and getattr(self, "test_run_key", None):
             # pylint: disable=line-too-long
             cycle_string = "%22%2C%20%22".join(self.test_run_keys) if getattr(self, "test_run_keys", None) else self.test_run_key or ""
             traceability = f"{base_url}/secure/Tests.jspa#/reports/traceability/report/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TRACEABILITY_REPORT.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"  # noqa
@@ -653,15 +651,13 @@ class PytestAdaptavist:
 
             # check for valid test case method signature test_[<project>_]T<test case>[_<test step>]
             # (project key and step index are optional)
-            result = re.search("^test_(([A-Z]+[A-Z0-9_]*[^_])_)?(T[1-9]+[0-9]*)(_([1-9]+[0-9]*))*", item.name, re.IGNORECASE)
-            if result:
+            if result := re.search("^test_(([A-Z]+[A-Z0-9_]*[^_])_)?(T[1-9]+[0-9]*)(_([1-9]+[0-9]*))*", item.name, re.IGNORECASE):
                 _, project_key, test_case_key, _, test_step_key = result.groups()
 
                 if not project_key:
                     project_key = getattr(item.cls, "project_key", None)  # type:ignore
 
-                    marker = item.get_closest_marker("project")
-                    if marker is not None:
+                    if marker := item.get_closest_marker("project"):
                         project_key = marker.kwargs["project_key"]
 
                 if not project_key:

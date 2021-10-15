@@ -140,16 +140,18 @@ def build_terminal_report(when: str, item: pytest.Function, step: int, status: L
     :param level: The stack trace level (1 = the caller's level, 2 = the caller's caller level, 3 = ...)
     """
 
-    # extract doc string from source
-    (frame, _, line, _, _) = inspect.stack()[level][0:5]
-    source_list = inspect.getsourcelines(frame)
-    source_code = "".join(source_list[0][line - source_list[1]:])
-    docs = re.findall(r"^[\s]*\"\"\"(.*?)\"\"\"", source_code, re.DOTALL | re.MULTILINE | re.IGNORECASE)
-    doc_string = inspect.cleandoc(docs[0]) if docs else ""
     terminal_reporter: TerminalReporter | None = item.config.pluginmanager.getplugin("terminalreporter")
     terminal_writer: TerminalWriter = item.config.get_terminal_writer()
 
     if terminal_reporter and item.config.option.verbose > 1:
+
+        # extract doc string from source
+        (frame, _, line, _, _) = inspect.stack()[level][0:5]
+        source_list = inspect.getsourcelines(frame)
+        source_code = "".join(source_list[0][line - source_list[1]:])
+        docs = re.findall(r"^[\s]*\"\"\"(.*?)\"\"\"", source_code, re.DOTALL | re.MULTILINE | re.IGNORECASE)
+        doc_string = inspect.cleandoc(docs[0]) if docs else ""
+        
         if when == "setup":
             terminal_reporter.write_sep("-", "Step " + str(step), bold=True)
             terminal_reporter.write(doc_string + ("\n" if doc_string else ""))
