@@ -120,7 +120,9 @@ class PytestAdaptavist:
     @pytest.hookimpl(tryfirst=True)
     def pytest_runtest_setup(self, item: pytest.Item):
         """This is called before calling the test item. Used to skip test items dynamically (e.g. triggered by some other item or control function)."""
-        if skip_status := (item.get_closest_marker("block") or item.get_closest_marker("skip")):
+        if item.cls and item.cls.pytestmark and all((mark.name != "block" for mark in item.cls.pytestmark)):
+            return
+        if skip_status := (item.get_closest_marker("block")):
             fullname = get_item_nodeid(item)
             if not (skip_reason := skip_status.kwargs.get("reason", "")) and self.test_result_data[fullname].get("blocked") is True:
                 skip_reason = self.test_result_data[fullname].get("comment", "")
@@ -131,12 +133,8 @@ class PytestAdaptavist:
     def pytest_runtest_logreport(self, report: TestReport):
         """Process the test report produced for each of the setup, call and teardown runtest phases of an item."""
         user_properties: dict[str, Any] = dict(report.user_properties)
-        if user_properties.get("atmcfg"):
-            # self.test_plan_key = user_properties["atmcfg"].get("test_plan_key", "")
-            # self.project_key = user_properties["atmcfg"].get("project_key", "")
-            # self.test_run_key = user_properties["atmcfg"].get("test_run_key", "")
-            if self.test_run_key and self.test_run_key not in self.test_run_keys:
-                self.test_run_keys.append(self.test_run_key)
+        if (user_properties.get("atmcfg") and self.test_run_key and self.test_run_key not in self.test_run_keys):
+            self.test_run_keys.append(self.test_run_key)
 
     @pytest.hookimpl()
     def pytest_assume_fail(self, lineno: int, entry: str):  # pylint: disable=unused-argument
@@ -372,7 +370,7 @@ class PytestAdaptavist:
         report.user_properties.append(("nodeid", get_item_nodeid(item)))
         report.user_properties.append(("docstr", inspect.cleandoc(item.obj.__doc__ or "")))  # type: ignore
 
-        if call.when not in ("call", "setup"):
+        if call.when not in ("call", "setup") or (item.cls and item.cls.pytestmark and all((mark.name != "block" for mark in item.cls.pytestmark))):
             return
         if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore
             report.blocked = True  # type: ignore
