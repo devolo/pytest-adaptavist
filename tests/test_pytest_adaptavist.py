@@ -56,7 +56,7 @@ class TestPytestAdaptavistUnit:
         with open("config/global_config.json", "w", encoding="utf8") as file:
             file.write('{"skip_ntc_methods": true}')
         report = pytester.runpytest("--adaptavist")
-        assert report.parseoutcomes()["blocked"] == 1
+        assert report.parseoutcomes()["skipped"] == 1
 
     def test_early_return_on_no_config(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test the early return in create_report if config is not valid."""
@@ -153,7 +153,7 @@ class TestPytestAdaptavistUnit:
         _, etrs, _ = adaptavist
         outcome = pytester.runpytest("--adaptavist", "-vv").parseoutcomes()
         assert outcome["passed"] == 1
-        assert outcome["blocked"] == 1
+        assert outcome["skipped"] == 1
         assert etrs.call_args.kwargs["test_case_key"] == "TEST-T125"
         assert "skipped as requested" in etrs.call_args.kwargs["comment"]
 

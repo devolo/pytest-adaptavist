@@ -266,8 +266,7 @@ class TestMetaBlockUnit:
         """)
         outcome = pytester.runpytest("--adaptavist").parseoutcomes()
         assert outcome["passed"] == 1
-        assert outcome["skipped"] == 1
-        assert outcome["blocked"] == 1
+        assert outcome["blocked"] == 2
 
     @pytest.mark.usefixtures("adaptavist")
     def test_meta_block_check_fail_session(self, pytester: pytest.Pytester):
@@ -298,14 +297,14 @@ class TestMetaBlockUnit:
             assert outcome["failed"] == 1
             assert outcome["blocked"] == 2
 
-    def test_meta_block_exit_session(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
+    def test_meta_block_stop_exit_session(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
         """Test Action.EXIT_SESSION. We expect that TEST_T123 fails and exits the whole session."""
         pytester.makepyfile("""
             import pytest
 
             def test_TEST_T123(meta_block):
                 with meta_block(1) as mb_1:
-                    mb_1.check(False, action_on_fail=mb_1.Action.EXIT_SESSION)
+                    mb_1.check(False, action_on_fail=mb_1.Action.STOP_EXIT_SESSION)
                     mb_1.check(False, message_on_fail="THIS SHOULD NOT BE DISPLAYED")
                 with meta_block(2) as mb_2:
                     mb_2.check(True)
@@ -314,9 +313,28 @@ class TestMetaBlockUnit:
                 with meta_block(1) as mb_1:
                     mb_1.check(True)
         """)
-
         pytester.runpytest("--adaptavist")
         _, _, etss = adaptavist
         assert etss.call_count == 1
-        for call in etss.call_args_list:
-            assert call.kwargs["status"] != "Pass"
+        assert etss.call_args.kwargs["status"] == "Blocked"
+
+    def test_meta_block_fail_exit_session(self, pytester: pytest.Pytester, adaptavist: AdaptavistFixture):
+        """Test Action.EXIT_SESSION. We expect that TEST_T123 fails and exits the whole session."""
+        pytester.makepyfile("""
+            import pytest
+
+            def test_TEST_T123(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(False, action_on_fail=mb_1.Action.FAIL_EXIT_SESSION)
+                    mb_1.check(False, message_on_fail="THIS SHOULD NOT BE DISPLAYED")
+                with meta_block(2) as mb_2:
+                    mb_2.check(True)
+
+            def test_TEST_T124(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(True)
+        """)
+        pytester.runpytest("--adaptavist")
+        _, _, etss = adaptavist
+        assert etss.call_count == 1
+        assert etss.call_args.kwargs["status"] == "Fail"

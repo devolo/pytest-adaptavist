@@ -56,3 +56,20 @@ class TestDecoratorSystem:
         """Test block decorator."""
         with meta_block(1) as mb_1:
             mb_1.check(False)
+
+
+@pytest.mark.usefixtures("adaptavist")
+def test_class_method_decorator(pytester: pytest.Pytester):
+    """Test block decorator."""
+    pytester.makepyfile("""
+        import pytest
+        @pytest.mark.block()
+        class TestClass:
+            @pytest.mark.skip()
+            def test_dummy(self):
+                assert True
+    """)
+    report = pytester.runpytest("--adaptavist")
+    outcome = report.parseoutcomes()
+    assert outcome["blocked"] == 1
+    assert "passed" not in outcome

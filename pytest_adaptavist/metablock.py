@@ -28,21 +28,25 @@ class MetaBlock:
     """
 
     class Action(IntEnum):
-        """If condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')."""
+        # TODO: SORT IT
+
         NONE = 0
+        """If condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')."""
         FAIL_CONTEXT = 0
-        """If condition fails, skip execution of this block/test, set it to 'Fail' and continue with next test (just like 'assert')."""
-        FAIL_METHOD = 1
         """If condition fails, skip execution of this block, set it to 'Blocked' and continue with next block."""
-        STOP_CONTEXT = 2
+        STOP_CONTEXT = 1
+        """If condition fails, skip execution of this block/test, set it to 'Fail' and continue with next test (just like 'assert')."""
+        FAIL_METHOD = 2
         """If condition fails, skip execution of this block/test, set it to 'Blocked' and continue with next test."""
         STOP_METHOD = 3
-        """If condition fails, skip execution of this block/test, set it to 'Blocked' and block following tests as well."""
-        STOP_SESSION = 4
         """If condition fails, skip execution of this block/test, set it to 'Fail' and block following tests."""
-        FAIL_SESSION = 5
+        FAIL_SESSION = 4
+        """If condition fails, skip execution of this block/test, set it to 'Blocked' and block following tests as well."""
+        STOP_SESSION = 5
         """If condition fails, skip execution of this block/test, set it to 'Blocked' and exit session."""
-        EXIT_SESSION = -1
+        FAIL_EXIT_SESSION = 6
+        """If condition fails, skip execution of this block/test, set it to 'Blocked' and exit session."""
+        STOP_EXIT_SESSION = 7
 
     def __init__(self, request: pytest.FixtureRequest, timeout: int, step: int | None = None):
         fullname = get_item_nodeid(request.node)
@@ -207,27 +211,25 @@ class MetaBlock:
             pytest.skip(msg=f"Blocked. {self.item_name} failed: {message_on_fail}")
         elif action_on_fail == self.Action.STOP_SESSION:
             # STOP_SESSION: skip execution of this block/test, set it to 'Blocked' and block following tests as well
-            self.data["blocked"] = True
-            seen = True
             for item in self.items:
-                if not seen:
-                    item.add_marker("skip")
-                    self.adaptavist.test_result_data[fullname]["blocked"] = True
-                    self.adaptavist.test_result_data[fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
-                seen = item.name != self.item.name
-            pytest.skip(msg=f"Blocked. {self.item_name} failed: {message_on_fail}")
+                item.add_marker("block")
+                self.adaptavist.test_result_data[fullname]["blocked"] = True
+                self.adaptavist.test_result_data[fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
+            assert False, message_on_fail
         elif action_on_fail == self.Action.FAIL_SESSION:
             # FAIL_SESSION: skip execution of this block/test, set it to 'Fail' and block following tests
             for item in self.items:
                 if item.name not in self.item.name:
-                    item.add_marker("skip")
+                    item.add_marker("block")
                     self.adaptavist.test_result_data[fullname]["blocked"] = True
                     self.adaptavist.test_result_data[fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
-                seen = item.name != self.item.name
             assert False, message_on_fail
-        elif action_on_fail == self.Action.EXIT_SESSION:
+        elif action_on_fail == self.Action.STOP_EXIT_SESSION:
             # EXIT_SESSION: skip execution of this block/test, set it to 'Blocked' and exit session
-            self.data["blocked"] = True
+            self.item.add_marker("block")
+            pytest.exit(msg=f"Exiting pytest. {self.item_name} failed: {message_on_fail}", returncode=1)
+        elif action_on_fail == self.Action.FAIL_EXIT_SESSION:
+            # EXIT_SESSION: skip execution of this block/test, set it to 'Blocked' and exit session
             pytest.exit(msg=f"Exiting pytest. {self.item_name} failed: {message_on_fail}")
         else:
             # CONTINUE: try to collect failed assumption, set result to 'Fail' and continue
