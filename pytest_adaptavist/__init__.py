@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import getpass
 import os
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Literal, NoReturn
@@ -13,7 +12,6 @@ from _pytest.config.argparsing import Parser
 from _pytest.outcomes import Skipped, _with_exception
 from _pytest.reports import TestReport
 
-from ._atm_configuration import atm_user_is_valid
 from ._helpers import get_code_base_url, get_option_ini
 from ._pytest_adaptavist import PytestAdaptavist
 from ._xdist import XdistHooks
