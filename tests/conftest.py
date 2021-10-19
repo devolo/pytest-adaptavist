@@ -41,8 +41,8 @@ def configure(pytester: pytest.Pytester):
 @pytest.fixture
 def valid_user() -> Generator[None, None, None]:
     """Mark user as always valid."""
-    with patch("pytest_adaptavist.atm_user_is_valid", return_value=True):
-        yield
+    # with patch("pytest_adaptavist.atm_user_is_valid", return_value=True):
+    yield
 
 
 @pytest.fixture
