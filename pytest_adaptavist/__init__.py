@@ -76,9 +76,9 @@ def pytest_configure(config: Config):
         config.pluginmanager.register(XdistHooks(), "_xdist_adaptavist")
 
     # Check, if user is known in Adaptavist
-    build_usr = getpass.getuser().lower() if not get_option_ini(config, "restrict_user") else get_option_ini(config, "restrict_user")
-    if not atm_user_is_valid(build_usr):
-        raise ValueError(f"User {build_usr} is not known in Adaptavist")
+    build_usr = "jenkins"
+    if get_option_ini(config, "restrict_user") and get_option_ini(config, "restrict_user") != build_usr:
+        adaptavist.enabled = False
 
     # Store metadata for later usage (e.g. adaptavist traceability).
     metadata = getattr(config, "_metadata", os.environ)
@@ -101,7 +101,7 @@ def pytest_configure(config: Config):
     if adaptavist.reporter:
         adaptavist.reporter.section("ATM build meta data", bold=True)
         adaptavist.reporter.line(f"build_usr: {build_usr or 'unknown'}")
-        adaptavist.reporter.line(f"build_url: {build_usr or 'unknown'}")
+        adaptavist.reporter.line(f"build_url: {build_url or 'unknown'}")
         adaptavist.reporter.line(
             f"code_base: {code_base or 'unknown'} {(branch or 'unknown') if code_base else ''} {(commit or 'unknown') if code_base and branch else ''}")
         adaptavist.reporter.line("reporting: enabled")

@@ -1,14 +1,32 @@
 """Fixtures for tests."""
 
+import json
 import os
+import shutil
 from typing import Generator
 from unittest.mock import patch
 
 import pytest
+from adaptavist import Adaptavist
 
 from . import AdaptavistFixture
 
 pytest_plugins = ("pytester", )
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "system: mark test as system tests. Select system tests with '-m system'")
+
+
+@pytest.fixture()
+def configure_global_config(pytester: pytest.Pytester):
+    pytester.copy_example("config/global_config.json")
+    os.mkdir("config")
+    shutil.move("global_config.json", "config/global_config.json")
+    with open("config/global_config.json") as f:
+        config = json.loads(f.read())
+    a: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
+    yield a
 
 
 @pytest.fixture

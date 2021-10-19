@@ -28,8 +28,6 @@ class MetaBlock:
     """
 
     class Action(IntEnum):
-        # TODO: SORT IT
-
         NONE = 0
         """If condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')."""
         FAIL_CONTEXT = 0

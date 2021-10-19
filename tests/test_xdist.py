@@ -11,12 +11,6 @@ class TestXdistUnit:
     @pytest.mark.usefixtures("adaptavist")
     def test_xdist_handling(self, pytester: pytest.Pytester):
         """Test coexistence with xdist."""
-        pytester.makepyfile("""
-            import pytest
-
-            def test_dummy():
-                assert True
-        """)
         with patch("_pytest.config.PytestPluginManager.hasplugin", return_value=True):
             config = pytester.parseconfigure("--adaptavist")
             assert config.pluginmanager.getplugin("_xdist_adaptavist")

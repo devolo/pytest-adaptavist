@@ -46,7 +46,26 @@ class TestDecoratorUnit:
         assert outcome["blocked"] == 2
         assert "passed" not in outcome
 
+    @pytest.mark.usefixtures("adaptavist")
+    def test_decorator_preferation(self, pytester: pytest.Pytester):
+        """Test class block decorator is preferred to method decorator."""
+        pytester.makepyfile("""
+            import pytest
 
+            @pytest.mark.block()
+            class TestClass:
+
+                @pytest.mark.skip()
+                def test_dummy(self):
+                    assert True
+        """)
+        report = pytester.runpytest("--adaptavist")
+        outcome = report.parseoutcomes()
+        assert outcome["blocked"] == 1
+        assert "passed" not in outcome
+
+
+@pytest.mark.system
 @pytest.mark.skipif(not system_test_preconditions(), reason="Preconditions for system tests not met. Please see README.md")
 class TestDecoratorSystem:
     """Test decorator usage on system test level."""
@@ -56,20 +75,3 @@ class TestDecoratorSystem:
         """Test block decorator."""
         with meta_block(1) as mb_1:
             mb_1.check(False)
-
-
-@pytest.mark.usefixtures("adaptavist")
-def test_class_method_decorator(pytester: pytest.Pytester):
-    """Test block decorator."""
-    pytester.makepyfile("""
-        import pytest
-        @pytest.mark.block()
-        class TestClass:
-            @pytest.mark.skip()
-            def test_dummy(self):
-                assert True
-    """)
-    report = pytester.runpytest("--adaptavist")
-    outcome = report.parseoutcomes()
-    assert outcome["blocked"] == 1
-    assert "passed" not in outcome

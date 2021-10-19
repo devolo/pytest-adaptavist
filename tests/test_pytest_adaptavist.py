@@ -1,5 +1,6 @@
 """Test connection between pytest and Adaptavist."""
 
+import getpass
 from unittest.mock import patch
 
 import pkg_resources
@@ -7,7 +8,7 @@ import pytest
 
 from pytest_adaptavist import MetaBlockFixture
 
-from . import AdaptavistFixture, system_test_preconditions
+from . import AdaptavistFixture, get_test_values, system_test_preconditions
 
 
 @pytest.mark.usefixtures("configure")
@@ -158,20 +159,51 @@ class TestPytestAdaptavistUnit:
         assert "skipped as requested" in etrs.call_args.kwargs["comment"]
 
 
+@pytest.mark.system
 @pytest.mark.skipif(not system_test_preconditions(), reason="Preconditions for system tests not met. Please see README.md")
 class TestPytestAdaptavistSystem:
     """Test connection between pytest and Adaptavist on system test level."""
 
-    def test_T1(self, meta_block: MetaBlockFixture):
+    def test_T1(self, pytester: pytest.Pytester, configure_global_config):
         """Test passing a test."""
-        with meta_block(1) as mb_1:
-            mb_1.check(True)
+        pytester.makepyfile("""
+            def test_T1(meta_block):
+                with meta_block():
+                    with meta_block(1) as mb_1:
+                        mb_1.check(True)
+        """)
+        pytester.makeini(f"""
+            [pytest]
+            # restrict_user = {getpass.getuser().lower()}
+            restrict_user = jenkins
+        """)
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, test_name = get_test_values(report)
+        test_result = configure_global_config.get_test_result(test_run_key, test_name)
+        assert test_result["status"] == "Pass"
+        assert test_result["scriptResults"][0]["status"] == "Pass"
 
-    @pytest.mark.xfail
-    def test_T2(self, meta_block: MetaBlockFixture):
+    @pytest.mark.usefixtures("configure_global_config")
+    def test_T2(self, pytester: pytest.Pytester):
         """Test failing a test."""
-        with meta_block(1) as mb_1:
-            mb_1.check(False)
+        pytester.makepyfile("""
+            def test_T2(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(False)
+                with meta_block(2) as mb_2:
+                    mb_2.check(True)
+        """)
+        report = pytester.inline_run("--adaptavist")
+        user_properties = dict(report.matchreport().user_properties)
+        test_run_key = user_properties["atmcfg"]["test_run_key"]
+        test_name = user_properties["report"]["test_case_key"]
+        with open("config/global_config.json") as f:
+            config = json.loads(f.read())
+        adaptavist: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
+        test_result = adaptavist.get_test_result(test_run_key, test_name)
+        assert test_result["status"] == "Fail"
+        assert test_result["scriptResults"][0]["status"] == "Fail"
+        assert test_result["scriptResults"][1]["status"] == "Pass"
 
     @pytest.mark.xfail
     def test_T3(self, meta_block: MetaBlockFixture):

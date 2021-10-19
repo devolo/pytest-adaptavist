@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import getpass
 import inspect
 import os
 import re
@@ -56,6 +57,7 @@ class PytestAdaptavist:
         self.test_run_folder = ""
         self.test_plan_suffix = ""
         self.test_run_suffix = ""
+        self.local_user = getpass.getuser().lower()
         self.enabled = get_option_ini(config, "adaptavist")
 
         self.cfg = ATMConfiguration()
@@ -95,14 +97,6 @@ class PytestAdaptavist:
         if not self.test_plan_suffix:
             self.test_plan_suffix = self.cfg.get("test_plan_suffix", None)
         if not self.test_run_key:
-
-            def _inner(self):
-                self.adaptavist.create_test_run(project_key=self.project_key,
-                                                test_plan_key=self.test_plan_key,
-                                                test_run_name=f"{test_plan_name or self.project_key} {self.test_run_suffix}",
-                                                test_cases=self.test_case_keys,
-                                                folder=self.test_run_folder) or ""
-
             self.test_run_key = self.cfg.get("test_run_key", None)
         if not self.test_run_folder:
             self.test_run_folder = self.cfg.get("test_run_folder", None)
@@ -128,6 +122,7 @@ class PytestAdaptavist:
     @pytest.hookimpl(tryfirst=True)
     def pytest_runtest_setup(self, item: pytest.Item):
         """This is called before calling the test item. Used to skip test items dynamically (e.g. triggered by some other item or control function)."""
+        # TODO Make this more generalistic
         if item.cls and getattr(item.cls, "pytestmark", False) and all((mark.name != "block" for mark in item.cls.pytestmark)):
             return
         if skip_status := (item.get_closest_marker("block")):
@@ -199,7 +194,11 @@ class PytestAdaptavist:
         if not test_result or self.test_refresh_info[test_case_key + specs] != self.test_run_key:
             # create new test result to prevent accumulation of data
             # when using an existing test run key multiple times
-            self.adaptavist.create_test_result(test_run_key=self.test_run_key, test_case_key=test_case_key, environment=self.test_environment)
+            self.adaptavist.create_test_result(test_run_key=self.test_run_key,
+                                               test_case_key=test_case_key,
+                                               environment=self.test_environment,
+                                               executor=self.local_user,
+                                               assignee=self.local_user)
             test_result = self.adaptavist.get_test_result(self.test_run_key, test_case_key)
             self.test_refresh_info[test_case_key + specs] = self.test_run_key
 
@@ -240,7 +239,9 @@ class PytestAdaptavist:
                                                     step=test_step_key,
                                                     environment=self.test_environment,
                                                     status=status,
-                                                    comment=comments if (specs or last_result.get("status") != STATUS_FAIL) else None)
+                                                    comment=comments if (specs or last_result.get("status") != STATUS_FAIL) else None,
+                                                    executor=self.local_user,
+                                                    assignee=self.local_user)
 
             if attachment:
                 self.adaptavist.add_test_script_attachment(test_run_key=self.test_run_key,
@@ -270,7 +271,9 @@ class PytestAdaptavist:
                                                     status=status,
                                                     comment=(test_result.get("comment", "") + comments) if index < 0 else
                                                     (test_result.get("comment", "")[:index] + comments + test_result.get("comment", "")[index:]),
-                                                    execute_time=execute_time)
+                                                    execute_time=execute_time,
+                                                    executor=self.local_user,
+                                                    assignee=self.local_user)
 
         else:
             # change parent test result status only if blocked or failed or if there was no previous failure
@@ -290,7 +293,9 @@ class PytestAdaptavist:
                                                     environment=self.test_environment,
                                                     status=status,
                                                     comment=comments,
-                                                    execute_time=execute_time)
+                                                    execute_time=execute_time,
+                                                    executor=self.local_user,
+                                                    assignee=self.local_user)
 
             if attachment:
                 self.adaptavist.add_test_result_attachment(test_run_key=self.test_run_key,
@@ -379,7 +384,7 @@ class PytestAdaptavist:
         report.user_properties.append(("docstr", inspect.cleandoc(item.obj.__doc__ or "")))  # type: ignore
 
         if call.when not in ("call", "setup") or (item.cls and getattr(item.cls, "pytestmark", False) and all(
-            (mark.name != "block" for mark in item.cls.pytestmark))):
+            (mark.name != "block" for mark in item.cls.pytestmark)) and all((mark.name == "skipif" and mark.args[0] is True for mark in item.cls.pytestmark))):
             return
         if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore
             report.blocked = True  # type: ignore
@@ -561,7 +566,7 @@ class PytestAdaptavist:
 
         yield
 
-        if hasattr(session.config, "workerinput"):
+        if hasattr(session.config, "workerinput") or not self.enabled:
             return
 
         # create and output final status line (used by jenkins pipeline)
