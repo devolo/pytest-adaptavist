@@ -149,7 +149,7 @@ class MetaBlock:
 
         :param condition: The condition to be checked
         :param message: The info test in case of failed condition
-        :param action_on_fail: A ction in case of failed condition (default: continue, just like 'assume')
+        :param action_on_fail: Action in case of failed condition (default: continue, just like 'assume')
         :key attachment: The attachment as filepath name or file-like object
         :key filename: The optional filename
         :key message_on_fail: The info test in case of failed condition (same as message)

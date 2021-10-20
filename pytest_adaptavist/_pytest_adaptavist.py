@@ -257,7 +257,7 @@ class PytestAdaptavist:
             comments = ""
             if skip_status:
                 # modify comment to add info about blocked or skipped script steps
-                comments = f'step {test_step_key} {"blocked" if skip_status.name == "block" else "skipped"}{("<br>" + comment + "<br>") if comment else ""}'
+                comments = f'step {test_step_key} {"blocked" if skip_status.name == "block" else "skipped"}'
             elif not passed:
                 # modify comment to add info about failure in script steps
                 comments = f'step {test_step_key}{("<br>" + comment + "<br>") if comment else ""} failed:'

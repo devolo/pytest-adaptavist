@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import getpass
+import logging
 import os
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Literal, NoReturn
@@ -12,6 +14,7 @@ from _pytest.config.argparsing import Parser
 from _pytest.outcomes import Skipped, _with_exception
 from _pytest.reports import TestReport
 
+from ._atm_configuration import atm_user_is_valid
 from ._helpers import get_code_base_url, get_option_ini
 from ._pytest_adaptavist import PytestAdaptavist
 from ._xdist import XdistHooks
@@ -74,9 +77,12 @@ def pytest_configure(config: Config):
         config.pluginmanager.register(XdistHooks(), "_xdist_adaptavist")
 
     # Check, if user is known in Adaptavist
-    build_usr = "jenkins"
+    build_usr = getpass.getuser().lower()
     if get_option_ini(config, "restrict_user") and get_option_ini(config, "restrict_user") != build_usr:
         adaptavist.enabled = False
+    if not atm_user_is_valid(build_usr):
+        logging.warning("Local user %s is not known in Jira. Test cases will be reported without an executor!", build_usr)
+        adaptavist.local_user = ""
 
     # Store metadata for later usage (e.g. adaptavist traceability).
     metadata = getattr(config, "_metadata", os.environ)

@@ -27,8 +27,8 @@ def system_test_preconditions() -> bool:
         return False
 
 
-def get_test_values(report: HookRecorder):
-    user_properties = dict(report.matchreport().user_properties)
+def get_test_values(report: HookRecorder, test_case: str = ""):
+    user_properties = dict(report.matchreport(test_case).user_properties)
     test_run_key = user_properties["atmcfg"]["test_run_key"]
     test_name = user_properties["report"]["test_case_key"]
     return test_run_key, test_name

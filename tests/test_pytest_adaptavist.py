@@ -1,12 +1,12 @@
 """Test connection between pytest and Adaptavist."""
 
 import getpass
+import json
 from unittest.mock import patch
 
 import pkg_resources
 import pytest
-
-from pytest_adaptavist import MetaBlockFixture
+from adaptavist import Adaptavist
 
 from . import AdaptavistFixture, get_test_values, system_test_preconditions
 
@@ -164,7 +164,7 @@ class TestPytestAdaptavistUnit:
 class TestPytestAdaptavistSystem:
     """Test connection between pytest and Adaptavist on system test level."""
 
-    def test_T1(self, pytester: pytest.Pytester, configure_global_config):
+    def test_T1(self, pytester: pytest.Pytester, atm: Adaptavist):
         """Test passing a test."""
         pytester.makepyfile("""
             def test_T1(meta_block):
@@ -174,49 +174,123 @@ class TestPytestAdaptavistSystem:
         """)
         pytester.makeini(f"""
             [pytest]
-            # restrict_user = {getpass.getuser().lower()}
-            restrict_user = jenkins
+            restrict_user = {getpass.getuser().lower()}
         """)
         report = pytester.inline_run("--adaptavist")
         test_run_key, test_name = get_test_values(report)
-        test_result = configure_global_config.get_test_result(test_run_key, test_name)
+        test_result = atm.get_test_result(test_run_key, test_name)
         assert test_result["status"] == "Pass"
         assert test_result["scriptResults"][0]["status"] == "Pass"
 
-    @pytest.mark.usefixtures("configure_global_config")
-    def test_T2(self, pytester: pytest.Pytester):
+    def test_T2(self, pytester: pytest.Pytester, atm: Adaptavist):
         """Test failing a test."""
         pytester.makepyfile("""
             def test_T2(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(False)
-                with meta_block(2) as mb_2:
-                    mb_2.check(True)
         """)
         report = pytester.inline_run("--adaptavist")
-        user_properties = dict(report.matchreport().user_properties)
-        test_run_key = user_properties["atmcfg"]["test_run_key"]
-        test_name = user_properties["report"]["test_case_key"]
-        with open("config/global_config.json") as f:
-            config = json.loads(f.read())
-        adaptavist: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
-        test_result = adaptavist.get_test_result(test_run_key, test_name)
+        test_run_key, test_name = get_test_values(report)
+        test_result = atm.get_test_result(test_run_key, test_name)
         assert test_result["status"] == "Fail"
         assert test_result["scriptResults"][0]["status"] == "Fail"
-        assert test_result["scriptResults"][1]["status"] == "Pass"
 
-    @pytest.mark.xfail
-    def test_T3(self, meta_block: MetaBlockFixture):
+    def test_t3(self, pytester: pytest.Pytester, atm: Adaptavist):
         """Test reporting steps."""
-        with meta_block(1) as mb_1:
-            mb_1.check(True)
-        with meta_block(2) as mb_2:
-            mb_2.check(False)
+        pytester.makepyfile("""
+            def test_T3(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(True)
+                with meta_block(2) as mb_2:
+                    mb_2.check(False)
+        """)
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, test_name = get_test_values(report)
+        test_result = atm.get_test_result(test_run_key, test_name)
+        assert test_result["status"] == "Fail"
+        assert test_result["scriptResults"][0]["status"] == "Pass"
+        assert test_result["scriptResults"][1]["status"] == "Fail"
 
-    def test_T4(self, meta_block: MetaBlockFixture):
+    def test_T4(self, pytester: pytest.Pytester, atm: Adaptavist):
         """Test blocking a step."""
-        with meta_block(1) as mb_1:
-            mb_1.check(True)
-        with meta_block(2) as mb_2:
-            pytest.block("Testing block")  # type: ignore
-            mb_2.check(False)
+        pytester.makepyfile("""
+            import pytest
+
+            def test_T4(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(True)
+                with meta_block(2) as mb_2:
+                    pytest.block("Testing block")  # type: ignore
+                    mb_2.check(False)
+        """)
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, test_name = get_test_values(report)
+        test_result = atm.get_test_result(test_run_key, test_name)
+        assert test_result["status"] == "Blocked"
+        assert test_result["comment"] == "Testing block<br>step 2 blocked"
+        assert test_result["scriptResults"][0]["status"] == "Pass"
+        assert test_result["scriptResults"][1]["status"] == "Blocked"
+
+    def test_T5(self, pytester: pytest.Pytester, atm: Adaptavist):
+        """Test blocking a step."""
+        pytester.makepyfile("""
+            import pytest
+
+            def test_T4(meta_block):  # As a blocked Testcase has no test_run attached, we need another test case to get the test_run_key
+                with meta_block() as mb:
+                    mb.check(True)
+
+            @pytest.mark.block
+            def test_T5(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(False)
+                with meta_block(2) as mb_2:
+                    mb_2.check(False)
+        """)
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, _ = get_test_values(report, "test_T4")
+        with open("config/global_config.json") as f:
+            config = json.loads(f.read())
+        test_result = atm.get_test_result(test_run_key, f"{config['project_key']}-T5")
+        assert test_result["status"] == "Blocked"
+        assert test_result["scriptResults"][0]["status"] == "Not Executed"
+
+    def test_T6(self, pytester: pytest.Pytester, atm: Adaptavist):
+        """Test blocking a step."""
+        pytester.makepyfile("""
+            import pytest
+
+            def test_T6(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(True)
+                with meta_block(2) as mb_2:
+                    pytest.skip("Testing skip")
+        """)
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, test_name = get_test_values(report)
+        test_result = atm.get_test_result(test_run_key, test_name)
+        assert test_result["status"] == "In Progress"
+        assert test_result["scriptResults"][0]["status"] == "Pass"
+        assert test_result["scriptResults"][1]["status"] == "Not Executed"
+
+    def test_T7(self, pytester: pytest.Pytester, atm: Adaptavist):
+        """Test blocking a step."""
+        pytester.makepyfile("""
+            def test_T7(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(True, message_on_pass="testing pass comment")
+                with meta_block(2) as mb_2:
+                    mb_2.check(False, message_on_fail="testing fail comment")
+                with meta_block(3) as mb_3:
+                    raise ValueError("testing exception reporting")
+        """)
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, test_name = get_test_values(report)
+        test_result = atm.get_test_result(test_run_key, test_name)
+        assert test_result["status"] == "Fail"
+        assert test_result["scriptResults"][0]["status"] == "Pass"
+        assert "testing pass comment" in test_result["scriptResults"][0]["comment"]
+        assert test_result["scriptResults"][1]["status"] == "Fail"
+        assert "testing fail comment" in test_result["scriptResults"][1]["comment"]
+        assert test_result["scriptResults"][2]["status"] == "Fail"
+        assert "testing exception reporting" in test_result["scriptResults"][2]["comment"]

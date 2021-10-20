@@ -19,14 +19,14 @@ def pytest_configure(config):
 
 
 @pytest.fixture()
-def configure_global_config(pytester: pytest.Pytester):
+def atm(pytester: pytest.Pytester):
     pytester.copy_example("config/global_config.json")
-    os.mkdir("config")
+    pytester.mkdir("config")
     shutil.move("global_config.json", "config/global_config.json")
     with open("config/global_config.json") as f:
         config = json.loads(f.read())
-    a: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
-    yield a
+    atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
+    yield atm_obj
 
 
 @pytest.fixture
