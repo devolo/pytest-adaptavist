@@ -231,32 +231,8 @@ class TestPytestAdaptavistSystem:
         assert test_result["scriptResults"][0]["status"] == "Pass"
         assert test_result["scriptResults"][1]["status"] == "Blocked"
 
-    def test_T5(self, pytester: pytest.Pytester, atm: Adaptavist):
-        """Test blocking a step."""
-        pytester.makepyfile("""
-            import pytest
-
-            def test_T4(meta_block):  # As a blocked Testcase has no test_run attached, we need another test case to get the test_run_key
-                with meta_block() as mb:
-                    mb.check(True)
-
-            @pytest.mark.block
-            def test_T5(meta_block):
-                with meta_block(1) as mb_1:
-                    mb_1.check(False)
-                with meta_block(2) as mb_2:
-                    mb_2.check(False)
-        """)
-        report = pytester.inline_run("--adaptavist")
-        test_run_key, _ = get_test_values(report, "test_T4")
-        with open("config/global_config.json") as f:
-            config = json.loads(f.read())
-        test_result = atm.get_test_result(test_run_key, f"{config['project_key']}-T5")
-        assert test_result["status"] == "Blocked"
-        assert test_result["scriptResults"][0]["status"] == "Not Executed"
-
     def test_T6(self, pytester: pytest.Pytester, atm: Adaptavist):
-        """Test blocking a step."""
+        """Test skipping a step."""
         pytester.makepyfile("""
             import pytest
 
@@ -274,7 +250,7 @@ class TestPytestAdaptavistSystem:
         assert test_result["scriptResults"][1]["status"] == "Not Executed"
 
     def test_T7(self, pytester: pytest.Pytester, atm: Adaptavist):
-        """Test blocking a step."""
+        """Test comments."""
         pytester.makepyfile("""
             def test_T7(meta_block):
                 with meta_block(1) as mb_1:
@@ -294,3 +270,214 @@ class TestPytestAdaptavistSystem:
         assert "testing fail comment" in test_result["scriptResults"][1]["comment"]
         assert test_result["scriptResults"][2]["status"] == "Fail"
         assert "testing exception reporting" in test_result["scriptResults"][2]["comment"]
+
+    def test_T8(self, pytester: pytest.Pytester, atm: Adaptavist):
+        """Test attachments."""
+        pytester.maketxtfile(first_file="foo")
+        pytester.maketxtfile(second_file="bar")
+        pytester.makepyfile("""
+            def test_T8(meta_block):
+                with meta_block() as mb:
+                    with open("first_file.txt", "rb") as f:
+                        mb.check(True, attachment=f)
+                        mb.check(True, attachment="second_file.txt")
+                with meta_block(1) as mb_1:
+                    with open("first_file.txt", "rb") as f:
+                        mb_1.check(True, attachment=f)
+                        mb_1.check(True, attachment="second_file.txt")
+        """)
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, test_name = get_test_values(report)
+        test_result = atm.get_test_result_attachment(test_run_key, test_name)
+        assert len(test_result) == 4
+        assert test_result[0]["filename"] in ("first_file.txt", "second_file.txt")
+        assert test_result[0]["filesize"] == 3
+        assert test_result[1]["filename"] in ("first_file.txt", "second_file.txt")
+        assert test_result[1]["filesize"] == 3
+        assert test_result[2]["filename"] in ("first_file.txt", "second_file.txt")
+        assert test_result[2]["filesize"] == 3
+        assert test_result[3]["filename"] in ("first_file.txt", "second_file.txt")
+        assert test_result[3]["filesize"] == 3
+
+    def test_T9(self, pytester: pytest.Pytester, atm: Adaptavist):
+        """
+        Test meta_block.Action.FAIL_CONTEXT.
+        Expect that step 1 fails, attachment on step 1 and step 2 passes.
+        """
+        pytester.maketxtfile(first_file="foo")
+        pytester.maketxtfile(second_file="bar")
+        pytester.makepyfile("""
+            def test_T9(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(False, action_on_fail=mb_1.Action.FAIL_CONTEXT)
+                    mb_1.check(True, attachment="second_file.txt")
+                with meta_block(2) as mb_2:
+                    mb_2.check(True)
+        """)
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, test_name = get_test_values(report)
+        attachments = atm.get_test_result_attachment(test_run_key, test_name)
+        test_result = atm.get_test_result(test_run_key, test_name)
+        assert len(attachments) == 1
+        assert test_result["status"] == "Fail"
+        assert test_result["scriptResults"][0]["status"] == "Fail"
+        assert test_result["scriptResults"][1]["status"] == "Pass"
+
+    def test_T10(self, pytester: pytest.Pytester, atm: Adaptavist):
+        """
+        Test meta_block.Action.STOP_CONTEXT.
+        Expect that step 1 is blocked, step 2 passes and overall test result is blocked.
+        """
+        pytester.maketxtfile(first_file="foo")
+        pytester.maketxtfile(second_file="bar")
+        pytester.makepyfile("""
+            def test_T9(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(False, action_on_fail=mb_1.Action.STOP_CONTEXT)
+                    mb_1.check(True, attachment="second_file.txt")
+                with meta_block(2) as mb_2:
+                    mb_2.check(True)
+        """)
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, test_name = get_test_values(report)
+        attachments = atm.get_test_result_attachment(test_run_key, test_name)
+        test_result = atm.get_test_result(test_run_key, test_name)
+        assert len(attachments) == 0
+        assert test_result["status"] == "Blocked"
+        assert test_result["comment"] == "step 1 blocked"
+        assert test_result["scriptResults"][0]["status"] == "Blocked"
+        assert test_result["scriptResults"][1]["status"] == "Pass"
+
+    def test_T11(self, pytester: pytest.Pytester, atm: Adaptavist):
+        """
+        Test meta_block.Action.FAIL_METHOD.
+        Expect that step 1 is failed, no attachment at step 1, step 2 not executed and overall test result is failed.
+        """
+        pytester.maketxtfile(first_file="foo")
+        pytester.maketxtfile(second_file="bar")
+        pytester.makepyfile("""
+            def test_T11(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(False, action_on_fail=mb_1.Action.FAIL_METHOD)
+                    mb_1.check(True, attachment="second_file.txt")
+                with meta_block(2) as mb_2:
+                    mb_2.check(True)
+        """)
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, test_name = get_test_values(report)
+        attachments = atm.get_test_result_attachment(test_run_key, test_name)
+        test_result = atm.get_test_result(test_run_key, test_name)
+        assert len(attachments) == 0
+        assert test_result["status"] == "Fail"
+        assert test_result["comment"] == "step 1 failed:"
+        assert test_result["scriptResults"][0]["status"] == "Fail"
+        assert test_result["scriptResults"][1]["status"] == "Not Executed"
+
+    def test_T12(self, pytester: pytest.Pytester, atm: Adaptavist):
+        """
+        Test meta_block.Action.STOP_METHOD.
+        Expect that step 1 is blocked, no attachment at step 1, step 2 not executed and overall test result is blocked.
+        """
+        pytester.maketxtfile(first_file="foo")
+        pytester.maketxtfile(second_file="bar")
+        pytester.makepyfile("""
+            def test_T12(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(False, action_on_fail=mb_1.Action.STOP_METHOD)
+                    mb_1.check(True, attachment="second_file.txt")
+                with meta_block(2) as mb_2:
+                    mb_2.check(True)
+        """)
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, test_name = get_test_values(report)
+        attachments = atm.get_test_result_attachment(test_run_key, test_name)
+        test_result = atm.get_test_result(test_run_key, test_name)
+        assert len(attachments) == 0
+        assert test_result["status"] == "Blocked"
+        assert test_result["scriptResults"][0]["status"] == "Blocked"
+        assert test_result["scriptResults"][1]["status"] == "Not Executed"
+
+    def test_T13(self, pytester: pytest.Pytester, atm_test_plan: Adaptavist):
+        """
+        Test meta_block.Action.FAIL_SESSION.
+        Expect that T13 is failed, no attachment at T13, T12 is set to blocked. T11 is untouched and status In Progress
+        """
+        pytester.maketxtfile(first_file="foo")
+        pytester.maketxtfile(second_file="bar")
+        pytester.makepyfile("""
+            def test_T11(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(True)
+            def test_T13(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(False, action_on_fail=mb_1.Action.FAIL_SESSION)
+                    mb_1.check(True, attachment="second_file.txt")
+                with meta_block(2) as mb_2:
+                    mb_2.check(True)
+            def test_T12(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(True)
+        """)
+        report = pytester.inline_run("--adaptavist")
+        atm, test_run_key = atm_test_plan
+        _, test_name = get_test_values(report, "test_T13")
+        test_result = atm.get_test_result(test_run_key, test_name)
+        assert test_result["status"] == "Fail"
+        _, test_name = get_test_values(report, "test_T12")
+        test_result = atm.get_test_result(test_run_key, test_name)
+        assert test_result["status"] == "Blocked"
+        _, test_name = get_test_values(report, "test_T11")
+        test_result = atm.get_test_result(test_run_key, test_name)
+        # Ensure that T11 is untouched
+        assert test_result["status"] == "In Progress"
+
+    def test_T14(self, pytester: pytest.Pytester, atm_test_plan: Adaptavist):
+        """
+        Test meta_block.Action.STOP_SESSION.
+        Expect that T14 is blocked, step 2 not executed. T12 also set to blocked
+        """
+        pytester.maketxtfile(first_file="foo")
+        pytester.maketxtfile(second_file="bar")
+        pytester.makepyfile("""
+            def test_T14(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(False, action_on_fail=mb_1.Action.STOP_SESSION)
+                with meta_block(2) as mb_2:
+                    mb_2.check(True)
+            def test_T12(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(True)
+        """)
+        report = pytester.inline_run("--adaptavist")
+        atm, test_run_key = atm_test_plan
+        _, test_name = get_test_values(report, "test_T14")
+        test_result = atm.get_test_result(test_run_key, test_name)
+        assert test_result["status"] == "Blocked"
+        _, test_name = get_test_values(report, "test_T12")
+        assert test_result["status"] == "Blocked"
+
+    def test_T15(self, pytester: pytest.Pytester, atm_test_plan: Adaptavist):  # Typing is incorrect
+        """
+        Test meta_block.Action.STOP_EXIT_SESSION.
+        Expect that T15 is blocked. T12 not in test result --> not in test cycle in ATM
+        """
+        pytester.maketxtfile(first_file="foo")
+        pytester.maketxtfile(second_file="bar")
+        pytester.makepyfile("""
+            def test_T15(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(False, action_on_fail=mb_1.Action.STOP_EXIT_SESSION)
+                with meta_block(2) as mb_2:
+                    mb_2.check(True)
+            def test_T12(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(True)
+        """)
+        pytester.inline_run("--adaptavist")
+        atm, test_run_key = atm_test_plan
+        test_name = test_run_key.split("-")[0] + "-T15"
+        test_result = atm.get_test_result(test_run_key, test_name)
+        assert test_result["status"] == "Blocked"
+        test_name = test_run_key.split("-")[0] + "-T12"
+        test_result = atm.get_test_result(test_run_key, test_name)
+        assert test_result == {}

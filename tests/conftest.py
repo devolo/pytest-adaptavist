@@ -3,6 +3,7 @@
 import json
 import os
 import shutil
+from contextlib import suppress
 from typing import Generator
 from unittest.mock import patch
 
@@ -20,6 +21,17 @@ def pytest_configure(config):
 
 @pytest.fixture()
 def atm(pytester: pytest.Pytester):
+    import logging
+    import time
+    from datetime import datetime
+
+    # this assure that every system test will create a new test cycle
+    while datetime.now().second > 0:
+        logging.info("sleeping %i", datetime.now().second)
+        time.sleep(1)
+
+    with suppress(KeyError):
+        del os.environ['JIRA_SERVER']
     pytester.copy_example("config/global_config.json")
     pytester.mkdir("config")
     shutil.move("global_config.json", "config/global_config.json")
@@ -27,6 +39,24 @@ def atm(pytester: pytest.Pytester):
         config = json.loads(f.read())
     atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
     yield atm_obj
+
+
+@pytest.fixture()
+def atm_test_plan(pytester: pytest.Pytester):
+    with suppress(KeyError):
+        del os.environ['JIRA_SERVER']
+    pytester.copy_example("config/global_config.json")
+    pytester.mkdir("config")
+    shutil.move("global_config.json", "config/global_config.json")
+    with open("config/global_config.json", "r", encoding="utf8") as f:
+        config = json.loads(f.read())
+    atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
+    test_run = atm_obj.create_test_run(config["project_key"], "just a name")
+    config["test_run_key"] = test_run
+    with open("config/global_config.json", "w", encoding="utf8") as f:
+        f.write(json.dumps(config))
+    atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
+    yield atm_obj, test_run
 
 
 @pytest.fixture
@@ -41,8 +71,8 @@ def configure(pytester: pytest.Pytester):
 @pytest.fixture
 def valid_user() -> Generator[None, None, None]:
     """Mark user as always valid."""
-    # with patch("pytest_adaptavist.atm_user_is_valid", return_value=True):
-    yield
+    with patch("pytest_adaptavist.atm_user_is_valid", return_value=True):
+        yield
 
 
 @pytest.fixture

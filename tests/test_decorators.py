@@ -1,10 +1,11 @@
 """Test decorator usage."""
 
+import json
+
 import pytest
+from adaptavist import Adaptavist
 
-from pytest_adaptavist import MetaBlockFixture
-
-from . import system_test_preconditions
+from . import get_test_values, system_test_preconditions
 
 
 @pytest.mark.usefixtures("configure")
@@ -70,8 +71,26 @@ class TestDecoratorUnit:
 class TestDecoratorSystem:
     """Test decorator usage on system test level."""
 
-    @pytest.mark.block("TESTING BLOCK DECORATOR")
-    def test_T5(self, meta_block: MetaBlockFixture):
-        """Test block decorator."""
-        with meta_block(1) as mb_1:
-            mb_1.check(False)
+    def test_T5(self, pytester: pytest.Pytester, atm: Adaptavist):
+        """Test blocking decorator."""
+        pytester.makepyfile("""
+            import pytest
+
+            def test_T4(meta_block):  # As a blocked Testcase has no test_run attached, we need another test case to get the test_run_key
+                with meta_block() as mb:
+                    mb.check(True)
+
+            @pytest.mark.block
+            def test_T5(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(False)
+                with meta_block(2) as mb_2:
+                    mb_2.check(False)
+        """)
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, _ = get_test_values(report, "test_T4")
+        with open("config/global_config.json") as f:
+            config = json.loads(f.read())
+        test_result = atm.get_test_result(test_run_key, f"{config['project_key']}-T5")
+        assert test_result["status"] == "Blocked"
+        assert test_result["scriptResults"][0]["status"] == "Not Executed"
