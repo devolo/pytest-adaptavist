@@ -166,9 +166,22 @@ class MetaBlock:
         if kwargs:
             raise SyntaxWarning(f"Unknown arguments: {kwargs}")
 
-        if attachment:
-            self.data["attachment"] = attachment
-            self.data["filename"] = filename
+        if attachment and self.adaptavist.enabled:
+            if marker := self.item.get_closest_marker("testcase"):
+                test_case_key = marker.kwargs["test_case_key"]
+            if self.step:
+                self.adaptavist.adaptavist.add_test_script_attachment(test_run_key=self.adaptavist.test_run_key,
+                                                                      test_case_key=test_case_key,
+                                                                      step=self.step,
+                                                                      attachment=attachment,
+                                                                      filename=filename)
+            else:
+                self.adaptavist.adaptavist.add_test_result_attachment(test_run_key=self.adaptavist.test_run_key,
+                                                                      test_case_key=test_case_key,
+                                                                      attachment=attachment,
+                                                                      filename=filename)
+            # self.adaptavist.adaptavist.get_test_result_attachment(test_run_key=self.adaptavist.test_run_key,
+            #   test_case_key=test_case_key)
 
         if not condition and message_on_fail:
             self.data["comment"] = "".join((self.data.get("comment", "") or "", html_row(condition, message_on_fail)))
