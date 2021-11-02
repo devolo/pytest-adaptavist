@@ -123,7 +123,7 @@ class PytestAdaptavist:
     def pytest_runtest_setup(self, item: pytest.Item):
         """This is called before calling the test item. Used to skip test items dynamically (e.g. triggered by some other item or control function)."""
         # TODO Make this more generalistic
-        if item.cls and getattr(item.cls, "pytestmark", False) and all((mark.name != "block" for mark in item.cls.pytestmark)):
+        if item.cls and getattr(item.cls, "pytestmark", False) and all((mark.name != "block" for mark in item.cls.pytestmark)):  # type: ignore
             return
         if skip_status := (item.get_closest_marker("block")):
             fullname = get_item_nodeid(item)
@@ -383,9 +383,9 @@ class PytestAdaptavist:
         report.user_properties.append(("nodeid", get_item_nodeid(item)))
         report.user_properties.append(("docstr", inspect.cleandoc(item.obj.__doc__ or "")))  # type: ignore
 
-        if call.when not in ("call", "setup") or (item.cls and getattr(item.cls, "pytestmark", False)
-                                                  and all((mark.name != "block" for mark in item.cls.pytestmark))
-                                                  and all((mark.name == "skipif" and mark.args[0] is True for mark in item.cls.pytestmark))):  # yapf: disable
+        if call.when not in ("call", "setup") or (item.cls and getattr(item.cls, "pytestmark", False)  # type: ignore
+                                                  and all((mark.name != "block" for mark in item.cls.pytestmark))  # type: ignore
+                                                  and all((mark.name == "skipif" and mark.args[0] is True for mark in item.cls.pytestmark))):  # yapf: disable  # type: ignore
             return
         if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore
             report.blocked = True  # type: ignore
