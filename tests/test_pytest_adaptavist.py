@@ -1,7 +1,6 @@
 """Test connection between pytest and Adaptavist."""
 
 import getpass
-import json
 from unittest.mock import patch
 
 import pkg_resources
