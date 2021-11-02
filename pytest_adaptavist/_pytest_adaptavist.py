@@ -383,8 +383,9 @@ class PytestAdaptavist:
         report.user_properties.append(("nodeid", get_item_nodeid(item)))
         report.user_properties.append(("docstr", inspect.cleandoc(item.obj.__doc__ or "")))  # type: ignore
 
-        if call.when not in ("call", "setup") or (item.cls and getattr(item.cls, "pytestmark", False) and all(
-            (mark.name != "block" for mark in item.cls.pytestmark)) and all((mark.name == "skipif" and mark.args[0] is True for mark in item.cls.pytestmark))):
+        if call.when not in ("call", "setup") or (item.cls and getattr(item.cls, "pytestmark", False)
+                                                  and all((mark.name != "block" for mark in item.cls.pytestmark))
+                                                  and all((mark.name == "skipif" and mark.args[0] is True for mark in item.cls.pytestmark))):  # yapf: disable
             return
         if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore
             report.blocked = True  # type: ignore
