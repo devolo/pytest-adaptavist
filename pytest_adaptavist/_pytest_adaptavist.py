@@ -385,7 +385,8 @@ class PytestAdaptavist:
 
         if call.when not in ("call", "setup") or (item.cls and getattr(item.cls, "pytestmark", False)  # type: ignore
                                                   and all((mark.name != "block" for mark in item.cls.pytestmark))  # type: ignore
-                                                  and all((mark.name == "skipif" and mark.args[0] is True for mark in item.cls.pytestmark))):  # yapf: disable  # type: ignore
+                                                  and all((mark.name == "skipif"  # type: ignore
+                                                           and mark.args[0] is True for mark in item.cls.pytestmark))):  # type: ignore  # yapf: disable
             return
         if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore
             report.blocked = True  # type: ignore
