@@ -24,10 +24,13 @@ class ATMConfiguration:
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get value either from environment or from config file."""
-
         if key.lower().startswith("cfg_"):
             return self.config.get(key) or default
-        return os.environ.get(key) or os.environ.get(key.upper()) or self.config.get("cfg_" + key) or self.config.get(key) or default
+
+        values = ()
+        for config_storage, lookups in zip([os.environ, self.config], [[key, key.upper()], [key, "cfg_" + key]]):
+            values += tuple(config_storage[lookup] for lookup in lookups if lookup in config_storage)
+        return next(iter(values), default)
 
     def get_bool(self, key: str, default: Any = None) -> bool | None:
         """Get boolean value either from environment or from config file."""
@@ -37,11 +40,15 @@ class ATMConfiguration:
         if isinstance(result, bool) or result is None:
             return result
 
-        if result.lower() in ["true", "1", "yes"]:
-            return True
+        if isinstance(result, int):
+            return bool(result)
 
-        if result.lower() in ["false", "0", "no"]:
-            return False
+        if isinstance(result, str):
+            if result.lower() in ["true", "1", "yes"]:
+                return True
+
+            if result.lower() in ["false", "0", "no"]:
+                return False
 
         raise ValueError(f"Invalid bool result: {result}")
 
