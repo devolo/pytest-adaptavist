@@ -27,20 +27,17 @@ class ATMConfiguration:
         if key.lower().startswith("cfg_"):
             return self.config.get(key) or default
 
-        values = ()
+        values: tuple[Any, ...] = ()
         for config_storage, lookups in zip([os.environ, self.config], [[key, key.upper()], [key, "cfg_" + key]]):
             values += tuple(config_storage[lookup] for lookup in lookups if lookup in config_storage)
         return next(iter(values), default)
 
-    def get_bool(self, key: str, default: Any = None) -> bool | None:
+    def get_bool(self, key: str, default: Any = None) -> bool:
         """Get boolean value either from environment or from config file."""
 
         result = self.get(key=key, default=default)
 
-        if isinstance(result, bool) or result is None:
-            return result
-
-        if isinstance(result, int):
+        if result is None or isinstance(result, (bool, int)):
             return bool(result)
 
         if isinstance(result, str):
