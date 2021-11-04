@@ -60,10 +60,11 @@ def atm_test_plan(pytester: pytest.Pytester):
     yield atm_obj, test_run
 
 
+# This should only be used if test is a system test
 @pytest.fixture(autouse=True)
-def test_plan():
+def test_plan(request):
     global test_plan_key
-    if test_plan_key:
+    if test_plan_key or not request.node.get_closest_marker("system"):
         return
 
     with open("config/global_config.json", "r", encoding="utf8") as f:
