@@ -470,7 +470,7 @@ class PytestAdaptavist:
             * New test runs are named like "<test plan name or project key> <test run suffix> <datetime now>"
         """
 
-        if self.project_key and self.test_case_keys:
+        if self.project_key:  # and self.test_case_keys:
             if not self.test_plan_key and self.test_plan_suffix:
                 test_plan_name = f"{self.project_key} {self.test_plan_suffix}"
                 test_plans = self.adaptavist.get_test_plans(f'projectKey = "{self.project_key}"')
