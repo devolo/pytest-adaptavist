@@ -1,6 +1,7 @@
 """Test connection between pytest and Adaptavist."""
 
 import getpass
+from typing import Tuple
 from unittest.mock import patch
 
 import pkg_resources
@@ -330,7 +331,7 @@ class TestPytestAdaptavistSystem:
         pytester.maketxtfile(first_file="foo")
         pytester.maketxtfile(second_file="bar")
         pytester.makepyfile("""
-            def test_T9(meta_block):
+            def test_T10(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(False, action_on_fail=mb_1.Action.STOP_CONTEXT)
                     mb_1.check(True, attachment="second_file.txt")
@@ -347,7 +348,7 @@ class TestPytestAdaptavistSystem:
         assert test_result["scriptResults"][0]["status"] == "Blocked"
         assert test_result["scriptResults"][1]["status"] == "Pass"
 
-    def test_T11(self, pytester: pytest.Pytester, atm: Adaptavist):
+    def test_T11(self, pytester: pytest.Pytester, atm: Tuple[Adaptavist, str]):
         """
         Test meta_block.Action.FAIL_METHOD.
         Expect that step 1 is failed, no attachment at step 1, step 2 not executed and overall test result is failed.
@@ -372,7 +373,7 @@ class TestPytestAdaptavistSystem:
         assert test_result["scriptResults"][0]["status"] == "Fail"
         assert test_result["scriptResults"][1]["status"] == "Not Executed"
 
-    def test_T12(self, pytester: pytest.Pytester, atm: Adaptavist):
+    def test_T12(self, pytester: pytest.Pytester, atm: Tuple[Adaptavist, str]):
         """
         Test meta_block.Action.STOP_METHOD.
         Expect that step 1 is blocked, no attachment at step 1, step 2 not executed and overall test result is blocked.
@@ -396,7 +397,7 @@ class TestPytestAdaptavistSystem:
         assert test_result["scriptResults"][0]["status"] == "Blocked"
         assert test_result["scriptResults"][1]["status"] == "Not Executed"
 
-    def test_T13(self, pytester: pytest.Pytester, atm_test_plan: Adaptavist):
+    def test_T13(self, pytester: pytest.Pytester, atm_test_plan: Tuple[Adaptavist, str]):
         """
         Test meta_block.Action.FAIL_SESSION.
         Expect that T13 is failed, no attachment at T13, T12 is set to blocked. T11 is untouched and status In Progress
@@ -430,7 +431,7 @@ class TestPytestAdaptavistSystem:
         # Ensure that T11 is untouched
         assert test_result["status"] == "In Progress"
 
-    def test_T14(self, pytester: pytest.Pytester, atm_test_plan: Adaptavist):
+    def test_T14(self, pytester: pytest.Pytester, atm_test_plan: Tuple[Adaptavist, str]):
         """
         Test meta_block.Action.STOP_SESSION.
         Expect that T14 is blocked, step 2 not executed. T12 also set to blocked
@@ -455,7 +456,7 @@ class TestPytestAdaptavistSystem:
         _, test_name = get_test_values(report, "test_T12")
         assert test_result["status"] == "Blocked"
 
-    def test_T15(self, pytester: pytest.Pytester, atm_test_plan: Adaptavist):  # Typing is incorrect
+    def test_T15(self, pytester: pytest.Pytester, atm_test_plan: Tuple[Adaptavist, str]):  # Typing is incorrect
         """
         Test meta_block.Action.STOP_EXIT_SESSION.
         Expect that T15 is blocked. T12 not in test result --> not in test cycle in ATM
@@ -480,3 +481,30 @@ class TestPytestAdaptavistSystem:
         test_name = test_run_key.split("-")[0] + "-T12"
         test_result = atm.get_test_result(test_run_key, test_name)
         assert test_result == {}
+
+    # Starting her is work in progress
+    def test_T16(self, pytester: pytest.Pytester, atm_test_plan: Tuple[Adaptavist, str]):
+        # TODO: attaching a file is not working at the moment.
+        pytester.maketxtfile(first_file="foo")
+        pytester.maketxtfile(second_file="bar")
+        pytester.makepyfile("""
+            def test_T16(meta_data):
+                with open("first_file.txt", "rb") as f:
+                    meta_data["attachment"] = f
+                    assert False
+        """)
+        report = pytester.inline_run("--adaptavist")
+        atm, test_run_key = atm_test_plan
+        test_name = test_run_key.split("-")[0] + "-T16"
+        test_result = atm.get_test_result(test_run_key, test_name)
+        attachments = atm.get_test_result_attachment(test_run_key, test_name)
+        test_result = atm.get_test_result(test_run_key, test_name)
+
+    def test_T17(self, pytester: pytest.Pytester, atm_test_plan: Tuple[Adaptavist, str], meta_block):
+        pytester.makepyfile("""
+            def test_T17(meta_block):
+                with meta_block() as mb:
+                    mb.check(True)
+        """)
+        pytester.runpytest("--adaptavist")
+        pass
