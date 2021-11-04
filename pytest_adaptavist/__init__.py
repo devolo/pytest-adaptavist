@@ -80,8 +80,8 @@ def pytest_configure(config: Config):
     build_usr = getpass.getuser().lower()
     if get_option_ini(config, "restrict_user") and get_option_ini(config, "restrict_user") != build_usr:
         adaptavist.enabled = False
-    if not atm_user_is_valid(build_usr):
-        logging.warning("Local user %s is not known in Jira. Test cases will be reported without an executor!", build_usr)
+    if not atm_user_is_valid(build_usr) and adaptavist.enabled:
+        logging.warning("Local user '%s' is not known in Jira. Test cases will be reported without an executor!", build_usr)
         adaptavist.local_user = ""
 
     # Store metadata for later usage (e.g. adaptavist traceability).
@@ -108,7 +108,7 @@ def pytest_configure(config: Config):
         adaptavist.reporter.line(f"build_url: {build_url or 'unknown'}")
         adaptavist.reporter.line(
             f"code_base: {code_base or 'unknown'} {(branch or 'unknown') if code_base else ''} {(commit or 'unknown') if code_base and branch else ''}")
-        adaptavist.reporter.line("reporting: enabled")
+        adaptavist.reporter.line(f"reporting: {'enabled' if adaptavist.enabled else 'disabled'}")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -127,7 +127,7 @@ class Blocked(Skipped):
 def meta_data(request: pytest.FixtureRequest) -> MetaDataFixture:
     """This can be used to store data inside of test methods."""
     adaptavist: PytestAdaptavist = request.config.pluginmanager.getplugin("_adaptavist")
-    return adaptavist.test_result_data[request.node.fullname]
+    return adaptavist.test_result_data[request.node.nodeid]
 
 
 @pytest.fixture
