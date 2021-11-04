@@ -13,6 +13,7 @@ from adaptavist import Adaptavist
 from . import AdaptavistFixture
 
 pytest_plugins = ("pytester", )
+test_plan_key = ""
 
 
 def pytest_configure(config):
@@ -25,10 +26,10 @@ def atm(pytester: pytest.Pytester):
     import time
     from datetime import datetime
 
-    # this assure that every system test will create a new test cycle
-    while datetime.now().second > 0:
-        logging.info("sleeping %i", datetime.now().second)
-        time.sleep(1)
+    # # this assure that every system test will create a new test cycle
+    # while datetime.now().second > 0:
+    #     logging.info("sleeping %i", datetime.now().second)
+    #     time.sleep(1)
 
     with suppress(KeyError):
         del os.environ['JIRA_SERVER']
@@ -57,6 +58,22 @@ def atm_test_plan(pytester: pytest.Pytester):
         f.write(json.dumps(config))
     atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
     yield atm_obj, test_run
+
+
+@pytest.fixture(autouse=True)
+def test_plan():
+    global test_plan_key
+    if test_plan_key:
+        return
+
+    with open("config/global_config.json", "r", encoding="utf8") as f:
+        config = json.loads(f.read())
+    atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
+    test_plan = atm_obj.create_test_plan(config["project_key"], "just a test plan name")
+    config["test_plan_key"] = test_plan
+    with open("config/global_config.json", "w", encoding="utf8") as f:
+        f.write(json.dumps(config))
+    test_plan_key = test_plan
 
 
 @pytest.fixture
