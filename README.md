@@ -1,6 +1,6 @@
 # pytest-adaptavist
 
-This [pytest](http://pytest.org) plugin generates test execution results within Jira Test Management ([tm4j](https://www.adaptavist.com/doco/display/KT/Managing+Tests+From+the+REST+API)).
+This [pytest](http://pytest.org) plugin generates test execution results within ([Zephyr Scale](https://marketplace.atlassian.com/apps/1213259/zephyr-scale-test-management-for-jira)), formerly known as Adaptavist.
 
 # Table of Contents
 - [Installation](#installation)
@@ -15,40 +15,28 @@ This [pytest](http://pytest.org) plugin generates test execution results within 
 
 ## Installation
 
-To install pytest-adaptavist, you can use (one of) the following command(s):
+To install pytest-adaptavist, you can use the following command:
 ```
-$ pip install pytest-adaptavist
+$ python -m pip install pytest-adaptavist
 ```
 
 To uninstall pytest-adaptavist, you can use the following command:
 ```
-$ pip uninstall pytest-adaptavist
+$ python -m pip uninstall pytest-adaptavist
 ```
 
 Test case selection and ordering (see below) are supported by default.
 
-In order to access Adaptavist/Jira and create test runs and results in there, provide credentials `JIRA_SERVER, JIRA_USERNAME, JIRA_PASSWORD` as environment variables
-and run your tests with
+In order to access Adaptavist/Jira and create test runs and results in there, provide credentials `JIRA_SERVER, JIRA_USERNAME, JIRA_PASSWORD` as environment variables and run your tests with
 ```
 $ pytest --adaptavist
 ```
 
-By default the terminal output is configured by the common pytest options.
-To achieve a more readable format showing names and docstrings of test methods and even context blocks, run your tests with
-```
-$ pytest --pretty
-```
-
 ## Getting Started
 
-1. pytest-adaptavist searches for test methods named like ```test_<test_case_key>``` or ```test_<test_case_key>_<step>```
-   where ```test_case_key``` is the key of the Jira test case excluding the project key (e.g. "T1") and ```step``` defines a single test script step (if existing). In order to build real test case key strings from test methods, the corresponding project key needs to be specified for each relevant class or single test methods by using markers (see examples below). Alternatively, ```test_case_key``` can be given as it appears in Adaptavist, but with hyphens replaced by underscores (e.g. "TEST_T1").
-   Each of these kind of test methods is marked as Adaptavist test case for reporting appropriate results into Adaptavist test management. Any other test methods are processed as usual.
+1. pytest-adaptavist searches for test methods named like ```test_<test_case_key>``` or ```test_<test_case_key>_<step>``` where ```test_case_key``` is the key of the Jira test case excluding the project key (e.g. "T1") and ```step``` defines a single test script step (if existing). In order to build real test case key strings from test methods, the corresponding project key needs to be specified for each relevant class or single test methods by using markers (see examples below). Alternatively, ```test_case_key``` can be given as it appears in Adaptavist, but with hyphens replaced by underscores (e.g. "TEST_T1"). Each of these kind of test methods is marked as Adaptavist test case for reporting appropriate results into Adaptavist test management. Any other test methods are processed as usual.
 
-2. Finally, pytest-adaptavist needs either ```pytest.test_run_key``` to use an existing test run or ```pytest.project_key``` to create a new test run every time with collected test cases linked to it.
-   In order to work properly, either of these parameters need to be specified at the very start of the test session.
-   If both parameters are empty, neither test runs nor test results are created in Adaptavist test management.
-   Please also note that any of these parameters mentioned here and in the following documentation can either be set programmatically or be provided as part of json config file (./config/global_config.json).
+1. Finally, pytest-adaptavist needs either ```pytest.test_run_key``` to use an existing test run or ```pytest.project_key``` to create a new test run every time with collected test cases linked to it. In order to work properly, either of these parameters need to be specified at the very start of the test session. If both parameters are empty, neither test runs nor test results are created in Adaptavist test management. Please also note that any of these parameters mentioned here and in the following documentation can either be set programmatically or be provided as part of json config file (./config/global_config.json).
 
 ## Examples and Features
 
@@ -56,23 +44,19 @@ $ pytest --pretty
 
 pytest-adaptavist collects test cases (and single test steps) as mentioned above and prepares them for Adaptavist reporting.
 
-```pytest.test_run_key``` is used to specify an existing test run. In this case, it is important to mention
-that collected test cases must be linked to that test run.
+```pytest.test_run_key``` is used to specify an existing test run. In this case, it is important to mention that collected test cases must be linked to that test run.
 
 Alternatively, if ```pytest.project_key``` is given and ```pytest.test_run_key``` is left empty, pytest-adaptavist creates a new test run every time with collected test cases linked to it. In this case, ```pytest.test_run_suffix``` can be used to create a meaningful test run name. In addition, ```pytest.test_plan_key``` is available to link the new created test run to an existing testplan.
 
 New test plans can be created by specifying ```test_plan_suffix``` which is used as identifier to find existing test plans and must be unique. If there is a matching test plan, it will be used for creating new test runs. Else a new test plan is created within the given project and new test runs are linked to that. If both test plan key and suffix are missing, test runs are created just for the given project.
 
-<em>Naming convention for new test plans and test runs within pytest_adaptavist:</em>
-* <em>new test plans are named like ```<project key> <test plan suffix>```</em>
-* <em>new test runs are named like ```<test plan name or project key> <test run suffix> <datetime now>```</em>
+*Naming convention for new test plans and test runs within pytest_adaptavist:*
+- *new test plans are named like ```<project key> <test plan suffix>```*
+- *new test runs are named like ```<test plan name or project key> <test run suffix> <datetime now>```*
 
-```pytest.test_case_keys``` can be used as an option to run only a subset of implemented test cases.
-All others are skipped in this case. For new created test runs these test cases are excluded while for existing test runs the appropriate test case results stay as they are (if existing).
+```pytest.test_case_keys``` can be used as an option to run only a subset of implemented test cases. All others are skipped in this case. For new created test runs these test cases are excluded while for existing test runs the appropriate test case results stay as they are (if existing).
 
-In addition, ```pytest.test_case_keys``` may contain test cases that are not implemented in the current python test script.
-This can be useful in cases where the new test run also needs to include manual test cases (e.g. for later execution).
-Furthermore, it is even possible to just create a new test run with only test cases that are not (yet) implemented.
+In addition, ```pytest.test_case_keys``` may contain test cases that are not implemented in the current python test script. This can be useful in cases where the new test run also needs to include manual test cases (e.g. for later execution). Furthermore, it is even possible to just create a new test run with only test cases that are not (yet) implemented.
 
 If either of these parameters is missing, pytest-adaptavist tries to read appropriate values from config file (global_config.json).
 
@@ -191,17 +175,15 @@ To simplify the overall handling, there's a helper method that combines meta dat
                     mb2.check(condition, message="condition failed", attachment=attachment)  # attachment is added anyway
    ```
 In addition, this method supports the following parameters:
-* ```message_on_pass``` which can be used to report passed conditions as well
-* ```message_on_fail``` which is the same as ```message``` (just for convenience)
-* ```description``` as option to add details about test results (f.e. can be a html table or more)
+- ```message_on_pass``` which can be used to report passed conditions as well
+- ```message_on_fail``` which is the same as ```message``` (just for convenience)
+- ```description``` as option to add details about test results (f.e. can be a html table or more)
 
 ### Testcase Order
 
 By default the execution of test methods in pytest runs alphabetical over test class names and then from top to bottom.
 
-With pytest-adaptavist this order can be changed by using ```pytest.test_case_order``` (or ```pytest.test_case_keys```, see also above).
-In this case the corresponding test methods are executed according to the given order, followed by all remaining test methods.
-Moreover, this can also be used when creating test runs automatically, as in this case the new test run is created with test cases linked in the given order.<br/>
+With pytest-adaptavist this order can be changed by using ```pytest.test_case_order``` (or ```pytest.test_case_keys```, see also above). In this case the corresponding test methods are executed according to the given order, followed by all remaining test methods. Moreover, this can also be used when creating test runs automatically, as in this case the new test run is created with test cases linked in the given order.
 
 Alternatively, if an existing test run is specified by ```pytest.test_run_key```, the corresponding test methods are executed according to the order of test cases in the given test run, followed by all other test methods.
 
@@ -218,8 +200,8 @@ For the next run a test case order is specified like TEST-T2, TEST-T3, TEST-T18.
 Now the methods are executed in this order:<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;```test_T2```, ```test_T3```, ```test_T4```, ```test_T1```, ```test_myspecialtest```.
 
-As we can see, all the test cases specified in the test case order are executed first followed by all the others.
-Of course, TEST-T18 is ignored as there is no implementation found.<br/>
+As we can see, all the test cases specified in the test case order are executed first followed by all the others. Of course, TEST-T18 is ignored as there is no implementation found.
+
 Again, a potentially new created test run will only contain TEST-T2 and TEST-T1 (in this order).
 
 For cases where a new test run should be created including only a subset of testcases, it is enough to specify ```pytest.test_case_keys``` only by using the required order. All listed test cases are linked (and executed, if implemented) in exactly this order.
@@ -242,15 +224,11 @@ While **static skipping** is done f.e. by specifiying ```pytest.test_case_keys``
 
 Basically, when a test case or step is skipped the status stays untouched (typically it will be "Not Executed").
 
-According to Adaptavist test management, test cases with containing at least one step passed and all others not executed (yet) will have the status "In Progress" while test runs/cycles containing at least one test case being "Not Executed" or "In Progress" will have the status "In Progress".
-This can be challenging when checking if a test runs/cycles is still running or is finished with some test cases skipped.
-To solve this there is the option of blocking which is actually the same as skipping but with marking the test case (or step) as "Blocked".
-Having any test cases or steps that have been aborted or not executed marked as "Blocked" will lead to a test run/cycle status "Done" once it is finished.
+According to Adaptavist test management, test cases with containing at least one step passed and all others not executed (yet) will have the status "In Progress" while test runs/cycles containing at least one test case being "Not Executed" or "In Progress" will have the status "In Progress". This can be challenging when checking if a test runs/cycles is still running or is finished with some test cases skipped. To solve this there is the option of blocking which is actually the same as skipping but with marking the test case (or step) as "Blocked". Having any test cases or steps that have been aborted or not executed marked as "Blocked" will lead to a test run/cycle status "Done" once it is finished.
 
 #### Using markers
 
-Methods to skip or block test cases (methods) statically are provided by the markers ```pytest.mark.skip``` (part of pytest module) and
-```pytest.mark.block``` (defined in pytest-adaptavist):
+Methods to skip or block test cases (methods) statically are provided by the markers ```pytest.mark.skip``` (part of pytest module) and ```pytest.mark.block``` (defined in pytest-adaptavist):
    ```python
     class TestClass(object):
 
