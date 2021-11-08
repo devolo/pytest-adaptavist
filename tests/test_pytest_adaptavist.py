@@ -265,7 +265,7 @@ class TestPytestAdaptavistSystem:
         test_result = atm.get_test_result(test_run_key, test_name)
         assert test_result["status"] == "Fail"
         assert test_result["scriptResults"][0]["status"] == "Pass"
-        assert "testing pass comment" in test_result["scriptResults"][0]["comment"]
+        assert "testing pass comment" in test_result["scriptResults"][0]["coment"]
         assert test_result["scriptResults"][1]["status"] == "Fail"
         assert "testing fail comment" in test_result["scriptResults"][1]["comment"]
         assert test_result["scriptResults"][2]["status"] == "Fail"
@@ -348,7 +348,7 @@ class TestPytestAdaptavistSystem:
         assert test_result["scriptResults"][0]["status"] == "Blocked"
         assert test_result["scriptResults"][1]["status"] == "Pass"
 
-    def test_T11(self, pytester: pytest.Pytester, atm: Tuple[Adaptavist, str]):
+    def test_T11(self, pytester: pytest.Pytester, atm: Adaptavist):
         """
         Test meta_block.Action.FAIL_METHOD.
         Expect that step 1 is failed, no attachment at step 1, step 2 not executed and overall test result is failed.
@@ -373,7 +373,7 @@ class TestPytestAdaptavistSystem:
         assert test_result["scriptResults"][0]["status"] == "Fail"
         assert test_result["scriptResults"][1]["status"] == "Not Executed"
 
-    def test_T12(self, pytester: pytest.Pytester, atm: Tuple[Adaptavist, str]):
+    def test_T12(self, pytester: pytest.Pytester, atm: Adaptavist):
         """
         Test meta_block.Action.STOP_METHOD.
         Expect that step 1 is blocked, no attachment at step 1, step 2 not executed and overall test result is blocked.
