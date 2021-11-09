@@ -20,7 +20,8 @@ def pytest_configure(config):
 
 
 def pytest_sessionfinish():
-    os.remove("config/global_config_copy.json")
+    if system_test_preconditions():
+        os.remove("config/global_config_copy.json")
 
 
 @pytest.fixture()
@@ -58,14 +59,14 @@ def atm_test_plan(pytester: pytest.Pytester):
 @pytest.fixture(scope="session", autouse=True)
 def test_plan(request):
     """Creates a test plan. All system test will link the test cycle with this test plan."""
-    with open("config/global_config.json", "r", encoding="utf8") as f:
-        config = json.loads(f.read())
     if system_test_preconditions():
-        atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
-        test_plan = atm_obj.create_test_plan(config["project_key"], "just a test plan name")
-        config["test_plan_key"] = test_plan
-    with open("config/global_config_copy.json", "w", encoding="utf8") as f:
-        f.write(json.dumps(config))
+        with open("config/global_config.json", "r", encoding="utf8") as f:
+            config = json.loads(f.read())
+            atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
+            test_plan = atm_obj.create_test_plan(config["project_key"], "just a test plan name")
+            config["test_plan_key"] = test_plan
+        with open("config/global_config_copy.json", "w", encoding="utf8") as f:
+            f.write(json.dumps(config))
 
 
 @pytest.fixture
