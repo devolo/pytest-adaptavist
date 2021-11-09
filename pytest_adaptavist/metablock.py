@@ -6,7 +6,7 @@ import signal
 from datetime import datetime
 from enum import IntEnum
 from types import FrameType, TracebackType
-from typing import Any, List, Literal
+from typing import Any, Literal
 
 import pytest
 
