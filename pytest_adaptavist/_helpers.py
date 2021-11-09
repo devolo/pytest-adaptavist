@@ -6,6 +6,7 @@ import inspect
 import re
 import subprocess
 from contextlib import suppress
+from dataclasses import dataclass
 from typing import Any, BinaryIO, Literal, Union
 
 import pytest
@@ -158,9 +159,6 @@ def build_terminal_report(when: str, item: pytest.Function, step: int, status: L
         elif when == "call" and status:
             fill = terminal_writer.fullwidth - terminal_writer.width_of_current_line - 1
             terminal_reporter.write_line(status.upper().rjust(fill), **COLORMAP[status])
-
-
-from dataclasses import dataclass
 
 
 @dataclass
