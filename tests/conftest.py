@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 from adaptavist import Adaptavist
 
-from . import AdaptavistFixture
+from . import AdaptavistFixture, system_test_preconditions
 
 pytest_plugins = ("pytester", )
 
@@ -56,13 +56,14 @@ def atm_test_plan(pytester: pytest.Pytester):
 
 # This should only be used if test is a system test
 @pytest.fixture(scope="session", autouse=True)
-def test_plan():
+def test_plan(request):
     """Creates a test plan. All system test will link the test cycle with this test plan."""
     with open("config/global_config.json", "r", encoding="utf8") as f:
         config = json.loads(f.read())
-    atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
-    test_plan = atm_obj.create_test_plan(config["project_key"], "just a test plan name")
-    config["test_plan_key"] = test_plan
+    if system_test_preconditions():
+        atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
+        test_plan = atm_obj.create_test_plan(config["project_key"], "just a test plan name")
+        config["test_plan_key"] = test_plan
     with open("config/global_config_copy.json", "w", encoding="utf8") as f:
         f.write(json.dumps(config))
 
