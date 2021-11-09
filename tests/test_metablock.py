@@ -80,6 +80,7 @@ class TestMetaBlockUnit:
     @pytest.mark.usefixtures("adaptavist")
     def test_attachment(self, pytester: pytest.Pytester):
         """Test the correct usage of the attachment parameter."""
+        pytester.maketxtfile(first_file="foo")
 
         # Test attachment for a passing test case
         pytester.makepyfile("""
@@ -87,11 +88,11 @@ class TestMetaBlockUnit:
 
             def test_TEST_T123(meta_block):
                 with meta_block(1) as mb_1:
-                    mb_1.check(True, attachment="This is an attachment")
+                    mb_1.check(True, attachment="first_file.txt")
         """)
         with patch("adaptavist.Adaptavist.add_test_script_attachment") as atsa:
             pytester.runpytest("--adaptavist")
-            assert "This is an attachment" in atsa.call_args.kwargs["attachment"]
+            assert "first_file.txt" in atsa.call_args.kwargs["filename"]
 
         # Test attachment for a failing test case
         pytester.makepyfile("""
@@ -99,11 +100,11 @@ class TestMetaBlockUnit:
 
             def test_TEST_T123(meta_block):
                 with meta_block(1) as mb_1:
-                    mb_1.check(False, attachment="This is an attachment")
+                    mb_1.check(False, attachment="first_file.txt")
         """)
         with patch("adaptavist.Adaptavist.add_test_script_attachment") as atsa:
             pytester.runpytest("--adaptavist")
-            assert "This is an attachment" in atsa.call_args.kwargs["attachment"]
+            assert "first_file.txt" in atsa.call_args.kwargs["filename"]
 
     @pytest.mark.usefixtures("adaptavist")
     def test_description_of_test_steps_printed(self, pytester: pytest.Pytester):

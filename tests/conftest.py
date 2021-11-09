@@ -13,29 +13,23 @@ from adaptavist import Adaptavist
 from . import AdaptavistFixture
 
 pytest_plugins = ("pytester", )
-test_plan_key = ""
 
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "system: mark test as system tests. Select system tests with '-m system'")
 
 
+def pytest_sessionfinish():
+    os.remove("config/global_config_copy.json")
+
+
 @pytest.fixture()
 def atm(pytester: pytest.Pytester):
-    import logging
-    import time
-    from datetime import datetime
-
-    # # this assure that every system test will create a new test cycle
-    # while datetime.now().second > 0:
-    #     logging.info("sleeping %i", datetime.now().second)
-    #     time.sleep(1)
-
     with suppress(KeyError):
         del os.environ['JIRA_SERVER']
-    pytester.copy_example("config/global_config.json")
+    pytester.copy_example("config/global_config_copy.json")
     pytester.mkdir("config")
-    shutil.move("global_config.json", "config/global_config.json")
+    shutil.move("global_config_copy.json", "config/global_config.json")
     with open("config/global_config.json") as f:
         config = json.loads(f.read())
     atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
@@ -46,9 +40,9 @@ def atm(pytester: pytest.Pytester):
 def atm_test_plan(pytester: pytest.Pytester):
     with suppress(KeyError):
         del os.environ['JIRA_SERVER']
-    pytester.copy_example("config/global_config.json")
+    pytester.copy_example("config/global_config_copy.json")
     pytester.mkdir("config")
-    shutil.move("global_config.json", "config/global_config.json")
+    shutil.move("global_config_copy.json", "config/global_config.json")
     with open("config/global_config.json", "r", encoding="utf8") as f:
         config = json.loads(f.read())
     atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
@@ -61,20 +55,16 @@ def atm_test_plan(pytester: pytest.Pytester):
 
 
 # This should only be used if test is a system test
-@pytest.fixture(autouse=True)
-def test_plan(request):
-    global test_plan_key
-    if test_plan_key or not request.node.get_closest_marker("system"):
-        return
-
+@pytest.fixture(scope="session", autouse=True)
+def test_plan():
+    """Creates a test plan. All system test will link the test cycle with this test plan."""
     with open("config/global_config.json", "r", encoding="utf8") as f:
         config = json.loads(f.read())
     atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
     test_plan = atm_obj.create_test_plan(config["project_key"], "just a test plan name")
     config["test_plan_key"] = test_plan
-    with open("config/global_config.json", "w", encoding="utf8") as f:
+    with open("config/global_config_copy.json", "w", encoding="utf8") as f:
         f.write(json.dumps(config))
-    test_plan_key = test_plan
 
 
 @pytest.fixture
