@@ -5,6 +5,7 @@ from __future__ import annotations
 import signal
 from datetime import datetime
 from enum import IntEnum
+from io import BufferedReader, BytesIO
 from types import FrameType, TracebackType
 from typing import Any, Literal
 
@@ -166,17 +167,32 @@ class MetaBlock:
         if kwargs:
             raise SyntaxWarning(f"Unknown arguments: {kwargs}")
 
+        from functools import singledispatch
         if attachment and self.adaptavist.enabled:
-            if not self.data.get("attachment"):
-                self.data["attachment"] = []
-            from io import BytesIO
-            self_opened = False
-            if isinstance(attachment, str):
-                attachment = open(attachment, "rb")
-                self_opened = True
-            self.data["attachment"].append(Attachment(attachment=BytesIO(attachment.read()), filename=filename or attachment.name or "", step=self.step or 0))
-            if self_opened:
-                attachment.close()
+            if not self.data.get("attachment_test_case"):
+                self.data["attachment_test_case"] = []
+
+            if not self.data.get("attachment_test_step"):
+                self.data["attachment_test_step"] = []
+
+            @singledispatch
+            def inner(attachment) -> BufferedReader:
+                raise ValueError("Not known")
+
+            @inner.register
+            def _(attachment: str) -> BufferedReader:
+                with open(attachment, "rb") as at:
+                    return at.read(), at.name
+
+            @inner.register
+            def _(attachment: BufferedReader) -> BufferedReader:
+                return attachment.read(), attachment.name
+
+            attachment, name = inner(attachment)
+            if self.step:
+                self.data["attachment_test_step"].append(Attachment(BytesIO(attachment), filename=filename or name or "", step=self.step or 0))
+            else:
+                self.data["attachment_test_case"].append(Attachment(BytesIO(attachment), filename=filename or name or "", step=self.step or 0))
 
         if not condition and message_on_fail:
             self.data["comment"] = "".join((self.data.get("comment", "") or "", html_row(condition, message_on_fail)))

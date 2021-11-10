@@ -210,7 +210,8 @@ class PytestAdaptavist:
         # get optional meta data (comments, attachments) of test case method
         comment = skip_status.kwargs.get("reason") if skip_status else test_result_data.get("comment")
         description = None if skip_status else test_result_data.get("description")
-        attachments = None if skip_status else test_result_data.get("attachment")
+        attachments_test_case = None if skip_status else test_result_data.get("attachment_test_case")
+        attachments_test_steps = None if skip_status else test_result_data.get("attachment_test_step")
 
         header = f"---------------------------------------- {datetime.now().strftime('%Y%m%d%H%M')} ----------------------------------------" if specs else ""
 
@@ -243,15 +244,13 @@ class PytestAdaptavist:
                                                     executor=self.local_user,
                                                     assignee=self.local_user)
 
-            if attachments:
-                for attachment in attachments:
-                    if attachment.step and not attachment.reported:
-                        self.adaptavist.add_test_script_attachment(test_run_key=self.test_run_key,
-                                                                   test_case_key=test_case_key,
-                                                                   step=test_step_key,
-                                                                   attachment=attachment.attachment,
-                                                                   filename=attachment.filename)
-                        attachment.reported = True
+            if attachments_test_steps:
+                for attachment in attachments_test_steps:
+                    self.adaptavist.add_test_script_attachment(test_run_key=self.test_run_key,
+                                                               test_case_key=test_case_key,
+                                                               step=test_step_key,
+                                                               attachment=attachment.attachment,
+                                                               filename=attachment.filename)
 
             # adjust parent test result status according to current test script results
             test_result = self.adaptavist.get_test_result(self.test_run_key, test_case_key)
@@ -300,14 +299,12 @@ class PytestAdaptavist:
                                                     executor=self.local_user,
                                                     assignee=self.local_user)
 
-            if attachments:
-                for attachment in attachments:
-                    if not attachment.step and not attachment.reported:
-                        self.adaptavist.add_test_result_attachment(test_run_key=self.test_run_key,
-                                                                   test_case_key=test_case_key,
-                                                                   attachment=attachment.attachment,
-                                                                   filename=attachment.filename)
-                        attachment.reported = True
+            if attachments_test_case:
+                for attachment in attachments_test_case:
+                    self.adaptavist.add_test_result_attachment(test_run_key=self.test_run_key,
+                                                               test_case_key=test_case_key,
+                                                               attachment=attachment.attachment,
+                                                               filename=attachment.filename)
 
     def _build_report_description(self, item: pytest.Item, call: CallInfo, report: TestReport, skip_status: Mark | None):
         """Generate standard test results for given item."""

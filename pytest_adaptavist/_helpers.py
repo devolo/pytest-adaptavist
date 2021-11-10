@@ -163,7 +163,6 @@ def build_terminal_report(when: str, item: pytest.Function, step: int, status: L
 
 @dataclass
 class Attachment():
-    attachment: Union[str, BinaryIO]
+    attachment: BinaryIO
     filename: str = ""
     step: int = 0
-    reported: bool = False
