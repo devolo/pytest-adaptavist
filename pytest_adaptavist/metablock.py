@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import IntEnum
 from io import BufferedReader, BytesIO
 from types import FrameType, TracebackType
-from typing import Any, Literal
+from typing import Any, Literal, Tuple
 
 import pytest
 
@@ -176,16 +176,16 @@ class MetaBlock:
                 self.data["attachment_test_step"] = []
 
             @singledispatch
-            def inner(attachment) -> BufferedReader:
+            def inner(attachment) -> Tuple[BufferedReader, str]:
                 raise ValueError("Not known")
 
             @inner.register
-            def _(attachment: str) -> BufferedReader:
+            def _(attachment: str) -> Tuple[BufferedReader, str]:
                 with open(attachment, "rb") as at:
                     return at.read(), at.name
 
-            @inner.register
-            def _(attachment: BufferedReader) -> BufferedReader:
+            @inner.register  # type: ignore
+            def _(attachment: BufferedReader) -> Tuple[BufferedReader, str]:
                 return attachment.read(), attachment.name
 
             attachment, name = inner(attachment)
