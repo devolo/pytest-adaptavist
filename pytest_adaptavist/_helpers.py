@@ -7,7 +7,7 @@ import re
 import subprocess
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import Any, BinaryIO, Literal, Union
+from typing import Any, BinaryIO, Literal
 
 import pytest
 from _pytest._io import TerminalWriter
