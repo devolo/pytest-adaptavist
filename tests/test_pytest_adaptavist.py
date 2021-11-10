@@ -299,13 +299,13 @@ class TestPytestAdaptavistSystem:
         test_run_key, test_name = get_test_values(report)
         test_result = atm.get_test_result_attachment(test_run_key, test_name)
         assert len(test_result) == 4
-        assert test_result[0]["filename"] in ("first_file.txt", "second_file.txt")
-        assert test_result[0]["filesize"] in (2, 3)
-        assert test_result[1]["filename"] in ("first_file.txt", "second_file.txt")
-        assert test_result[1]["filesize"] in (2, 3)
-        assert test_result[2]["filename"] in ("first_file.txt", "second_file.txt")
+        assert test_result[0]["filename"] == "second_file.txt"
+        assert test_result[0]["filesize"] == 3
+        assert test_result[1]["filename"] == "first_file.txt"
+        assert test_result[1]["filesize"] == 2
+        assert test_result[2]["filename"] == "second_file.txt"
         assert test_result[2]["filesize"] == 3
-        assert test_result[3]["filename"] in ("first_file.txt", "second_file.txt")
+        assert test_result[3]["filename"] == "first_file.txt"
         assert test_result[3]["filesize"] == 3
 
     def test_T9(self, pytester: pytest.Pytester, atm_test_plan: Tuple[Adaptavist, str]):
