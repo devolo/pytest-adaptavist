@@ -440,10 +440,6 @@ class PytestAdaptavist:
             # adaptavist reporting disabled: no need to proceed here
             return
 
-        if self.test_result_data[fullname].get("done", False):
-            # this item has been reported already within a meta block context (see below)
-            return
-
         if marker := item.get_closest_marker("testcase"):
             test_case_key = marker.kwargs["test_case_key"]
             test_step_key = marker.kwargs["test_step_key"]
