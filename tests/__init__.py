@@ -1,12 +1,15 @@
 """Unit and system tests."""
 
-from typing import Tuple
+import json
+from typing import Any, Tuple
 from unittest.mock import MagicMock
+
 import requests
 from _pytest.pytester import HookRecorder
+
 from pytest_adaptavist._atm_configuration import ATMConfiguration
 
-AdaptavistFixture = Tuple[MagicMock, MagicMock, MagicMock]
+AdaptavistMock = Tuple[MagicMock, MagicMock, MagicMock]
 
 
 def system_test_preconditions() -> bool:
@@ -27,8 +30,16 @@ def system_test_preconditions() -> bool:
         return False
 
 
-def get_test_values(report: HookRecorder, test_case: str = ""):
+def get_test_values(report: HookRecorder, test_case: str = "") -> tuple[str, str]:
+    """Get test run key and test case name."""
     user_properties = dict(report.matchreport(test_case).user_properties)
     test_run_key = user_properties["atmcfg"]["test_run_key"]
     test_name = user_properties["report"]["test_case_key"]
     return test_run_key, test_name
+
+
+def read_global_config() -> dict[str, Any]:
+    """Read global config and return as JSON."""
+    with open("config/global_config.json") as f:
+        config = json.loads(f.read())
+    return config

@@ -28,7 +28,7 @@ class TestCliUnit:
         config = pytester.parseconfig()
         assert config.getini("adaptavist")
 
-    @pytest.mark.usefixtures("adaptavist")
+    @pytest.mark.usefixtures("adaptavist_mock")
     def test_invalid_branch(self, pytester: pytest.Pytester):
         """Test the correct behavior of an invalid branch."""
         pytester.makepyfile("""

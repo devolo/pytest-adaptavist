@@ -1,73 +1,53 @@
 """Fixtures for tests."""
 
-import json
 import os
 import shutil
-from contextlib import suppress
 from typing import Generator
 from unittest.mock import patch
 
 import pytest
+from _pytest.config import Config
 from adaptavist import Adaptavist
 
-from . import AdaptavistFixture, system_test_preconditions
+from . import AdaptavistMock, read_global_config, system_test_preconditions
 
 pytest_plugins = ("pytester", )
 
 
-def pytest_configure(config):
+def pytest_configure(config: Config):
+    """Configure pytest."""
     config.addinivalue_line("markers", "system: mark test as system tests. Select system tests with '-m system'")
 
 
-def pytest_sessionfinish():
-    if system_test_preconditions():
-        with suppress(FileNotFoundError):
-            os.remove("config/global_config_copy.json")
-
-
-@pytest.fixture()
-def atm(pytester: pytest.Pytester):
-    with suppress(KeyError):
-        del os.environ['JIRA_SERVER']
-    pytester.copy_example("config/global_config_copy.json")
-    pytester.mkdir("config")
-    shutil.move("global_config_copy.json", "config/global_config.json")
-    with open("config/global_config.json") as f:
-        config = json.loads(f.read())
-    atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
-    yield atm_obj
-
-
-@pytest.fixture()
-def atm_test_plan(pytester: pytest.Pytester):
-    with suppress(KeyError):
-        del os.environ['JIRA_SERVER']
-    pytester.copy_example("config/global_config_copy.json")
-    pytester.mkdir("config")
-    shutil.move("global_config_copy.json", "config/global_config.json")
-    with open("config/global_config.json", "r", encoding="utf8") as f:
-        config = json.loads(f.read())
-    atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
-    test_run = atm_obj.create_test_run(config["project_key"], "just a name")
-    config["test_run_key"] = test_run
-    with open("config/global_config.json", "w", encoding="utf8") as f:
-        f.write(json.dumps(config))
-    atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
-    yield atm_obj, test_run
-
-
-# This should only be used if test is a system test
 @pytest.fixture(scope="session", autouse=True)
-def test_plan(request):
+def create_test_plan():
     """Creates a test plan. All system test will link the test cycle with this test plan."""
-    if system_test_preconditions():
-        with open("config/global_config.json", "r", encoding="utf8") as f:
-            config = json.loads(f.read())
-            atm_obj: Adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
-            test_plan = atm_obj.create_test_plan(config["project_key"], "just a test plan name")
-            config["test_plan_key"] = test_plan
-        with open("config/global_config_copy.json", "w", encoding="utf8") as f:
-            f.write(json.dumps(config))
+    if system_test_preconditions():  # This should only be used if test is a system test
+        config = read_global_config()
+        atm = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
+        test_plan = atm.create_test_plan(config["project_key"], "just a test plan name")
+        os.environ["TEST_PLAN_KEY"] = test_plan
+
+
+@pytest.fixture()
+def adaptavist(pytester: pytest.Pytester) -> Generator[Adaptavist, None, None]:
+    """Establish connection to Adaptavist."""
+    pytester.copy_example("config/global_config.json")
+    pytester.mkdir("config")
+    shutil.move("global_config.json", "config/global_config.json")
+    config = read_global_config()
+    atm = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
+    yield atm
+
+
+@pytest.fixture(name="test_run")
+def create_test_run(adaptavist: Adaptavist):
+    """Create a new test run."""
+    config = read_global_config()
+    test_run = adaptavist.create_test_run(config["project_key"], "just a name")
+    os.environ["TEST_RUN_KEY"] = test_run
+    yield test_run
+    del os.environ["TEST_RUN_KEY"]
 
 
 @pytest.fixture
@@ -75,8 +55,7 @@ def configure(pytester: pytest.Pytester):
     """Configure environment for unittests."""
     pytester.mkdir("config")
     with open("config/global_config.json", "w", encoding="utf8") as file:
-        file.write('{"project_key": "TEST", "test_run_key":"TEST-C1"}')
-    os.environ["JIRA_SERVER"] = "https://test.com"
+        file.write('{"jira_server": "https://jira.test", "project_key": "TEST", "test_run_key":"TEST-C1"}')
 
 
 @pytest.fixture
@@ -87,7 +66,7 @@ def valid_user() -> Generator[None, None, None]:
 
 
 @pytest.fixture
-def adaptavist(valid_user: None) -> Generator[AdaptavistFixture, None, None]:
+def adaptavist_mock(valid_user: None) -> Generator[AdaptavistMock, None, None]:
     """Patch adaptavist to prevent real I/O."""
     with patch("adaptavist.Adaptavist.get_test_result", return_value={"scriptResults": [{"status": "Pass", "index": "0"}], "status": "Pass"}), \
          patch("adaptavist.Adaptavist.get_test_run", return_value={"items": [{"testCaseKey": "TEST-T121"},
