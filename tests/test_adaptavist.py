@@ -25,7 +25,7 @@ class TestAdaptavistUnit:
         pytester.runpytest("--adaptavist")
         ctr.assert_called_once_with(test_run_key="TEST-C1",
                                     test_case_key="TEST-T123",
-                                    environment="",
+                                    environment=None,
                                     executor=getpass.getuser().lower(),
                                     assignee=getpass.getuser().lower())
 

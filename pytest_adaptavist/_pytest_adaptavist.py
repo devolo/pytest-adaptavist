@@ -79,7 +79,7 @@ class PytestAdaptavist:
 
         entry = self.test_environment or self.cfg.get("test_environment", []) or []
         test_environments = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
-        self.test_environment = test_environments[index if index < len(test_environments) else -1] if test_environments else ""
+        self.test_environment = test_environments[index if index < len(test_environments) else -1] if test_environments else None
 
         entry = self.test_case_keys or self.cfg.get("test_case_keys", []) or []
         self.test_case_keys = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry

@@ -21,7 +21,8 @@ def pytest_configure(config):
 
 def pytest_sessionfinish():
     if system_test_preconditions():
-        os.remove("config/global_config_copy.json")
+        with suppress(FileNotFoundError):
+            os.remove("config/global_config_copy.json")
 
 
 @pytest.fixture()
