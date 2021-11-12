@@ -8,7 +8,7 @@ from enum import IntEnum
 from functools import singledispatch
 from io import BufferedReader, BytesIO
 from types import FrameType, TracebackType
-from typing import Any, Literal, NoReturn
+from typing import Any, Literal, NoReturn, Tuple
 
 import pytest
 
@@ -60,7 +60,7 @@ class MetaBlock:
         self.stop = datetime.now().timestamp()
         self.timeout = timeout
         self.adaptavist: PytestAdaptavist = request.config.pluginmanager.getplugin("_adaptavist")
-        self.data: dict[str, Any] = self.adaptavist.test_result_data.setdefault(fullname + ("_" + str(step) if step else ""), \
+        self.data: dict[str, Any] = self.adaptavist.test_result_data.setdefault(fullname + ("_" + str(step) if step else ""),
                                                                                 {"comment": None, "attachment": None})
 
     @staticmethod
@@ -248,17 +248,19 @@ class MetaBlock:
 
 
 @singledispatch
-def _read_attachment(attachment: Any) -> tuple[BytesIO, str]:
+def _read_attachment(attachment: Any) -> Tuple[BytesIO, str]:
     """Read content of an attachment."""
     raise TypeError(f"Type {type(attachment)} is not supported for attachments.")
 
+
 @_read_attachment.register
-def _(attachment: str) -> tuple[BytesIO, str]:
+def _(attachment: str) -> Tuple[BytesIO, str]:
     """Read content of an attachment given with filename."""
     with open(attachment, "rb") as file_pointer:
         return BytesIO(file_pointer.read()), file_pointer.name
 
+
 @_read_attachment.register  # type: ignore
-def _(attachment: BufferedReader) -> tuple[BytesIO, str]:
+def _(attachment: BufferedReader) -> Tuple[BytesIO, str]:
     """Read content of an attachment given as file pointer."""
     return BytesIO(attachment.read()), attachment.name

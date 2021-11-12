@@ -29,7 +29,7 @@ def create_test_plan():
         os.environ["TEST_PLAN_KEY"] = test_plan
 
 
-@pytest.fixture()
+@pytest.fixture
 def adaptavist(pytester: pytest.Pytester) -> Generator[Adaptavist, None, None]:
     """Establish connection to Adaptavist."""
     pytester.copy_example("config/global_config.json")

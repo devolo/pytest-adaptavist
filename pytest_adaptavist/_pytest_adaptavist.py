@@ -622,8 +622,7 @@ class PytestAdaptavist:
         if not self.test_run_key:
             # only include those test cases that are part of collected projects (including test database)
             search_mask = f"""projectKey IN ("{'", "'.join(collected_project_keys + ["TEST"])}")"""
-            test_cases = [test_case["key"]
-                          for test_case in self.adaptavist.get_test_cases(search_mask=search_mask)] if items else list(collected_items.keys())
+            test_cases = [test_case["key"] for test_case in self.adaptavist.get_test_cases(search_mask=search_mask)] if items else list(collected_items.keys())
         else:
             # only include those test cases that are part of this test run
             test_run = self.adaptavist.get_test_run(self.test_run_key)
