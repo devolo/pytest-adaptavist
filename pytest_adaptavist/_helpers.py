@@ -99,7 +99,7 @@ def html_row(condition: bool, message: str) -> str:
             color: white; font-family: monospace; font-size: 10pt; font-weight: bold;'>{badge_text}</span>{message}</div>"
 
 
-def intersection(list_a: list, list_b: list) -> list:
+def intersection(list_a: list[Any], list_b: list[Any]) -> list[Any]:
     """Return the intersection of two lists (maintaining the item order of the first list)."""
     return sorted(set(list_a) & set(list_b), key=list_a.index)
 
@@ -163,6 +163,13 @@ def build_terminal_report(when: str, item: pytest.Function, step: int, status: L
 
 @dataclass
 class Attachment():
+    """Storage for attachments to be uploaded to Adaptavist."""
+
     attachment: BinaryIO
-    filename: str = ""
+    """Content of the attachment."""
+
+    filename: str
+    """Filename of the attachment."""
+
     step: int = 0
+    """Step to attach it to, 0 for the overall test case."""

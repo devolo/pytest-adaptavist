@@ -1,6 +1,7 @@
 """Test connection between pytest and Adaptavist."""
 
 import getpass
+from io import BytesIO
 from typing import Tuple
 from unittest.mock import patch
 
@@ -134,7 +135,6 @@ class TestPytestAdaptavistUnit:
         with patch("adaptavist.Adaptavist.add_test_result_attachment") as atra:
             pytester.runpytest("--adaptavist")
         assert atra.call_count == 1
-        from io import BytesIO
         assert isinstance(atra.call_args.kwargs["attachment"], BytesIO)
         assert atra.call_args.kwargs["filename"] == "test.txt"
 
