@@ -611,39 +611,41 @@ class PytestAdaptavist:
 
     def _create_item_collection(self, items: list[pytest.Item], collected_project_keys: list[str], collected_items: dict[str, list[pytest.Function]]):
         """Create the list of test methods to be executed and included in adaptavist report."""
-        if self.enabled and (self.project_key or self.test_run_key):
-            if self.test_case_keys:
-                # add any specified test cases, even if they are not implemented
-                collected_items.update({key: [] for key in self.test_case_keys if key not in collected_items})
+        if not self.enabled or not self.project_key and not self.test_run_key:
+            return
 
-            # build and order the list of items to be executed and included in adaptavist report
-            if not self.test_run_key:
-                # only include those test cases that are part of collected projects (including test database)
-                search_mask = f"""projectKey IN ("{'", "'.join(collected_project_keys + ["TEST"])}")"""
-                test_cases = [test_case["key"]
-                              for test_case in self.adaptavist.get_test_cases(search_mask=search_mask)] if items else list(collected_items.keys())
-            else:
-                # only include those test cases that are part of this test run
-                test_run = self.adaptavist.get_test_run(self.test_run_key)
-                test_cases = [item["testCaseKey"] for item in test_run.get("items", [])]
+        if self.test_case_keys:
+            # add any specified test cases, even if they are not implemented
+            collected_items.update({key: [] for key in self.test_case_keys if key not in collected_items})
 
-            # define the execution order for all test cases (specified first, followed by the rest)
-            if not self.test_case_order:
-                self.test_case_order = test_cases if self.test_run_key else self.test_case_keys
+        # build and order the list of items to be executed and included in adaptavist report
+        if not self.test_run_key:
+            # only include those test cases that are part of collected projects (including test database)
+            search_mask = f"""projectKey IN ("{'", "'.join(collected_project_keys + ["TEST"])}")"""
+            test_cases = [test_case["key"]
+                          for test_case in self.adaptavist.get_test_cases(search_mask=search_mask)] if items else list(collected_items.keys())
+        else:
+            # only include those test cases that are part of this test run
+            test_run = self.adaptavist.get_test_run(self.test_run_key)
+            test_cases = [item["testCaseKey"] for item in test_run.get("items", [])]
 
-            # order items and test cases
-            ordered_collected_items = collected_items
-            if self.test_case_order or self.test_case_range:
-                ordered_collected_items = {key: collected_items[key] for key in self.test_case_order if key in collected_items}
-                ordered_collected_items.update({key: collected_items[key] for key in collected_items if key not in ordered_collected_items})
-                ordered_collected_items = apply_test_case_range(ordered_collected_items, self.test_case_range)
-                ordered_items: list[pytest.Function | pytest.Item] = [item for sublist in ordered_collected_items.values() for item in sublist]
-                ordered_items.extend([item for item in items if item not in ordered_items])
-                items[:] = ordered_items
+        # define the execution order for all test cases (specified first, followed by the rest)
+        if not self.test_case_order:
+            self.test_case_order = test_cases if self.test_run_key else self.test_case_keys
 
-            # define the list of test cases to be included in adaptavist report
-            # (intersection of collected pytest cases and existing test cases)
-            self.test_case_keys = intersection(list(ordered_collected_items.keys()), test_cases)
+        # order items and test cases
+        ordered_collected_items = collected_items
+        if self.test_case_order or self.test_case_range:
+            ordered_collected_items = {key: collected_items[key] for key in self.test_case_order if key in collected_items}
+            ordered_collected_items.update({key: collected_items[key] for key in collected_items if key not in ordered_collected_items})
+            ordered_collected_items = apply_test_case_range(ordered_collected_items, self.test_case_range)
+            ordered_items: list[pytest.Function | pytest.Item] = [item for sublist in ordered_collected_items.values() for item in sublist]
+            ordered_items.extend([item for item in items if item not in ordered_items])
+            items[:] = ordered_items
+
+        # define the list of test cases to be included in adaptavist report
+        # (intersection of collected pytest cases and existing test cases)
+        self.test_case_keys = intersection(list(ordered_collected_items.keys()), test_cases)
 
     def _setup_item_collection(self, items: list[pytest.Item], collected_project_keys: list[str], collected_items: dict[str, list[pytest.Item]]):
         """Setup and prepare collection of available test methods."""
