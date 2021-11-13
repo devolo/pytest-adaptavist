@@ -43,7 +43,6 @@ class ATMConfiguration:
         if isinstance(result, str):
             if result.lower() in ["true", "1", "yes"]:
                 return True
-
             if result.lower() in ["false", "0", "no"]:
                 return False
 

@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.mark.usefixtures("adaptavist")
+@pytest.mark.usefixtures("adaptavist_mock")
 def test_restrict_user(pytester: pytest.Pytester):
     pytester.makepyfile("""
             def test_T1(meta_block):

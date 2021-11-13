@@ -5,9 +5,10 @@ from __future__ import annotations
 import signal
 from datetime import datetime
 from enum import IntEnum
+from functools import singledispatch
 from io import BufferedReader, BytesIO
 from types import FrameType, TracebackType
-from typing import Any, Literal, Tuple
+from typing import Any, Literal, NoReturn, Tuple
 
 import pytest
 
@@ -29,6 +30,8 @@ class MetaBlock:
     """
 
     class Action(IntEnum):
+        """Action to take, if a test case failes."""
+
         NONE = 0
         """If condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')."""
         FAIL_CONTEXT = 0
@@ -57,10 +60,12 @@ class MetaBlock:
         self.stop = datetime.now().timestamp()
         self.timeout = timeout
         self.adaptavist: PytestAdaptavist = request.config.pluginmanager.getplugin("_adaptavist")
-        self.data = self.adaptavist.test_result_data.setdefault(fullname + ("_" + str(step) if step else ""), {"comment": None, "attachment": None})
+        self.data: dict[str, Any] = self.adaptavist.test_result_data.setdefault(fullname + ("_" + str(step) if step else ""),
+                                                                                {"comment": None, "attachment": None})
 
     @staticmethod
-    def _timeout_handler(signum: int, frame: FrameType):
+    def _timeout_handler(signum: int, frame: FrameType) -> NoReturn:
+        """Handle test cases running to long."""
         raise TimeoutError("The test step exceeded its timewindow and timed out")
 
     def __enter__(self) -> MetaBlock:
@@ -157,17 +162,14 @@ class MetaBlock:
         :key message_on_pass: The info test in case of passed condition
         :key description: Optional details about test results (f.e. can be a html table or more)
         """
-
         attachment = kwargs.pop("attachment", None)
         filename = kwargs.pop("filename", None)
         description = kwargs.pop("description", None)
         message_on_fail = kwargs.pop("message_on_fail", None) or message or ""
         message_on_pass = kwargs.pop("message_on_pass", "")
-
         if kwargs:
             raise SyntaxWarning(f"Unknown arguments: {kwargs}")
 
-        from functools import singledispatch
         if attachment and self.adaptavist.enabled:
             if not self.data.get("attachment_test_case"):
                 self.data["attachment_test_case"] = []
@@ -175,24 +177,11 @@ class MetaBlock:
             if not self.data.get("attachment_test_step"):
                 self.data["attachment_test_step"] = []
 
-            @singledispatch
-            def inner(attachment) -> Tuple[BufferedReader, str]:
-                raise ValueError("Not known")
-
-            @inner.register
-            def _(attachment: str) -> Tuple[BufferedReader, str]:
-                with open(attachment, "rb") as at:
-                    return at.read(), at.name
-
-            @inner.register  # type: ignore
-            def _(attachment: BufferedReader) -> Tuple[BufferedReader, str]:
-                return attachment.read(), attachment.name
-
-            attachment, name = inner(attachment)
+            content, name = _read_attachment(attachment)
             if self.step:
-                self.data["attachment_test_step"].append(Attachment(BytesIO(attachment), filename=filename or name or "", step=self.step or 0))
+                self.data["attachment_test_step"].append(Attachment(content, filename=filename or name or "", step=self.step or 0))
             else:
-                self.data["attachment_test_case"].append(Attachment(BytesIO(attachment), filename=filename or name or "", step=self.step or 0))
+                self.data["attachment_test_case"].append(Attachment(content, filename=filename or name or "", step=self.step or 0))
 
         if not condition and message_on_fail:
             self.data["comment"] = "".join((self.data.get("comment", "") or "", html_row(condition, message_on_fail)))
@@ -256,3 +245,22 @@ class MetaBlock:
         else:
             # CONTINUE: try to collect failed assumption, set result to 'Fail' and continue
             pytest.assume(expr=False, msg=message_on_fail)  # type:ignore  # pylint: disable=no-member
+
+
+@singledispatch
+def _read_attachment(attachment: Any) -> Tuple[BytesIO, str]:
+    """Read content of an attachment."""
+    raise TypeError(f"Type {type(attachment)} is not supported for attachments.")
+
+
+@_read_attachment.register
+def _(attachment: str) -> Tuple[BytesIO, str]:
+    """Read content of an attachment given with filename."""
+    with open(attachment, "rb") as file_pointer:
+        return BytesIO(file_pointer.read()), file_pointer.name
+
+
+@_read_attachment.register  # type: ignore
+def _(attachment: BufferedReader) -> Tuple[BytesIO, str]:
+    """Read content of an attachment given as file pointer."""
+    return BytesIO(attachment.read()), attachment.name

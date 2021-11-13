@@ -5,7 +5,7 @@ import json
 import pytest
 from adaptavist import Adaptavist
 
-from . import get_test_values, system_test_preconditions
+from . import get_test_values, read_global_config, system_test_preconditions
 
 
 @pytest.mark.usefixtures("configure")
@@ -18,7 +18,7 @@ class TestDecoratorUnit:
         result = pytester.runpytest("--markers")
         assert any(marker in line for line in result.stdout.lines)
 
-    @pytest.mark.usefixtures("adaptavist")
+    @pytest.mark.usefixtures("adaptavist_mock")
     def test_block_decorator(self, pytester: pytest.Pytester):
         """Test block decorator."""
         pytester.makepyfile("""
@@ -47,7 +47,7 @@ class TestDecoratorUnit:
         assert outcome["blocked"] == 2
         assert "passed" not in outcome
 
-    @pytest.mark.usefixtures("adaptavist")
+    @pytest.mark.usefixtures("adaptavist_mock")
     def test_decorator_preferation(self, pytester: pytest.Pytester):
         """Test class block decorator is preferred to method decorator."""
         pytester.makepyfile("""
@@ -71,7 +71,7 @@ class TestDecoratorUnit:
 class TestDecoratorSystem:
     """Test decorator usage on system test level."""
 
-    def test_T5(self, pytester: pytest.Pytester, atm: Adaptavist):
+    def test_T5(self, pytester: pytest.Pytester, adaptavist: Adaptavist):
         """Test blocking decorator."""
         pytester.makepyfile("""
             import pytest
@@ -89,8 +89,7 @@ class TestDecoratorSystem:
         """)
         report = pytester.inline_run("--adaptavist")
         test_run_key, _ = get_test_values(report, "test_T4")
-        with open("config/global_config.json") as f:
-            config = json.loads(f.read())
-        test_result = atm.get_test_result(test_run_key, f"{config['project_key']}-T5")
+        config = read_global_config()
+        test_result = adaptavist.get_test_result(test_run_key, f"{config['project_key']}-T5")
         assert test_result["status"] == "Blocked"
         assert test_result["scriptResults"][0]["status"] == "Not Executed"
