@@ -1,6 +1,7 @@
 """Test connection between pytest and Adaptavist."""
 
 import getpass
+import os
 from io import BytesIO
 from typing import Tuple
 from unittest.mock import patch
