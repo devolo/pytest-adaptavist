@@ -1,7 +1,5 @@
 """Test decorator usage."""
 
-import json
-
 import pytest
 from adaptavist import Adaptavist
 
