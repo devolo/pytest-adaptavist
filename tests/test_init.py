@@ -1,8 +1,11 @@
+""" Test init file of pytest_adaptavist"""
+
 import pytest
 
 
 @pytest.mark.usefixtures("adaptavist_mock")
 def test_restrict_user(pytester: pytest.Pytester):
+    """ Test if restrict_user is handles correctly"""
     pytester.makepyfile("""
             def test_T1(meta_block):
                 with meta_block():
@@ -14,4 +17,4 @@ def test_restrict_user(pytester: pytest.Pytester):
         restrict_user = abc
     """)
     report = pytester.inline_run("--adaptavist")
-    assert not report._pluginmanager.get_plugin("_adaptavist").enabled
+    assert not report._pluginmanager.get_plugin("_adaptavist").enabled  # pylint: disable=protected_access
