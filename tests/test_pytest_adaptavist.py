@@ -1,9 +1,7 @@
 """Test connection between pytest and Adaptavist."""
 
 import getpass
-import os
 from io import BytesIO
-from typing import Tuple
 from unittest.mock import patch
 
 import pkg_resources
@@ -491,9 +489,12 @@ class TestPytestAdaptavistSystem:
         pytester.maketxtfile(second_file="bar")
         pytester.makepyfile("""
             def test_T16(meta_data):
-                with open("first_file.txt", "rb") as f:
-                    meta_data["attachment"] = f
-                    assert False
+                meta_data["comment"] = "unexpected result"
+                attachment = io.StringIO()
+                attachment.write("this is just a simple attachment")
+                meta_data["attachment"] = attachment
+                meta_data["filename"] = "content.
+                assert False
         """)
         report = pytester.inline_run("--adaptavist")
         test_name = test_run.split("-")[0] + "-T16"
