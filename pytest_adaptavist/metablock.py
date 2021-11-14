@@ -245,7 +245,7 @@ class MetaBlock:
             pytest.exit(msg=f"Exiting pytest. {self.item_name} failed: {message_on_fail}")
         else:
             # CONTINUE: try to collect failed assumption, set result to 'Fail' and continue
-            pytest.assume(expr=False, msg=message_on_fail)  # type:ignore  # pylint: disable=no-member
+            pytest.assume(expr=False, msg=message_on_fail)  # type:ignore
 
 
 @singledispatch
