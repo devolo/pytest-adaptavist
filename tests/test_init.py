@@ -17,4 +17,4 @@ def test_restrict_user(pytester: pytest.Pytester):
         restrict_user = abc
     """)
     report = pytester.inline_run("--adaptavist")
-    assert not report._pluginmanager.get_plugin("_adaptavist").enabled  # pylint: disable=protected_access
+    assert not report._pluginmanager.get_plugin("_adaptavist").enabled  # pylint: disable=protected-access
