@@ -60,8 +60,9 @@ class MetaBlock:
         self.stop = datetime.now().timestamp()
         self.timeout = timeout
         self.adaptavist: PytestAdaptavist = request.config.pluginmanager.getplugin("_adaptavist")
-        self.data: dict[str, Any] = self.adaptavist.test_result_data.setdefault(fullname + ("_" + str(step) if step else ""),
-                                                                                {"comment": None, "attachment": None})
+        self.data: dict[str, Any] = self.adaptavist.test_result_data.setdefault(fullname + ("_" + str(step) if step else ""), {
+            "comment": None, "attachment": None
+        })
 
     @staticmethod
     def _timeout_handler(signum: int, frame: FrameType) -> NoReturn:
