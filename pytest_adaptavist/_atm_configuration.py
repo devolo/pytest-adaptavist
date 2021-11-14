@@ -23,7 +23,16 @@ class ATMConfiguration:
                     raise ValueError(f'Failed to load config from file "{config_file}"!', ex) from ex
 
     def get(self, key: str, default: Any = None) -> Any:
-        """Get value either from environment or from config file."""
+        """
+            Get value either from environment or from config file.
+
+            The lookup is the following:
+
+            OS environment[key]
+            OS environment[KEY]
+            Configuration dictionary[key]
+            Configuration dictionary[cfg_key]
+        """
         if key.lower().startswith("cfg_"):
             return self.config.get(key) or default
 
@@ -33,7 +42,13 @@ class ATMConfiguration:
         return next(iter(values), default)
 
     def get_bool(self, key: str, default: Any = None) -> bool:
-        """Get boolean value either from environment or from config file."""
+        """
+            Get boolean value either from environment or from config file.
+
+            We try to get boolean values from strings like "true", "1" or "yes" (or the equivalent).
+
+            If the function won't find a match, it will raise an ValueError
+        """
 
         result = self.get(key=key, default=default)
 
