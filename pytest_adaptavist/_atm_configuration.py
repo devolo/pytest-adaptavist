@@ -24,15 +24,16 @@ class ATMConfiguration:
 
     def get(self, key: str, default: Any = None) -> Any:
         """
-            Get value either from environment or from config file.
+        Get value either from environment or from config file.
 
-            The lookup is the following:
+        The lookup is the following:
 
-            OS environment[key]
-            OS environment[KEY]
-            Configuration dictionary[key]
-            Configuration dictionary[cfg_key]
+        OS environment[key]
+        OS environment[KEY]
+        Configuration dictionary[key]
+        Configuration dictionary[cfg_key]
         """
+
         if key.lower().startswith("cfg_"):
             return self.config.get(key) or default
 
@@ -43,11 +44,11 @@ class ATMConfiguration:
 
     def get_bool(self, key: str, default: Any = None) -> bool:
         """
-            Get boolean value either from environment or from config file.
+        Get boolean value either from environment or from config file.
 
-            We try to get boolean values from strings like "true", "1" or "yes" (or the equivalent).
+        We try to get boolean values from strings like "true", "1" or "yes" (or the equivalent).
 
-            If the function won't find a match, it will raise an ValueError
+        If the function won't find a match, it will raise a ValueError
         """
 
         result = self.get(key=key, default=default)
