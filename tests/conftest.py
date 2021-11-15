@@ -20,9 +20,9 @@ def pytest_configure(config: Config):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def create_test_plan():
+def create_test_plan(request):
     """Creates a test plan. All system test will link the test cycle with this test plan."""
-    if system_test_preconditions():  # This should only be used if test is a system test
+    if system_test_preconditions() and request.config.option.markexpr != "not system":  # This should only be used if test is a system test
         config = read_global_config()
         atm = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
         test_plan = atm.create_test_plan(config["project_key"], "just a test plan name")
