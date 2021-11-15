@@ -30,7 +30,7 @@ class MetaBlock:
     """
 
     class Action(IntEnum):
-        """Action to take, if a test case failes."""
+        """Action to take, if a test case fails."""
 
         NONE = 0
         """If condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')."""
