@@ -42,6 +42,6 @@ def get_test_values(report: HookRecorder, test_case: str = "") -> tuple[str, str
 
 def read_global_config() -> dict[str, Any]:
     """Read global config and return as JSON."""
-    with open("config/global_config.json", encoding='UTF-8') as f:
+    with open("config/global_config.json", encoding="UTF-8") as f:
         config = json.loads(f.read())
     return config
