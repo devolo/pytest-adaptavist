@@ -16,7 +16,7 @@ setup(name="pytest-adaptavist",
       platforms="any",
       python_requires=">=3.8",
       install_requires=["adaptavist>=2.0.0", "pytest>=5.4.0", "pytest-assume>=2.0.0", "pytest-metadata", "requests"],
-      extras_require={"test": ["beautifulsoup4"]},
+      extras_require={"test": ["beautifulsoup4", "lxml"]},
       setup_requires=["setuptools_scm"],
       keywords="python pytest adaptavist kanoah tm4j jira test testmanagement report",
       classifiers=[
