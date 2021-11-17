@@ -2,6 +2,7 @@
 
 import os
 import shutil
+from contextlib import suppress
 from typing import Generator
 from unittest.mock import patch
 
@@ -32,8 +33,9 @@ def create_test_plan(request):
 @pytest.fixture(autouse=True)
 def test_plan_prevention_unit_test(request):
     if not request.node.get_closest_marker("system"):
-        test_plan_key = os.environ["TEST_PLAN_KEY"]
-        del os.environ["TEST_PLAN_KEY"]
+        test_plan_key = os.environ["TEST_PLAN_KEY"] or ""
+        with suppress(KeyError):
+            del os.environ["TEST_PLAN_KEY"]
         yield
         os.environ["TEST_PLAN_KEY"] = test_plan_key
     else:
