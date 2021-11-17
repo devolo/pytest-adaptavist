@@ -29,6 +29,17 @@ def create_test_plan(request):
         os.environ["TEST_PLAN_KEY"] = test_plan
 
 
+@pytest.fixture(autouse=True)
+def test_plan_prevention_unit_test(request):
+    if not request.node.get_closest_marker("system"):
+        test_plan_key = os.environ["TEST_PLAN_KEY"]
+        del os.environ["TEST_PLAN_KEY"]
+        yield
+        os.environ["TEST_PLAN_KEY"] = test_plan_key
+    else:
+        yield
+
+
 @pytest.fixture
 def adaptavist(pytester: pytest.Pytester) -> Generator[Adaptavist, None, None]:
     """Establish connection to Adaptavist."""
