@@ -34,7 +34,8 @@ def create_test_plan(request):
 def test_plan_prevention_unit_test(request):
     if not request.node.get_closest_marker("system"):
         with suppress(KeyError):
-            test_plan_key = os.environ["TEST_PLAN_KEY"] or ""
+            test_plan_key = ""
+            test_plan_key = os.environ["TEST_PLAN_KEY"]
             del os.environ["TEST_PLAN_KEY"]
         yield
         os.environ["TEST_PLAN_KEY"] = test_plan_key or ""
