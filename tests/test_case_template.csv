@@ -1,0 +1,52 @@
+Key;Name;Status;Precondition;Objective;Folder;Priority;Component;Labels;Owner;Estimated Time;Coverage (Issues);Coverage (Pages);Test Script (Step-by-Step) - Step;Test Script (Step-by-Step) - Test Data;Test Script (Step-by-Step) - Expected Result;Test Script (Plain Text);Test Script (BDD)
+;Passed Test;Draft;;This tests has a passed step and a passed overall result.;;Normal;;;;;;;This step must be automatically set to passed.;;Passed step;;
+;Failed Test;Draft;;This test has a failed step and a failed overall result.;;Normal;;;;;;;This step must be automatically set to failed.;;Failed step;;
+;Mixed Results;Draft;;"This test has one failed and one passed step, and the overall result is
+supposed to be failed.";;Normal;;;;;;;This step must be automatically set to failed.;;Failed step;;
+;;;;;;;;;;;;;This step must be automatically set to passed.;;Passed step;;
+;Block Call;Draft;;"This test has one passed step and one blocked step. The overall result
+should be blocked.";;Normal;;;;;;;This step must be automatically set to passed.;;Passed step;;
+;;;;;;;;;;;;;This step must be automatically set to blocked.;;Blocked step;;
+;Block Decorator;Draft;;"The test marks a test step as blocked before executing it. The overall test
+result should be blocked.";;Normal;;;;;;;This step must be automatically set to blocked.;;Blocked step;;
+;Not Executed Step;Draft;;"This test has one passed step and one skipped a.k.a not executed step. The
+overall result should be in progress.";;Normal;;;;;;;This step must be automatically set to passed.;;Passed step;;
+;;;;;;;;;;;;;This step must not be touched.;;Not executed step;;
+;Commented Test;Draft;;This test must have comments at all steps and at the test case itself.;;Normal;;;;;;;"This step must be automatically set to passed with a comment.
+
+";;Passed step with comment matching message_on_pass.;;
+;;;;;;;;;;;;;This step must be automatically set to failed with a comment.;;Failed step with comment matching message_on_fail.;;
+;;;;;;;;;;;;;This step must be automatically set to failed with a comment.;;Failed step with an auto-generated comment.;;
+;Attachment Test;Draft;;This test must have an attachment on its step and on the test itself.;;Normal;;;;;;;This step must be automatically set to passed.;;Attachment added.;;
+;Action: Fail Context;Draft;;"This test should fail the context on a failed test step. The overall result
+should be Failed.";;Normal;;;;;;;This step must be automatically set to failed.;;Failed step;;
+;;;;;;;;;;;;;"This step must be automatically set to passed.
+
+";;Passed step;;
+;Action: Stop Context;Draft;;"This test should stop the context on a failed test step. The overall result
+should be Blocked.";;Normal;;;;;;;This step must be automatically set to blocked.;;Blocked step;;
+;;;;;;;;;;;;;"This step must be automatically set to passed.
+
+";;Passed step;;
+;Action: Fail Method;Draft;;"This test should fail the method on a failed test step. The overall result
+should be Failed.";;Normal;;;;;;;This step must be automatically set to failed.;;Failed step;;
+;;;;;;;;;;;;;"This step must be automatically set to Not Executed.
+
+";;Not Executed step;;
+;Action: Stop Method;Draft;;"This test should block the method on a failed test step. The overall result
+should be Blocked.";;Normal;;;;;;;This step must be automatically set to blocked.;;Blocked step;;
+;;;;;;;;;;;;;"This step must be automatically set to blocked.
+
+";;Blocked step;;
+;Action: Fail Session;Draft;;"Test Action.FAIL_SESSION.
+
+T13 is expected to be failed. T12 must be blocked and T11 must be untouched
+--> In Progress";;Normal;;;;;;;This step must be automatically set to failed.;;Failed;;
+;;;;;;;;;;;;;This step must be automatically set to Not Executed.;;Not Executed;;
+;Actions: STOP_SESSION;Draft;;"Test Actions: STOP_SESSION
+
+T14 is expected to be blocked after test run and T12 should also be blocked";;Normal;;;;;;;Expected to be Blocked after test run;;Blocked;;
+;Actions: STOP_EXIT_SESSION;Draft;;"Test STOP_EXIT_SESSION
+
+T15 must be Blocked and the helper testcase T12 must not be executed -->
+not in test cycle";;Normal;;;;;;;Blocked Testcase;;Blocked;;
