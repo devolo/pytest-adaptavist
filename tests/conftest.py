@@ -37,7 +37,7 @@ def test_plan_prevention_unit_test(request):
             test_plan_key = os.environ["TEST_PLAN_KEY"] or ""
             del os.environ["TEST_PLAN_KEY"]
         yield
-        os.environ["TEST_PLAN_KEY"] = test_plan_key
+        os.environ["TEST_PLAN_KEY"] = test_plan_key or ""
     else:
         yield
 
