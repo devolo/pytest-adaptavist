@@ -33,8 +33,8 @@ def create_test_plan(request):
 @pytest.fixture(autouse=True)
 def test_plan_prevention_unit_test(request):
     if not request.node.get_closest_marker("system"):
-        test_plan_key = os.environ["TEST_PLAN_KEY"] or ""
         with suppress(KeyError):
+            test_plan_key = os.environ["TEST_PLAN_KEY"] or ""
             del os.environ["TEST_PLAN_KEY"]
         yield
         os.environ["TEST_PLAN_KEY"] = test_plan_key
