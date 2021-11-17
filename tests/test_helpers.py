@@ -27,7 +27,6 @@ class TestHelpersUnit:
 
         assert calc_test_result_status([{"status": STATUS_IN_PROGRESS}, {"status": STATUS_NOT_EXECUTED}]) == STATUS_IN_PROGRESS
 
-
     def test_html_row(self):
         """Test html status row to be displayed in test case results."""
         assert html_row(True, "") == ""
