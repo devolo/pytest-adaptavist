@@ -123,6 +123,7 @@ class PytestAdaptavist:
     def pytest_runtest_setup(self, item: pytest.Item):
         """This is called before calling the test item. Used to skip test items dynamically (e.g. triggered by some other item or control function)."""
         # TODO Make this more generalistic
+        # Needed to ensure that a class decorator is preferred over a function decorator.
         if item.cls and getattr(item.cls, "pytestmark", False) and all((mark.name != "block" for mark in item.cls.pytestmark)):  # type: ignore
             return
         if skip_status := (item.get_closest_marker("block")):
@@ -178,12 +179,12 @@ class PytestAdaptavist:
         """
         Generate adaptavist test results for given item.
 
-        :param test_case_key:
-        :param test_step_key:
-        :param execute_time:
-        :param skip_status:
-        :param passed:
-        :param test_result_data:
+        :param test_case_key: Name of the test case in adaptavist test management
+        :param test_step_key: Step number starting at 1. Can be empty
+        :param execute_time: Executing time as float in seconds
+        :param skip_status: pytest marker if test is blocked/skipped
+        :param passed: True if test is passed, else False
+        :param test_result_data: Dictionary with additional data about the test result like comment or attachment.
         :param specs:
         """
         if not (self.test_run_key or test_case_key in (self.test_case_keys or [])):
@@ -348,10 +349,10 @@ class PytestAdaptavist:
         """
         Generate description info about exceptions.
 
-        :param item_name:
-        :param exc_type:
-        :param exc_value:
-        :param traceback:
+        :param item_name: Item name in the format of pytest e.g. test_T14:::test_T14
+        :param exc_type: Type of the exception. E.g. AssertionError
+        :param exc_value: Call value of the exception. E.g. 'assert False' in case of an AssertionError
+        :param traceback: The traceback object of the exception
         """
         exc_info = ""
         if exc_type and (exc_type, exc_value, traceback) != self.item_status_info[item_name].get("exc_info", None):

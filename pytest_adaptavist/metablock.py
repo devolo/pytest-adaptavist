@@ -25,8 +25,8 @@ class MetaBlock:
     Context Manager class used for processing/reporting single test blocks/steps.
 
     :param request:
-    :param timeout:
-    :param step:
+    :param timeout: Timeout in seconds
+    :param step: step number as integer starting at 1
     """
 
     class Action(IntEnum):
