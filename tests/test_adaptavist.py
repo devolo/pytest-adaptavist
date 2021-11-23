@@ -1,6 +1,7 @@
 """Test compatibility with Adaptavist."""
 
 import getpass
+import logging
 from unittest.mock import patch
 
 import pytest
@@ -29,9 +30,8 @@ class TestAdaptavistUnit:
                                     executor=getpass.getuser().lower(),
                                     assignee=getpass.getuser().lower())
 
-    @pytest.mark.xfail(msg="Test case needs a rework")
     @pytest.mark.usefixtures("adaptavist_mock")
-    def test_unknown_user(self, pytester: pytest.Pytester):
+    def test_unknown_user(self, pytester: pytest.Pytester, caplog: pytest.LogCaptureFixture):
         """Test the correct behavior of an unknown user."""
         pytester.makepyfile("""
             import pytest
@@ -40,7 +40,7 @@ class TestAdaptavistUnit:
                 assert True
         """)
         with patch("pytest_adaptavist.atm_user_is_valid", return_value=False):
-            report = pytester.runpytest("--adaptavist")
-            assert report.ret == ExitCode.INTERNAL_ERROR
-            report = pytester.runpytest()
-            assert report.ret == ExitCode.OK
+            pytester.runpytest("--adaptavist")
+            assert caplog.records[-1].funcName == "pytest_configure"
+            assert caplog.records[-1].levelno == logging.WARN
+            assert caplog.records[-1].msg == "Local user '%s' is not known in Jira. Test cases will be reported without an executor!"
