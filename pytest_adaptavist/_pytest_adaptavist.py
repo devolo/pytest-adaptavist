@@ -247,12 +247,12 @@ class PytestAdaptavist:
                                                     assignee=self.local_user)
 
             if attachments_test_steps:
-                for attachment in attachments_test_steps:
+                for ats in attachments_test_steps:
                     self.adaptavist.add_test_script_attachment(test_run_key=self.test_run_key,
                                                                test_case_key=test_case_key,
                                                                step=test_step_key,
-                                                               attachment=attachment.attachment,
-                                                               filename=attachment.filename)
+                                                               attachment=ats.attachment,
+                                                               filename=ats.filename)
 
             # adjust parent test result status according to current test script results
             test_result = self.adaptavist.get_test_result(self.test_run_key, test_case_key)
@@ -302,11 +302,11 @@ class PytestAdaptavist:
                                                     assignee=self.local_user)
 
             if attachments_test_case:
-                for attachment in attachments_test_case:
+                for atc in attachments_test_case:
                     self.adaptavist.add_test_result_attachment(test_run_key=self.test_run_key,
                                                                test_case_key=test_case_key,
-                                                               attachment=attachment.attachment,
-                                                               filename=attachment.filename)
+                                                               attachment=atc.attachment,
+                                                               filename=atc.filename)
 
             if attachment:
                 self.adaptavist.add_test_result_attachment(test_run_key=self.test_run_key,
