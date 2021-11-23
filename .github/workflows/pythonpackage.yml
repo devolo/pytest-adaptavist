@@ -66,4 +66,4 @@ jobs:
         pip install -e .[test]
     - name: Test with pytest
       run: |
-        pytest --cov=pytest_adaptavist tests
+        pytest --cov=pytest_adaptavist -m "not system" tests
