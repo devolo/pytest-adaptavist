@@ -4,6 +4,7 @@ This [pytest](http://pytest.org) plugin generates test execution results within 
 
 # Table of Contents
 - [Installation](#installation)
+- [Restrict reporting](#restrict-eporting)
 - [Getting Started](#getting-started)
 - [Examples and Features](#examples-and-features)
     - [General Workflow](#general-workflow)
@@ -30,6 +31,30 @@ Test case selection and ordering (see below) are supported by default.
 In order to access Adaptavist/Jira and create test runs and results in there, provide credentials `JIRA_SERVER, JIRA_USERNAME, JIRA_PASSWORD` as environment variables and run your tests with
 ```
 $ pytest --adaptavist
+```
+
+## Restrict reporting
+
+If you want to report only if a certain local user was used to execute the test (e.g. only report, if the CI user was used), you can use
+```
+$ pytest --adaptavist --restrict-user jenkins
+```
+However, if this local user does not exist as user in Jira, the "Executed by" field in Jira will stay uinassigned.
+
+If you want to report only if a certain branch was used to execute the test (e.g. only report, if using the main branch), you can use
+```
+$ pytest --adaptavist --restrict-branch
+```
+This defaults to the master branch, but you can change the branch.
+```
+$ pytest --adaptavist --restrict-branch ----restrict-branch-name development
+```
+
+You can also apply this settings to a pytest.ini:
+```
+restrict_user=jenkins
+restrict_branch=1
+restrict_branch_name=development
 ```
 
 ## Getting Started
