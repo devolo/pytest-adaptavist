@@ -8,7 +8,6 @@ First, create a file config/global_config.json at the root of this project (not 
 ```
 {
     "project_key": <Project key to report to>,
-    "test_run_key": null,
     "jira_server": <URL of your Jira instance>,
     "jira_username": <Username to login with>,
     "jira_password": <Password to login with>,
