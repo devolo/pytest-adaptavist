@@ -2,7 +2,6 @@
 
 import os
 import shutil
-from contextlib import suppress
 from typing import Generator
 from unittest.mock import patch
 
@@ -26,21 +25,8 @@ def create_test_plan(request):
     if system_test_preconditions() and request.config.option.markexpr != "not system":  # This should only be used if test is a system test
         config = read_global_config()
         atm = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
-        test_plan = atm.create_test_plan(config["project_key"], "just a test plan name")
+        test_plan = atm.create_test_plan(config["project_key"], "pytest_adaptavist_system_test")
         os.environ["TEST_PLAN_KEY"] = test_plan
-
-
-@pytest.fixture(autouse=True)
-def test_plan_prevention_unit_test(request):
-    if not request.node.get_closest_marker("system"):
-        with suppress(KeyError):
-            test_plan_key = ""
-            test_plan_key = os.environ["TEST_PLAN_KEY"]
-            del os.environ["TEST_PLAN_KEY"]
-        yield
-        os.environ["TEST_PLAN_KEY"] = test_plan_key or ""
-    else:
-        yield
 
 
 @pytest.fixture
@@ -91,6 +77,10 @@ def adaptavist_mock(valid_user: None) -> Generator[AdaptavistMock, None, None]:
          patch("adaptavist.Adaptavist.get_test_run_by_name", return_value={"key": "TEST_RUN_TEST"}), \
          patch("adaptavist.Adaptavist.get_test_case", return_value={"name": "TEST-T123", "priority": "Normal"}), \
          patch("adaptavist.Adaptavist.edit_test_case", return_value=True), \
+         patch("adaptavist.Adaptavist._delete"), \
+         patch("adaptavist.Adaptavist._get"), \
+         patch("adaptavist.Adaptavist._post"), \
+         patch("adaptavist.Adaptavist._put"), \
          patch("adaptavist.Adaptavist.create_test_result") as ctr, \
          patch("adaptavist.Adaptavist.edit_test_result_status") as etrs, \
          patch("adaptavist.Adaptavist.edit_test_script_status") as etss:
