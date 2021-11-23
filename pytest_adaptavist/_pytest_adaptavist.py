@@ -213,6 +213,7 @@ class PytestAdaptavist:
         description = None if skip_status else test_result_data.get("description")
         attachments_test_case = None if skip_status else test_result_data.get("attachment_test_case")
         attachments_test_steps = None if skip_status else test_result_data.get("attachment_test_step")
+        attachment = None if skip_status else test_result_data.get("attachment")
 
         header = f"---------------------------------------- {datetime.now().strftime('%Y%m%d%H%M')} ----------------------------------------" if specs else ""
 
@@ -306,6 +307,12 @@ class PytestAdaptavist:
                                                                test_case_key=test_case_key,
                                                                attachment=attachment.attachment,
                                                                filename=attachment.filename)
+
+            if attachment:
+                self.adaptavist.add_test_result_attachment(test_run_key=self.test_run_key,
+                                                           test_case_key=test_case_key,
+                                                           attachment=attachment,
+                                                           filename=test_result_data.get("filename", "attachment.txt"))
 
     def _build_report_description(self, item: pytest.Item, call: CallInfo, report: TestReport, skip_status: Mark | None):
         """Generate standard test results for given item."""

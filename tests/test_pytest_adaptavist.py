@@ -482,25 +482,28 @@ class TestPytestAdaptavistSystem:
         test_result = adaptavist.get_test_result(test_run, test_name)
         assert test_result == {}
 
-    # Starting her is work in progress
+    # Starting here is work in progress
     def test_T16(self, pytester: pytest.Pytester, adaptavist: Adaptavist, test_run: str):
         # TODO: attaching a file is not working at the moment.
         pytester.maketxtfile(first_file="foo")
         pytester.maketxtfile(second_file="bar")
         pytester.makepyfile("""
+            import io
             def test_T16(meta_data):
                 meta_data["comment"] = "unexpected result"
                 attachment = io.StringIO()
                 attachment.write("this is just a simple attachment")
                 meta_data["attachment"] = attachment
-                meta_data["filename"] = "content.
+                meta_data["filename"] = "content.txt"
                 assert False
         """)
-        report = pytester.inline_run("--adaptavist")
+        pytester.inline_run("--adaptavist")
         test_name = test_run.split("-")[0] + "-T16"
         test_result = adaptavist.get_test_result(test_run, test_name)
+        assert test_result["status"] == "Fail"
         attachments = adaptavist.get_test_result_attachment(test_run, test_name)
-        test_result = adaptavist.get_test_result(test_run, test_name)
+        assert attachments[0]["filename"] == "content.txt"
+        assert attachments[0]["filesize"] == 32
 
     # def test_T17(self, pytester: pytest.Pytester, atm_test_plan: Tuple[Adaptavist, str], meta_block):
     #     pytester.makepyfile("""
