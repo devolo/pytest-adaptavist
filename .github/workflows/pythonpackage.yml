@@ -1,0 +1,69 @@
+name: Python package
+
+on: [push]
+
+jobs:
+
+  format:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Check formatting
+      uses: pre-commit/action@v2.0.0
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Lint with flake8
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install flake8
+        flake8 pytest_adaptavist --count --show-source --statistics
+        flake8 . --count --exit-zero --statistics
+    - name: Lint with pylint
+      run: |
+        python -m pip install pylint pytest pylint-pytest
+        python -m pip install -e .[test]
+        pylint --errors-only --score=n pytest_adaptavist
+        pylint --exit-zero --score=n --disable=E,R --max-line-length=160 --enable=useless-suppression pytest_adaptavist
+        pylint --errors-only --score=n --load-plugins pylint_pytest tests
+        pylint --exit-zero --score=n --disable=E,R,C0103 --max-line-length=160 --enable=useless-suppression --load-plugins pylint_pytest tests
+    - name: Lint with mypy
+      run: |
+        python -m pip install mypy
+        mypy pytest_adaptavist
+
+  test:
+    name: Test with Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10"]
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest-cov
+        pip install -e .[test]
+    - name: Test with pytest
+      run: |
+        pytest --cov=pytest_adaptavist -m "not system" tests
