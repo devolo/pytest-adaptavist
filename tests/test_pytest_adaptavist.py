@@ -502,12 +502,3 @@ class TestPytestAdaptavistSystem:
         attachments = adaptavist.get_test_result_attachment(test_run, test_name)
         assert attachments[0]["filename"] == "content.txt"
         assert attachments[0]["filesize"] == 32
-
-    # def test_T17(self, pytester: pytest.Pytester, atm_test_plan: Tuple[Adaptavist, str], meta_block):
-    #     pytester.makepyfile("""
-    #         def test_T17(meta_block):
-    #             with meta_block() as mb:
-    #                 mb.check(True)
-    #     """)
-    #     pytester.runpytest("--adaptavist")
-    #     pass
