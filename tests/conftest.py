@@ -44,7 +44,7 @@ def adaptavist(pytester: pytest.Pytester) -> Generator[Adaptavist, None, None]:
 def create_test_run(adaptavist: Adaptavist):
     """Create a new test run."""
     config = read_global_config()
-    test_run = adaptavist.create_test_run(config["project_key"], "just a name")
+    test_run = adaptavist.create_test_run(config["project_key"], "pytest_system_tests")
     os.environ["TEST_RUN_KEY"] = test_run
     yield test_run
     del os.environ["TEST_RUN_KEY"]
