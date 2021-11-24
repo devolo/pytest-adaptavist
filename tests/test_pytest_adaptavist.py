@@ -482,9 +482,7 @@ class TestPytestAdaptavistSystem:
         test_result = adaptavist.get_test_result(test_run, test_name)
         assert test_result == {}
 
-    # Starting here is work in progress
     def test_T16(self, pytester: pytest.Pytester, adaptavist: Adaptavist, test_run: str):
-        # TODO: attaching a file is not working at the moment.
         pytester.maketxtfile(first_file="foo")
         pytester.maketxtfile(second_file="bar")
         pytester.makepyfile("""
