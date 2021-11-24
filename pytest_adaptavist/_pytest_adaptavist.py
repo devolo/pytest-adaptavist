@@ -312,7 +312,7 @@ class PytestAdaptavist:
                 self.adaptavist.add_test_result_attachment(test_run_key=self.test_run_key,
                                                            test_case_key=test_case_key,
                                                            attachment=attachment,
-                                                           filename=test_result_data.get("filename", "attachment.txt"))
+                                                           filename=test_result_data["filename"])
 
     def _build_report_description(self, item: pytest.Item, call: CallInfo, report: TestReport, skip_status: Mark | None):
         """Generate standard test results for given item."""
