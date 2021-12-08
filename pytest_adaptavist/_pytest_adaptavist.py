@@ -450,7 +450,7 @@ class PytestAdaptavist:
 
         if marker := item.get_closest_marker("testcase"):
             test_case_key = marker.kwargs["test_case_key"]
-            test_step_key = int(marker.kwargs["test_step_key"] or 0)
+            test_step_key = int(marker.kwargs["test_step_key"]) if marker.kwargs["test_step_key"] else None
             self.create_report(test_case_key,
                                test_step_key or None,
                                call.stop - call.start,
