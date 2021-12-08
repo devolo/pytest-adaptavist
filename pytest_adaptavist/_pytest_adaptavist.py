@@ -424,8 +424,10 @@ class PytestAdaptavist:
                                 or not call.excinfo and self.test_result_data[fullname].get("blocked")):
             reason = self.test_result_data[fullname].get("comment") or \
                 str(call.excinfo.value).partition("\n")[0] if call_info else ""  # type: ignore
-            skip_status = pytest.mark.block(reason=reason) if ((call.excinfo and call.excinfo.type is pytest.block.Exception)  # type: ignore  # pylint: disable=no-member
-                                                               or self.test_result_data[fullname].get("blocked")) else pytest.mark.skip(reason=reason)
+            skip_status = pytest.mark.block(reason=reason)\
+                if ((call.excinfo and call.excinfo.type is pytest.block.Exception) or self.test_result_data[fullname].get("blocked"))\
+                                 else pytest.mark.skip(reason=reason)  # type: ignore  # pylint: disable=no-member
+
             if report.outcome != "skipped":
                 report.outcome = "skipped"  # to mark this as SKIPPED in pytest reports
                 report.longrepr = (__file__,
