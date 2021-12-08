@@ -215,7 +215,7 @@ class PytestAdaptavist:
         attachments_test_steps = None if skip_status else test_result_data.get("attachment_test_step")
         attachment = None if skip_status else test_result_data.get("attachment")
 
-        header = f"---------------------------------------- {datetime.now().strftime('%Y%m%d%H%M')} ----------------------------------------" if specs else ""
+        header = f"---------------------------------------- {datetime.now().strftime('%Y-%m-%d %H:%M')} ----------------------------------------" if specs else ""
 
         if not skip_status and not test_step_key:
             # update test case with CI related info
