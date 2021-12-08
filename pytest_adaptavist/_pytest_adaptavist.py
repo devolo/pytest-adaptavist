@@ -131,7 +131,7 @@ class PytestAdaptavist:
             if not (skip_reason := skip_status.kwargs.get("reason", "")) and self.test_result_data[fullname].get("blocked") is True:
                 skip_reason = self.test_result_data[fullname].get("comment", "")
 
-            pytest.block(msg=skip_reason)  # type: ignore  # pylint: disable=no-member
+            pytest.block(msg=skip_reason)  # type: ignore
 
     @pytest.hookimpl()
     def pytest_runtest_logreport(self, report: TestReport):
@@ -399,7 +399,7 @@ class PytestAdaptavist:
                                                   and all((mark.name == "skipif"  # type: ignore
                                                            and mark.args[0] is True for mark in item.cls.pytestmark))):  # type: ignore  # yapf: disable
             return
-        if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore  # pylint: disable=no-member
+        if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore
             report.blocked = True  # type: ignore
 
         skip_status = item.get_closest_marker("block") or item.get_closest_marker("skip")
@@ -419,15 +419,13 @@ class PytestAdaptavist:
         # if method was blocked dynamically (during call) an appropriate marker is used
         # to handle the reporting in the same way as for statically blocked methods
         # (status will be reported as "Blocked" with given comment in Adaptavist)
-        call_info = call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)  # type: ignore  # pylint: disable=no-member
+        call_info = call.excinfo and call.excinfo.type in (pytest.block.Exception, pytest.skip.Exception)  # type: ignore
         if not skip_status and (call_info  # type: ignore
                                 or not call.excinfo and self.test_result_data[fullname].get("blocked")):
             reason = self.test_result_data[fullname].get("comment") or \
                 str(call.excinfo.value).partition("\n")[0] if call_info else ""  # type: ignore
-            skip_status = pytest.mark.block(reason=reason)\
-                if ((call.excinfo and call.excinfo.type is pytest.block.Exception) or self.test_result_data[fullname].get("blocked"))\
-                                 else pytest.mark.skip(reason=reason)  # type: ignore  # pylint: disable=no-member
-
+            skip_status = pytest.mark.block(reason=reason) if ((call.excinfo and call.excinfo.type is pytest.block.Exception)  # type: ignore
+                                                               or self.test_result_data[fullname].get("blocked")) else pytest.mark.skip(reason=reason)
             if report.outcome != "skipped":
                 report.outcome = "skipped"  # to mark this as SKIPPED in pytest reports
                 report.longrepr = (__file__,
@@ -452,9 +450,9 @@ class PytestAdaptavist:
 
         if marker := item.get_closest_marker("testcase"):
             test_case_key = marker.kwargs["test_case_key"]
-            test_step_key = int(marker.kwargs["test_step_key"]) if marker.kwargs["test_step_key"] else None
+            test_step_key = int(marker.kwargs["test_step_key"] or 0)
             self.create_report(test_case_key,
-                               test_step_key,
+                               test_step_key or None,
                                call.stop - call.start,
                                skip_status,
                                report.passed,
@@ -709,5 +707,5 @@ class PytestAdaptavist:
 def is_unexpected_exception(exc_type: Exception) -> bool:
     """Check if exception type is unexpected (any exception except AssertionError, pytest.block.Exception, pytest.skip.Exception)."""
     if exc_type and (isinstance(exc_type, (Exception, BaseException)) or issubclass(exc_type, (Exception, BaseException))):
-        return exc_type not in (None, FailedAssumption, AssertionError, pytest.block.Exception, pytest.skip.Exception)  # type: ignore  # pylint: disable=no-member
+        return exc_type not in (None, FailedAssumption, AssertionError, pytest.block.Exception, pytest.skip.Exception)  # type: ignore
     return False

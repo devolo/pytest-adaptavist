@@ -91,12 +91,12 @@ class MetaBlock:
         # if method was blocked dynamically (during call) an appropriate marker is used
         # to handle the reporting in the same way as for statically blocked methods
         # (status will be reported as "Blocked" with given comment in Adaptavist)
-        if not skip_status and (exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception)  # type:ignore  # pylint: disable=no-member
+        if not skip_status and (exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception)  # type:ignore
                                 or exc_type in (None, MetaBlockAborted) and self.data.get("blocked") is True):
             reason = self.data.get("comment") or (
-                str(exc_value).partition("\n")[0] if exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception) else "")  # type:ignore  # pylint: disable=no-member
+                str(exc_value).partition("\n")[0] if exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception) else "")  # type:ignore
 
-            skip_status = pytest.mark.block(reason=reason) if ((exc_type and exc_type is pytest.block.Exception)  # type:ignore  # pylint: disable=no-member
+            skip_status = pytest.mark.block(reason=reason) if ((exc_type and exc_type is pytest.block.Exception)  # type:ignore
                                                                or self.data.get("blocked", None) is True) else pytest.mark.skip(reason=reason)
 
         # report exceptions
@@ -245,7 +245,7 @@ class MetaBlock:
             pytest.exit(msg=f"Exiting pytest. {self.item_name} failed: {message_on_fail}")
         else:
             # CONTINUE: try to collect failed assumption, set result to 'Fail' and continue
-            pytest.assume(expr=False, msg=message_on_fail)  # type:ignore  # pylint: disable=no-member
+            pytest.assume(expr=False, msg=message_on_fail)  # type:ignore
 
 
 @singledispatch
