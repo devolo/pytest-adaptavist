@@ -44,3 +44,22 @@ class TestAdaptavistUnit:
             assert caplog.records[-1].funcName == "pytest_configure"
             assert caplog.records[-1].levelno == logging.WARN
             assert caplog.records[-1].msg == "Local user '%s' is not known in Jira. Test cases will be reported without an executor!"
+
+    def test_test_case_name_step(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
+        """Test reporting results to Adaptavist if the step is set in testcase name."""
+        pytester.makepyfile("""
+            import pytest
+
+            def test_TEST_T123_1():
+                assert True
+        """)
+        _, _, etss = adaptavist_mock
+        pytester.runpytest("--adaptavist")
+        etss.assert_called_once_with(test_run_key="TEST-C1",
+                                     test_case_key="TEST-T123",
+                                     step=1,
+                                     status="Pass",
+                                     comment="",
+                                     environment=None,
+                                     executor=getpass.getuser().lower(),
+                                     assignee=getpass.getuser().lower())
