@@ -559,7 +559,7 @@ class PytestAdaptavist:
         traceability = None
         test_summary = None
         score_matrix = None
-        if base_url := ATMConfiguration().get("jira_server", "") and getattr(self, "project_key", None) and getattr(self, "test_run_key", None):
+        if (base_url := ATMConfiguration().get("jira_server", "")) and getattr(self, "project_key", None) and getattr(self, "test_run_key", None):
             # pylint: disable=line-too-long
             cycle_string = "%22%2C%20%22".join(self.test_run_keys) if getattr(self, "test_run_keys", None) else self.test_run_key or ""
             traceability = f"{base_url}/secure/Tests.jspa#/reports/traceability/report/view?tql=testResult.projectKey%20IN%20%28%22{self.project_key}%22%29%20AND%20testRun.key%20IN%20%28%22{cycle_string}%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TRACEABILITY_REPORT.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS"  # noqa

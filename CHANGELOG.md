@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## Fixed
+
+* Summary urls are build up correctly
 ## Changed
 
 * The date format in comments is formatted now as %Y-%m-%d %H:%M
