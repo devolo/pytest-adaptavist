@@ -65,7 +65,7 @@ class MetaBlock:
         })
 
     @staticmethod
-    def _timeout_handler(signum: int, frame: FrameType) -> NoReturn:
+    def _timeout_handler(signum: int, frame: FrameType | None) -> NoReturn:
         """Handle test cases running to long."""
         raise TimeoutError("The test step exceeded its timewindow and timed out")
 

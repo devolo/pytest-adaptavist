@@ -56,9 +56,9 @@ def calc_test_result_status(step_results: list[dict[str, str]]) -> str:
     return [k for k, v in status_map.items() if v == status][0]
 
 
-def get_code_base_url() -> str | None:
+def get_code_base_url() -> str:
     """Get current code base url."""
-    code_base = None
+    code_base = ""
     with suppress(subprocess.CalledProcessError):
         code_base = subprocess.check_output("git config --get remote.origin.url".split()).decode("utf-8").strip()
     return code_base

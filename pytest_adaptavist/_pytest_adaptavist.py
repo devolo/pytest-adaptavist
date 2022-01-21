@@ -236,7 +236,7 @@ class PytestAdaptavist:
                 status = STATUS_PASS if passed and last_result.get("status") != STATUS_FAIL else STATUS_FAIL
 
             if status == STATUS_BLOCKED:
-                description = html_row("blocked", description)
+                comment = html_row("blocked", comment)
 
             comments = ((header + "<br>" + "parameterization " + specs + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
                 (description + "<br>") if description else "") + (last_result.get("comment", "") if specs else "")
