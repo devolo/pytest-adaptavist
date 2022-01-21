@@ -85,12 +85,12 @@ def pytest_configure(config: Config):
         adaptavist.local_user = ""
 
     # Store metadata for later usage (e.g. adaptavist traceability).
-    metadata = getattr(config, "_metadata", os.environ)
-    build_url = metadata.get("BUILD_URL")
-    jenkins_url = metadata.get("JENKINS_URL")
+    metadata: dict[str, str] = getattr(config, "_metadata", dict(os.environ))
+    build_url = metadata.get("BUILD_URL", "")
+    jenkins_url = metadata.get("JENKINS_URL", "")
     code_base = metadata.get("GIT_URL", get_code_base_url())
-    branch = metadata.get("GIT_BRANCH")
-    commit = metadata.get("GIT_COMMIT")
+    branch = metadata.get("GIT_BRANCH", "")
+    commit = metadata.get("GIT_COMMIT", "")
     adaptavist.build_url = "/".join(build_url.split("/")[:5]) if build_url and jenkins_url and build_url.startswith(jenkins_url) else build_url
     adaptavist.code_base = code_base.replace(":", "/").replace(".git", "").replace("git@", "https://") \
         if code_base and code_base.startswith("git@") \

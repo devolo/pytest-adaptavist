@@ -56,9 +56,9 @@ def calc_test_result_status(step_results: list[dict[str, str]]) -> str:
     return [k for k, v in status_map.items() if v == status][0]
 
 
-def get_code_base_url() -> str | None:
+def get_code_base_url() -> str:
     """Get current code base url."""
-    code_base = None
+    code_base = ""
     with suppress(subprocess.CalledProcessError):
         code_base = subprocess.check_output("git config --get remote.origin.url".split()).decode("utf-8").strip()
     return code_base
@@ -83,17 +83,20 @@ def get_item_nodeid(item: pytest.Item) -> str:
     return ""
 
 
-def html_row(condition: bool, message: str) -> str:
+def html_row(condition: Literal["passed", "failed", "blocked"], message: str) -> str:
     """Generate an html status row to be displayed in test case results."""
     if not message:
         return ""
 
-    if condition:
+    if condition == "passed":
         background_color = "rgb(58, 187, 75)"
         badge_text = STATUS_PASS
-    else:
+    elif condition == "failed":
         background_color = "rgb(223, 47, 54)"
         badge_text = STATUS_FAIL
+    else:
+        background_color = "rgb(75, 136, 231)"
+        badge_text = STATUS_BLOCKED
 
     return f"<div style='padding: 2pt'><span style='width: auto; margin-right: 4pt; padding: 2pt; border-radius: 4px; background-color: {background_color}; \
             color: white; font-family: monospace; font-size: 10pt; font-weight: bold;'>{badge_text}</span>{message}</div>"

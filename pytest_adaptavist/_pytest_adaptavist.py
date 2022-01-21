@@ -209,7 +209,7 @@ class PytestAdaptavist:
                 self.test_refresh_info[key] = self.test_run_key
 
         # get optional meta data (comments, attachments) of test case method
-        comment = skip_status.kwargs.get("reason") if skip_status else test_result_data.get("comment")
+        comment: str = skip_status.kwargs.get("reason", "") if skip_status else test_result_data.get("comment", "")
         description = None if skip_status else test_result_data.get("description")
         attachments_test_case = None if skip_status else test_result_data.get("attachment_test_case")
         attachments_test_steps = None if skip_status else test_result_data.get("attachment_test_step")
@@ -234,6 +234,9 @@ class PytestAdaptavist:
                 status = STATUS_BLOCKED if skip_status.name == "block" else STATUS_NOT_EXECUTED
             else:
                 status = STATUS_PASS if passed and last_result.get("status") != STATUS_FAIL else STATUS_FAIL
+
+            if status == STATUS_BLOCKED:
+                comment = html_row("blocked", comment)
 
             comments = ((header + "<br>" + "parameterization " + specs + "<br><br>") if specs else "") + ((comment + "<br>") if comment else "") + (
                 (description + "<br>") if description else "") + (last_result.get("comment", "") if specs else "")
@@ -262,20 +265,24 @@ class PytestAdaptavist:
             comments = ""
             if skip_status:
                 # modify comment to add info about blocked or skipped script steps
-                comments = f'step {test_step_key} {"blocked" if skip_status.name == "block" else "skipped"}'
+                comments = f'Step {test_step_key} {"blocked" if skip_status.name == "block" else "skipped"}'
             elif not passed:
                 # modify comment to add info about failure in script steps
-                comments = f'step {test_step_key}{("<br>" + comment + "<br>") if comment else ""} failed:'
+                comments = f'Step {test_step_key}{("<br>" + comment + "<br>") if comment else ""} failed:'
 
             # find the right position to insert comments of this test execution (in case of parametrized or repeated test methods)
             index = test_result.get("comment", "").find("---------------------------------------- ")
 
+            if comments in test_result.get("comment", ""):
+                comment = ""
+            else:
+                comment = (test_result.get("comment", "") + comments) if index < 0 else \
+                    (test_result.get("comment", "")[:index] + comments + test_result.get("comment", "")[index:])
             self.adaptavist.edit_test_result_status(test_run_key=self.test_run_key,
                                                     test_case_key=test_case_key,
                                                     environment=self.test_environment,
                                                     status=status,
-                                                    comment=(test_result.get("comment", "") + comments) if index < 0 else
-                                                    (test_result.get("comment", "")[:index] + comments + test_result.get("comment", "")[index:]),
+                                                    comment=comment,
                                                     execute_time=execute_time,
                                                     executor=self.local_user,
                                                     assignee=self.local_user)
@@ -439,7 +446,7 @@ class PytestAdaptavist:
 
             if (exc_info and exc_info not in (self.test_result_data[fullname].get("comment", None) or "") and (call.excinfo.type is not pytest.skip.Exception)
                     and not skip_status):
-                self.test_result_data[fullname]["comment"] = "".join((self.test_result_data[fullname].get("comment", None) or "", html_row(False, exc_info)))
+                self.test_result_data[fullname]["comment"] = "".join((self.test_result_data[fullname].get("comment", None) or "", html_row("failed", exc_info)))
 
         self._build_report_description(item, call, report, skip_status)
 
@@ -478,7 +485,7 @@ class PytestAdaptavist:
             * New test runs are named like "<test plan name or project key> <test run suffix> <datetime now>"
         """
 
-        if self.project_key:  # and self.test_case_keys:
+        if self.project_key:
             if not self.test_plan_key and self.test_plan_suffix:
                 test_plan_name = f"{self.project_key} {self.test_plan_suffix}"
                 test_plans = self.adaptavist.get_test_plans(f'projectKey = "{self.project_key}"')
