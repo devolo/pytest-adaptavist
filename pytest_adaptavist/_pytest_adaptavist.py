@@ -262,20 +262,23 @@ class PytestAdaptavist:
             comments = ""
             if skip_status:
                 # modify comment to add info about blocked or skipped script steps
-                comments = f'step {test_step_key} {"blocked" if skip_status.name == "block" else "skipped"}'
+                comments = f'Step {test_step_key} {"blocked" if skip_status.name == "block" else "skipped"}'
             elif not passed:
                 # modify comment to add info about failure in script steps
-                comments = f'step {test_step_key}{("<br>" + comment + "<br>") if comment else ""} failed:'
+                comments = f'Step {test_step_key}{("<br>" + comment + "<br>") if comment else ""} failed:'
 
             # find the right position to insert comments of this test execution (in case of parametrized or repeated test methods)
             index = test_result.get("comment", "").find("---------------------------------------- ")
 
+            if comments in test_result.get("comment", ""):
+                comment = None
+            else:
+                comment = (test_result.get("comment", "") + comments) if index < 0 else (test_result.get("comment", "")[:index] + comments + test_result.get("comment", "")[index:])
             self.adaptavist.edit_test_result_status(test_run_key=self.test_run_key,
                                                     test_case_key=test_case_key,
                                                     environment=self.test_environment,
                                                     status=status,
-                                                    comment=(test_result.get("comment", "") + comments) if index < 0 else
-                                                    (test_result.get("comment", "")[:index] + comments + test_result.get("comment", "")[index:]),
+                                                    comment=comment,
                                                     execute_time=execute_time,
                                                     executor=self.local_user,
                                                     assignee=self.local_user)
