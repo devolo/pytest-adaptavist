@@ -276,8 +276,8 @@ class PytestAdaptavist:
             if comments in test_result.get("comment", ""):
                 comment = None
             else:
-                comment = (test_result.get("comment", "") + comments) if index < 0 else (test_result.get("comment", "")[:index] + comments +
-                                                                                         test_result.get("comment", "")[index:])
+                comment = (test_result.get("comment", "") + comments) if index < 0 else \
+                    (test_result.get("comment", "")[:index] + comments + test_result.get("comment", "")[index:])
             self.adaptavist.edit_test_result_status(test_run_key=self.test_run_key,
                                                     test_case_key=test_case_key,
                                                     environment=self.test_environment,
