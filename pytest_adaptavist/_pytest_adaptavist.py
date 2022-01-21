@@ -439,7 +439,7 @@ class PytestAdaptavist:
 
             if (exc_info and exc_info not in (self.test_result_data[fullname].get("comment", None) or "") and (call.excinfo.type is not pytest.skip.Exception)
                     and not skip_status):
-                self.test_result_data[fullname]["comment"] = "".join((self.test_result_data[fullname].get("comment", None) or "", html_row(False, exc_info)))
+                self.test_result_data[fullname]["comment"] = "".join((self.test_result_data[fullname].get("comment", None) or "", html_row("failed", exc_info)))
 
         self._build_report_description(item, call, report, skip_status)
 
@@ -478,7 +478,7 @@ class PytestAdaptavist:
             * New test runs are named like "<test plan name or project key> <test run suffix> <datetime now>"
         """
 
-        if self.project_key:  # and self.test_case_keys:
+        if self.project_key:
             if not self.test_plan_key and self.test_plan_suffix:
                 test_plan_name = f"{self.project_key} {self.test_plan_suffix}"
                 test_plans = self.adaptavist.get_test_plans(f'projectKey = "{self.project_key}"')
