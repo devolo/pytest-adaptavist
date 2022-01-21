@@ -85,7 +85,7 @@ def pytest_configure(config: Config):
         adaptavist.local_user = ""
 
     # Store metadata for later usage (e.g. adaptavist traceability).
-    metadata: dict[str, str] = getattr(config, "_metadata", os.environ)
+    metadata: dict[str, str] = getattr(config, "_metadata", dict(os.environ))
     build_url = metadata.get("BUILD_URL", "")
     jenkins_url = metadata.get("JENKINS_URL", "")
     code_base = metadata.get("GIT_URL", get_code_base_url())

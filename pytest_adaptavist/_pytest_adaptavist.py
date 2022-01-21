@@ -209,7 +209,7 @@ class PytestAdaptavist:
                 self.test_refresh_info[key] = self.test_run_key
 
         # get optional meta data (comments, attachments) of test case method
-        comment = skip_status.kwargs.get("reason") if skip_status else test_result_data.get("comment")
+        comment: str = skip_status.kwargs.get("reason", "") if skip_status else test_result_data.get("comment", "")
         description = None if skip_status else test_result_data.get("description")
         attachments_test_case = None if skip_status else test_result_data.get("attachment_test_case")
         attachments_test_steps = None if skip_status else test_result_data.get("attachment_test_step")
@@ -274,7 +274,7 @@ class PytestAdaptavist:
             index = test_result.get("comment", "").find("---------------------------------------- ")
 
             if comments in test_result.get("comment", ""):
-                comment = None
+                comment = ""
             else:
                 comment = (test_result.get("comment", "") + comments) if index < 0 else \
                     (test_result.get("comment", "")[:index] + comments + test_result.get("comment", "")[index:])
