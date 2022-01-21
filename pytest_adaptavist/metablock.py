@@ -104,7 +104,7 @@ class MetaBlock:
             exc_info = self.adaptavist.build_exception_info(fullname, exc_type, exc_value, traceback)
 
             if (exc_info and exc_info not in (self.data.get("comment") or "") and (exc_type is not pytest.skip.Exception) and not skip_status):
-                self.data["comment"] = "".join((self.data.get("comment", None) or "", html_row(False, exc_info)))
+                self.data["comment"] = "".join((self.data.get("comment", None) or "", html_row("failed", exc_info)))
 
         passed = not exc_type and (len(self.adaptavist.failed_assumptions_step) <= len(getattr(pytest, "_failed_assumptions", [])[:]))
         status: Literal["passed", "failed", "skipped", "blocked"] = ("passed" if passed else "failed") if not skip_status \
@@ -185,9 +185,9 @@ class MetaBlock:
                 self.data["attachment_test_case"].append(Attachment(content, filename=filename or name or "", step=self.step or 0))
 
         if not condition and message_on_fail:
-            self.data["comment"] = "".join((self.data.get("comment", "") or "", html_row(condition, message_on_fail)))
+            self.data["comment"] = "".join((self.data.get("comment", "") or "", html_row("failed", message_on_fail)))
         elif condition and message_on_pass:
-            self.data["comment"] = "".join((self.data.get("comment", "") or "", html_row(condition, message_on_pass)))
+            self.data["comment"] = "".join((self.data.get("comment", "") or "", html_row("passed", message_on_pass)))
 
         if description:
             self.data["description"] = "<br>".join((self.data.get("description", ""), description))

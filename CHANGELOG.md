@@ -6,9 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
-## Fixed
+## Addedd
 
-* Summary urls are build up correctly
+* Blocked test cases comments now also get a badge
 
 ## Changed
 
