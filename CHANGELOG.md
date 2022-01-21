@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## Fixed
 
 * Summary urls are build up correctly
+* Prevent the same comment in testcases
 
 ## [5.0.1] - 2021/11/30
 
