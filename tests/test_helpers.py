@@ -29,15 +29,21 @@ class TestHelpersUnit:
 
     def test_html_row(self):
         """Test html status row to be displayed in test case results."""
-        assert html_row(True, "") == ""
-        assert html_row(False, "") == ""
+        assert html_row("passed", "") == ""
+        assert html_row("failed", "") == ""
+        assert html_row("blocked", "") == ""
 
-        span = BeautifulSoup(html_row(True, "Testmessage"), features="lxml").find("span")
+        span = BeautifulSoup(html_row("passed", "Testmessage"), features="lxml").find("span")
         assert span.text == STATUS_PASS
         assert span.next_sibling == "Testmessage"
         assert "rgb(58, 187, 75)" in span.attrs["style"]
 
-        span = BeautifulSoup(html_row(False, "Testmessage"), features="lxml").find("span")
+        span = BeautifulSoup(html_row("failed", "Testmessage"), features="lxml").find("span")
         assert span.text == STATUS_FAIL
         assert span.next_sibling == "Testmessage"
         assert "rgb(223, 47, 54)" in span.attrs["style"]
+
+        span = BeautifulSoup(html_row("blocked", "Testmessage"), features="lxml").find("span")
+        assert span.text == STATUS_BLOCKED
+        assert span.next_sibling == "Testmessage"
+        assert "rgb(75, 136, 231)" in span.attrs["style"]
