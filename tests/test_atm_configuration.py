@@ -43,7 +43,6 @@ def test_get_bool(input_values, output_values):
 
 def test_get_bool_exception():
     """ Test that an exception is raised if get_bool can't convert it to a valid boolean value """
-    # TODO: Discuss if default bool(VALUE) is ok or if this exception is intended.
     atm_config = ATMConfiguration()
     atm_config.config["test_bool"] = []
     with pytest.raises(ValueError):

@@ -483,6 +483,10 @@ class TestPytestAdaptavistSystem:
         assert test_result == {}
 
     def test_T16(self, pytester: pytest.Pytester, adaptavist: Adaptavist, test_run: str):
+        """
+        Test meta_data
+        Expect that T16 is failed. Upload file with correct filename and size.
+        """
         pytester.maketxtfile(first_file="foo")
         pytester.maketxtfile(second_file="bar")
         pytester.makepyfile("""
