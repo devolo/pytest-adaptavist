@@ -17,6 +17,56 @@ class TestDecoratorUnit:
         assert any(marker in line for line in result.stdout.lines)
 
     @pytest.mark.usefixtures("adaptavist_mock")
+    def test_block_decorator_with_class_decorator(self, pytester: pytest.Pytester):
+        """Test block decorator."""
+        pytester.makepyfile("""
+            import pytest
+
+            @pytest.mark.parametrize("a", [1,2])
+            class Test:
+                @pytest.mark.block()
+                def test_dummy(self, a):
+                    assert True
+        """)
+        outcome = pytester.runpytest().parseoutcomes()
+        assert outcome["blocked"] == 2
+        assert "passed" not in outcome
+
+    @pytest.mark.usefixtures("adaptavist_mock")
+    def test_block_decorator_with_two_class_decorators(self, pytester: pytest.Pytester):
+        """Test block decorator."""
+        pytester.makepyfile("""
+            import pytest
+
+            @pytest.mark.parametrize("a", [1,2])
+            @pytest.mark.skipif(True)
+            class Test:
+                @pytest.mark.block()
+                def test_dummy(self, a):
+                    assert True
+        """)
+        outcome = pytester.runpytest().parseoutcomes()
+        assert outcome["skipped"] == 2
+        assert "passed" not in outcome
+
+    @pytest.mark.usefixtures("adaptavist_mock")
+    def test_block_decorator_with_class_skipif_decorator(self, pytester: pytest.Pytester):
+        """Test block decorator."""
+        pytester.makepyfile("""
+            import pytest
+
+            @pytest.mark.skipif(True)
+            class Test:
+                @pytest.mark.block()
+                def test_dummy(self):
+                    assert True
+        """)
+        outcome = pytester.runpytest().parseoutcomes()
+        assert outcome["skipped"] == 1
+        assert "passed" not in outcome
+        assert "blocked" not in outcome
+
+    @pytest.mark.usefixtures("adaptavist_mock")
     def test_block_decorator(self, pytester: pytest.Pytester):
         """Test block decorator."""
         pytester.makepyfile("""
@@ -28,21 +78,6 @@ class TestDecoratorUnit:
         """)
         outcome = pytester.runpytest().parseoutcomes()
         assert outcome["blocked"] == 1
-        assert "passed" not in outcome
-
-        pytester.makepyfile("""
-            import pytest
-
-            @pytest.mark.block()
-            class TestDummy:
-                def test_dummy1():
-                    assert True
-
-                def test_dummy2():
-                    assert True
-        """)
-        outcome = pytester.runpytest().parseoutcomes()
-        assert outcome["blocked"] == 2
         assert "passed" not in outcome
 
     @pytest.mark.usefixtures("adaptavist_mock")

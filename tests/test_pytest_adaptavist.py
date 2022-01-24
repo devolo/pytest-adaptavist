@@ -228,7 +228,7 @@ class TestPytestAdaptavistSystem:
         test_run_key, test_name = get_test_values(report)
         test_result = adaptavist.get_test_result(test_run_key, test_name)
         assert test_result["status"] == "Blocked"
-        assert test_result["comment"] == "Testing block<br>step 2 blocked"
+        assert test_result["comment"] == "Testing block<br>Step 2 blocked"
         assert test_result["scriptResults"][0]["status"] == "Pass"
         assert test_result["scriptResults"][1]["status"] == "Blocked"
 
@@ -348,7 +348,7 @@ class TestPytestAdaptavistSystem:
         test_result = adaptavist.get_test_result(test_run_key, test_name)
         assert len(attachments) == 0
         assert test_result["status"] == "Blocked"
-        assert test_result["comment"] == "step 1 blocked"
+        assert test_result["comment"] == "Step 1 blocked"
         assert test_result["scriptResults"][0]["status"] == "Blocked"
         assert test_result["scriptResults"][1]["status"] == "Pass"
 
@@ -373,7 +373,7 @@ class TestPytestAdaptavistSystem:
         test_result = adaptavist.get_test_result(test_run_key, test_name)
         assert len(attachments) == 0
         assert test_result["status"] == "Fail"
-        assert test_result["comment"] == "step 1 failed:"
+        assert test_result["comment"] == "Step 1 failed:"
         assert test_result["scriptResults"][0]["status"] == "Fail"
         assert test_result["scriptResults"][1]["status"] == "Not Executed"
 
@@ -483,6 +483,10 @@ class TestPytestAdaptavistSystem:
         assert test_result == {}
 
     def test_T16(self, pytester: pytest.Pytester, adaptavist: Adaptavist, test_run: str):
+        """
+        Test meta_data
+        Expect that T16 is failed. Upload file with correct filename and size.
+        """
         pytester.maketxtfile(first_file="foo")
         pytester.maketxtfile(second_file="bar")
         pytester.makepyfile("""
