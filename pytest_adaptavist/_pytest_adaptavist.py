@@ -124,8 +124,8 @@ class PytestAdaptavist:
         """This is called before calling the test item. Used to skip test items dynamically (e.g. triggered by some other item or control function)."""
         # TODO Make this more generalistic
         # Needed to ensure that a class decorator is preferred over a function decorator.
-        if item.cls and getattr(item.cls, "pytestmark", False) and all(
-            (mark.name != "block" for mark in item.cls.pytestmark)) and not item.get_closest_marker("block"):  # type: ignore
+        if item.cls and getattr(item.cls, "pytestmark", False) \
+            and all((mark.name != "block" for mark in item.cls.pytestmark)) and not item.get_closest_marker("block"):  # type: ignore
             return
         if skip_status := (item.get_closest_marker("block")):
             fullname = get_item_nodeid(item)
@@ -405,7 +405,7 @@ class PytestAdaptavist:
 
         if call.when not in ("call", "setup") or (item.cls and getattr(item.cls, "pytestmark", False)  # type: ignore
                                                   and all((mark.name != "block" for mark in item.cls.pytestmark))  # type: ignore
-                                                  and any((mark.args[0] is True for mark in item.cls.pytestmark if mark.name == "skipif"))):  # type: ignore  # yapf: disable
+                                                  and any((mark.args[0] is True for mark in item.cls.pytestmark if mark.name == "skipif"))):  # type: ignore
             return
         if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore
             report.blocked = True  # type: ignore
