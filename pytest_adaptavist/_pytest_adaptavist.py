@@ -123,8 +123,8 @@ class PytestAdaptavist:
     def pytest_runtest_setup(self, item: pytest.Item):
         """This is called before calling the test item. Used to skip test items dynamically (e.g. triggered by some other item or control function)."""
         # Needed to ensure that a class decorator is preferred over a function decorator.
-        if item.cls and getattr(item.cls, "pytestmark", False) \
-                and all((mark.name != "block" for mark in item.cls.pytestmark)) and not item.get_closest_marker("block"):  # type: ignore
+        if (item.cls and getattr(item.cls, "pytestmark", False)  # type: ignore
+                and all((mark.name != "block" for mark in item.cls.pytestmark)) and not item.get_closest_marker("block")):  # type: ignore
             return
         if skip_status := (item.get_closest_marker("block")):
             fullname = get_item_nodeid(item)

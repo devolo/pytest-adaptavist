@@ -5,7 +5,6 @@ import logging
 from unittest.mock import patch
 
 import pytest
-from _pytest.config import ExitCode
 
 from . import AdaptavistMock
 
