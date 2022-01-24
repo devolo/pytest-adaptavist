@@ -125,7 +125,7 @@ class PytestAdaptavist:
         # TODO Make this more generalistic
         # Needed to ensure that a class decorator is preferred over a function decorator.
         if item.cls and getattr(item.cls, "pytestmark", False) \
-            and all((mark.name != "block" for mark in item.cls.pytestmark)) and not item.get_closest_marker("block"):  # type: ignore
+                and all((mark.name != "block" for mark in item.cls.pytestmark)) and not item.get_closest_marker("block"):  # type: ignore
             return
         if skip_status := (item.get_closest_marker("block")):
             fullname = get_item_nodeid(item)
