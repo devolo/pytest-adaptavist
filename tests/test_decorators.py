@@ -33,7 +33,7 @@ class TestDecoratorUnit:
         assert "passed" not in outcome
 
     @pytest.mark.usefixtures("adaptavist_mock")
-    def test_block_decorator_with_class_decorator(self, pytester: pytest.Pytester):
+    def test_block_decorator_with_two_class_decorators(self, pytester: pytest.Pytester):
         """Test block decorator."""
         pytester.makepyfile("""
             import pytest
