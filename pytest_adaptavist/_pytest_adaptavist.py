@@ -21,7 +21,6 @@ from _pytest.runner import CallInfo
 from _pytest.terminal import TerminalReporter
 from adaptavist import Adaptavist
 from adaptavist.const import PRIORITY_HIGH, STATUS_BLOCKED, STATUS_FAIL, STATUS_NOT_EXECUTED, STATUS_PASS
-from py import code
 from pytest_assume.plugin import Assumption, FailedAssumption
 
 from ._atm_configuration import ATMConfiguration
@@ -34,6 +33,7 @@ class PytestAdaptavist:
 
     :param config: The pytest config object
     """
+
     def __init__(self, config: Config):
         self.item_status_info: dict[str, Any] = {}
         self.test_refresh_info: dict[str, Any] = {}
@@ -716,6 +716,7 @@ class PytestAdaptavist:
 
 class AdaptavistAssumption(Assumption):
     """Inherited assumption object extended with a line number attribute."""
+
     def __init__(self, entry: str, tb: FrameType, locals: list[str] | None = None):
         self.line_no = tb.f_lineno
         super().__init__(entry, tb, locals)
