@@ -21,10 +21,18 @@ from _pytest.runner import CallInfo
 from _pytest.terminal import TerminalReporter
 from adaptavist import Adaptavist
 from adaptavist.const import PRIORITY_HIGH, STATUS_BLOCKED, STATUS_FAIL, STATUS_NOT_EXECUTED, STATUS_PASS
+from py import code
 from pytest_assume.plugin import Assumption, FailedAssumption
 
 from ._atm_configuration import ATMConfiguration
 from ._helpers import apply_test_case_range, calc_test_result_status, get_item_nodeid, get_option_ini, get_spec, html_row, intersection
+
+
+class AssumptionPytest(Assumption):
+
+    def __init__(self, entry, tb, locals=None):
+        self.line_no = tb.f_lineno
+        super().__init__(entry, tb, locals)
 
 
 class PytestAdaptavist:
@@ -148,25 +156,29 @@ class PytestAdaptavist:
             if stack_entry.function == "check" and stack_entry.filename.endswith("metablock.py"):
                 test_call_index = index + 1
                 break
-        (frame, _, _, _, contextlist) = inspect.stack()[test_call_index][0:5]
+        (frame, _, _, _, contextlist) = stack[test_call_index][:5]
         local_locals = [f"{name:10s} = {saferepr(val)}" for name, val in frame.f_locals.items()]
         self.failed_assumptions_step.append([])
-        self.FAILED_ASSUMPTIONS.append(Assumption((contextlist or [""])[0].lstrip(), frame, local_locals))
+        self.FAILED_ASSUMPTIONS.append(AssumptionPytest((contextlist or [""])[0].lstrip(), frame, local_locals))
 
     @pytest.hookimpl()
     def pytest_assume_summary_report(self, failed_assumptions: list[Assumption]) -> str:
         """Manipulate the summary that prints at the end."""
         for failed_assumption in zip(failed_assumptions, self.FAILED_ASSUMPTIONS):
-            frame, filename, lineno, _, codecontext = inspect.getouterframes(failed_assumption[0].tb.tb_frame)[2][0:5]
-            msg = frame.f_locals.get("message_on_fail")
-            context = msg or ((codecontext or [""])[0]).lstrip()
-            local_entry = f"{os.path.relpath(filename)}:{lineno}: AssumptionFailure\n\t{context}"
+            filename = inspect.getouterframes(failed_assumption[0].tb.tb_frame)[3][1]
+            frame = inspect.getouterframes(failed_assumption[0].tb.tb_frame)[2][0]
+            msg = frame.f_locals.get("message_on_fail", "")
+            context = (msg or failed_assumption[1].entry.strip()) + "\n"
+            local_entry = f"{os.path.relpath(filename)}:{failed_assumption[1].line_no}: AssumptionFailure\n\t{context}"
             failed_assumption[0].locals = failed_assumption[1].locals
-            failed_assumption[0].entry = local_entry
+            failed_assumption[1].entry = local_entry
 
-        return "".join(failed_assumption.longrepr() for failed_assumption in self.FAILED_ASSUMPTIONS) \
-            if getattr(pytest, "_showlocals") \
-            else "".join(failed_assumption.repr() for failed_assumption in self.FAILED_ASSUMPTIONS)
+        string = "\n".join(failed_assumption.longrepr() + "\n\n" for failed_assumption in self.FAILED_ASSUMPTIONS)\
+            if not getattr(pytest, "_showlocals") \
+            else "\n".join(failed_assumption.repr() for failed_assumption in self.FAILED_ASSUMPTIONS)
+
+        self.FAILED_ASSUMPTIONS = []
+        return string
 
     def create_report(self,
                       test_case_key: str,

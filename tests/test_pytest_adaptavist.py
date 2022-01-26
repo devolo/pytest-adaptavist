@@ -1,6 +1,7 @@
 """Test connection between pytest and Adaptavist."""
 
 import getpass
+import re
 from io import BytesIO
 from unittest.mock import patch
 
@@ -158,6 +159,38 @@ class TestPytestAdaptavistUnit:
         assert outcome["skipped"] == 1
         assert etrs.call_args.kwargs["test_case_key"] == "TEST-T125"
         assert "skipped as requested" in etrs.call_args.kwargs["comment"]
+
+    def test_xfail(self, pytester: pytest.Pytester):
+        pytester.makepyfile("""
+            import pytest
+
+            @pytest.mark.xfail
+            def test_T125(meta_block):
+                assert False
+        """)
+        outcome = pytester.runpytest()
+        outcome = outcome.parseoutcomes()
+        assert outcome["xfailed"] == 1
+
+    def test_correct_stacktrace(self, pytester: pytest.Pytester):
+        pytester.makepyfile("""
+                def test_a(meta_block):
+                    with meta_block(1) as mb_1:
+                        mb_1.check(not True)
+
+                def test_b(meta_block):
+                    with meta_block(1) as mb_1:
+                        mb_1.check(False)
+                    with meta_block(2) as mb_2:
+                        mb_2.check(not not False)
+                            """)
+        outcome = pytester.runpytest()
+        regex = re.findall("not True", str(outcome.outlines).replace('\'', "").replace("[", "").replace("]", ""))
+        assert len(regex) == 1
+        regex = re.findall("\(False", str(outcome.outlines).replace('\'', "").replace("[", "").replace("]", ""))
+        assert len(regex) == 1
+        regex = re.findall("not not False", str(outcome.outlines).replace('\'', "").replace("[", "").replace("]", ""))
+        assert len(regex) == 1
 
 
 @pytest.mark.system
