@@ -169,8 +169,7 @@ class TestPytestAdaptavistUnit:
             def test_T125(meta_block):
                 assert False
         """)
-        outcome = pytester.runpytest()
-        outcome = outcome.parseoutcomes()
+        outcome = pytester.runpytest().parseoutcomes()
         assert outcome["xfailed"] == 1
 
     def test_correct_stacktrace(self, pytester: pytest.Pytester):
