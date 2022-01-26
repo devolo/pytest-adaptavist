@@ -43,7 +43,7 @@ jobs:
         pylint --exit-zero --score=n --disable=E,R,C0103 --max-line-length=160 --enable=useless-suppression --load-plugins pylint_pytest tests
     - name: Lint with mypy
       run: |
-        python -m pip install mypy types-requests
+        python -m pip install mypy types-requests types-setuptools
         mypy pytest_adaptavist
         mypy tests || true
 
