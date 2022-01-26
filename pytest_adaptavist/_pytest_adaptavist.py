@@ -717,7 +717,7 @@ class PytestAdaptavist:
 class AdaptavistAssumption(Assumption):
     """Inherited assumption object extended with a line number attribute."""
 
-    def __init__(self, entry: str, tb: FrameType, locals: list[str] | None = None):
+    def __init__(self, entry: str, tb: FrameType, locals: list[str] | None = None):  # pylint: disable=redefined-builtin
         self.line_no = tb.f_lineno
         super().__init__(entry, tb, locals)
 

@@ -161,6 +161,7 @@ class TestPytestAdaptavistUnit:
         assert "skipped as requested" in etrs.call_args.kwargs["comment"]
 
     def test_xfail(self, pytester: pytest.Pytester):
+        """Test that xfail is handled properly."""
         pytester.makepyfile("""
             import pytest
 
@@ -173,6 +174,7 @@ class TestPytestAdaptavistUnit:
         assert outcome["xfailed"] == 1
 
     def test_correct_stacktrace(self, pytester: pytest.Pytester):
+        """Test that the correct stack trace is printed."""
         pytester.makepyfile("""
                 def test_a(meta_block):
                     with meta_block(1) as mb_1:
