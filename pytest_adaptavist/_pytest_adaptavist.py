@@ -9,7 +9,7 @@ import re
 import sys
 import time
 from datetime import datetime
-from types import TracebackType
+from types import FrameType, TracebackType
 from typing import Any
 
 import pytest
@@ -28,22 +28,12 @@ from ._atm_configuration import ATMConfiguration
 from ._helpers import apply_test_case_range, calc_test_result_status, get_item_nodeid, get_option_ini, get_spec, html_row, intersection
 
 
-class AssumptionPytest(Assumption):
-
-    def __init__(self, entry, tb, locals=None):
-        self.line_no = tb.f_lineno
-        super().__init__(entry, tb, locals)
-
-
 class PytestAdaptavist:
     """
     Connects pytest with Adaptavist and takes care about the reporting.
 
     :param config: The pytest config object
     """
-
-    FAILED_ASSUMPTIONS: list[Assumption] = []
-
     def __init__(self, config: Config):
         self.item_status_info: dict[str, Any] = {}
         self.test_refresh_info: dict[str, Any] = {}
@@ -51,6 +41,7 @@ class PytestAdaptavist:
         self.report: dict[str, Any] = {}
         self.project_key: str | None = None
         self.test_run_keys: list[str] = []
+        self.failed_assumptions: list[Assumption] = []
         self.failed_assumptions_step: list[Assumption] = []
         self.reporter: TerminalReporter = config.pluginmanager.getplugin("terminalreporter")
         self.build_url = ""
@@ -159,12 +150,12 @@ class PytestAdaptavist:
         (frame, _, _, _, contextlist) = stack[test_call_index][:5]
         local_locals = [f"{name:10s} = {saferepr(val)}" for name, val in frame.f_locals.items()]
         self.failed_assumptions_step.append([])
-        self.FAILED_ASSUMPTIONS.append(AssumptionPytest((contextlist or [""])[0].lstrip(), frame, local_locals))
+        self.failed_assumptions.append(AdaptavistAssumption((contextlist or [""])[0].lstrip(), frame, local_locals))
 
     @pytest.hookimpl()
     def pytest_assume_summary_report(self, failed_assumptions: list[Assumption]) -> str:
         """Manipulate the summary that prints at the end."""
-        for failed_assumption in zip(failed_assumptions, self.FAILED_ASSUMPTIONS):
+        for failed_assumption in zip(failed_assumptions, self.failed_assumptions):
             filename = inspect.getouterframes(failed_assumption[0].tb.tb_frame)[3][1]
             frame = inspect.getouterframes(failed_assumption[0].tb.tb_frame)[2][0]
             msg = frame.f_locals.get("message_on_fail", "")
@@ -173,11 +164,11 @@ class PytestAdaptavist:
             failed_assumption[0].locals = failed_assumption[1].locals
             failed_assumption[1].entry = local_entry
 
-        string = "\n".join(failed_assumption.longrepr() + "\n\n" for failed_assumption in self.FAILED_ASSUMPTIONS)\
+        string = "\n".join(failed_assumption.longrepr() + "\n\n" for failed_assumption in self.failed_assumptions)\
             if not getattr(pytest, "_showlocals") \
-            else "\n".join(failed_assumption.repr() for failed_assumption in self.FAILED_ASSUMPTIONS)
+            else "\n".join(failed_assumption.repr() for failed_assumption in self.failed_assumptions)
 
-        self.FAILED_ASSUMPTIONS = []
+        self.failed_assumptions = []
         return string
 
     def create_report(self,
@@ -721,6 +712,13 @@ class PytestAdaptavist:
             elif self.cfg.get_bool("skip_ntc_methods", False):
                 # skip methods that are no test case methods
                 item.add_marker(pytest.mark.skip)
+
+
+class AdaptavistAssumption(Assumption):
+    """Inherited assumption object extended with a line number attribute."""
+    def __init__(self, entry: str, tb: FrameType, locals: list[str] | None = None):
+        self.line_no = tb.f_lineno
+        super().__init__(entry, tb, locals)
 
 
 def is_unexpected_exception(exc_type: Exception) -> bool:

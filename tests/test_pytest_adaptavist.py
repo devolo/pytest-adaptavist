@@ -187,7 +187,7 @@ class TestPytestAdaptavistUnit:
         outcome = pytester.runpytest()
         regex = re.findall("not True", str(outcome.outlines).replace('\'', "").replace("[", "").replace("]", ""))
         assert len(regex) == 1
-        regex = re.findall("\(False", str(outcome.outlines).replace('\'', "").replace("[", "").replace("]", ""))
+        regex = re.findall("\\(False", str(outcome.outlines).replace('\'', "").replace("[", "").replace("]", ""))
         assert len(regex) == 1
         regex = re.findall("not not False", str(outcome.outlines).replace('\'', "").replace("[", "").replace("]", ""))
         assert len(regex) == 1
