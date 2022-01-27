@@ -164,12 +164,12 @@ class PytestAdaptavist:
             failed_assumption[0].locals = failed_assumption[1].locals
             failed_assumption[1].entry = local_entry
 
-        string = "\n".join(failed_assumption.longrepr() + "\n\n" for failed_assumption in self.failed_assumptions)\
+        report = "\n".join(failed_assumption.longrepr() + "\n\n" for failed_assumption in self.failed_assumptions)\
             if not getattr(pytest, "_showlocals") \
             else "\n".join(failed_assumption.repr() for failed_assumption in self.failed_assumptions)
 
         self.failed_assumptions = []
-        return string
+        return report
 
     def create_report(self,
                       test_case_key: str,
