@@ -1,6 +1,6 @@
 # pytest-adaptavist
 
-This [pytest](http://pytest.org) plugin generates test execution results within ([Zephyr Scale](https://marketplace.atlassian.com/apps/1213259/zephyr-scale-test-management-for-jira)), formerly known as Adaptavist.
+This [pytest](http://pytest.org) plugin generates test execution results within [Zephyr Scale](https://marketplace.atlassian.com/apps/1213259/zephyr-scale-test-management-for-jira), formerly known as Adaptavist.
 
 # Table of Contents
 - [Installation](#installation)
