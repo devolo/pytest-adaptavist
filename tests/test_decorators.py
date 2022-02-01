@@ -98,6 +98,7 @@ class TestDecoratorUnit:
         assert "passed" not in outcome
 
     def test_project_decorator(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
+        """Test project decorator."""
         pytester.makepyfile("""
             import pytest
 
@@ -106,7 +107,7 @@ class TestDecoratorUnit:
                 def test_T16(self):
                     assert True
         """)
-        _, etrs, etss = adaptavist_mock
+        _, etrs, _ = adaptavist_mock
         pytester.runpytest("--adaptavist")
         etrs.call_args.kwargs["test_case_key"] == "MARKER-T16"
 
