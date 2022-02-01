@@ -128,7 +128,7 @@ class Blocked(Skipped):
 def meta_data(request: pytest.FixtureRequest) -> MetaDataFixture:
     """This can be used to store data inside of test methods."""
     adaptavist: PytestAdaptavist = request.config.pluginmanager.getplugin("_adaptavist")
-    return adaptavist.test_result_data[request.node.nodeid]
+    return adaptavist.test_result_data[request.node.nodeid.split("@")[0]]
 
 
 @pytest.fixture
