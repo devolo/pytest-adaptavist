@@ -3,10 +3,9 @@
 import pytest
 from adaptavist import Adaptavist
 
-from . import get_test_values, read_global_config, system_test_preconditions
+from . import AdaptavistMock, get_test_values, read_global_config, system_test_preconditions
 
 
-@pytest.mark.usefixtures("configure")
 class TestDecoratorUnit:
     """Test decorator usage on unit test level."""
 
@@ -16,7 +15,7 @@ class TestDecoratorUnit:
         result = pytester.runpytest("--markers")
         assert any(marker in line for line in result.stdout.lines)
 
-    @pytest.mark.usefixtures("adaptavist_mock")
+    @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_block_decorator_with_class_decorator(self, pytester: pytest.Pytester):
         """Test block decorator."""
         pytester.makepyfile("""
@@ -32,7 +31,7 @@ class TestDecoratorUnit:
         assert outcome["blocked"] == 2
         assert "passed" not in outcome
 
-    @pytest.mark.usefixtures("adaptavist_mock")
+    @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_block_decorator_with_two_class_decorators(self, pytester: pytest.Pytester):
         """Test block decorator."""
         pytester.makepyfile("""
@@ -49,7 +48,7 @@ class TestDecoratorUnit:
         assert outcome["skipped"] == 2
         assert "passed" not in outcome
 
-    @pytest.mark.usefixtures("adaptavist_mock")
+    @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_block_decorator_with_class_skipif_decorator(self, pytester: pytest.Pytester):
         """Test block decorator."""
         pytester.makepyfile("""
@@ -66,7 +65,7 @@ class TestDecoratorUnit:
         assert "passed" not in outcome
         assert "blocked" not in outcome
 
-    @pytest.mark.usefixtures("adaptavist_mock")
+    @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_block_decorator(self, pytester: pytest.Pytester):
         """Test block decorator."""
         pytester.makepyfile("""
@@ -80,7 +79,7 @@ class TestDecoratorUnit:
         assert outcome["blocked"] == 1
         assert "passed" not in outcome
 
-    @pytest.mark.usefixtures("adaptavist_mock")
+    @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_decorator_preferation(self, pytester: pytest.Pytester):
         """Test class block decorator is preferred to method decorator."""
         pytester.makepyfile("""
@@ -97,6 +96,19 @@ class TestDecoratorUnit:
         outcome = report.parseoutcomes()
         assert outcome["blocked"] == 1
         assert "passed" not in outcome
+
+    def test_project_decorator(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
+        pytester.makepyfile("""
+            import pytest
+
+            class TestClass:
+                @pytest.mark.project(project_key="MARKER")
+                def test_T16(self):
+                    assert True
+        """)
+        _, etrs, etss = adaptavist_mock
+        pytester.runpytest("--adaptavist")
+        etrs.call_args.kwargs["test_case_key"] == "MARKER-T16"
 
 
 @pytest.mark.system
