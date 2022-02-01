@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 
 * Handle xdist groups correctly
+* Handle project marker correctly
 
 ## [5.1.1] - 2022/01/27
 
