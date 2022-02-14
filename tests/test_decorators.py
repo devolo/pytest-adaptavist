@@ -126,10 +126,10 @@ class TestDecoratorUnit:
                     pass
         """)
         with open("config/global_config.json", "w", encoding="utf8") as file:
-            file.write('{"project_key": "TESTTEST"}')
+            file.write('{"project_key": "OTHERTEST"}')
         _, etrs, _ = adaptavist_mock
         pytester.runpytest("--adaptavist")
-        assert etrs.call_args_list[0].kwargs["test_case_key"] == "TESTTEST-T1"
+        assert etrs.call_args_list[0].kwargs["test_case_key"] == "OTHERTEST-T1"
         assert etrs.call_args_list[1].kwargs["test_case_key"] == "TEST-T17"
 
 
