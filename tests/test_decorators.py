@@ -111,7 +111,7 @@ class TestDecoratorUnit:
         pytester.runpytest("--adaptavist")
         etrs.call_args.kwargs["test_case_key"] == "MARKER-T16"
 
-    @pytest.mark.usefixtures("adaptavist_mock", "configure")
+    @pytest.mark.usefixtures("configure")
     def test_respect_project_decorator_if_project_key_set(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Respect a project key if set in a config file."""
         pytester.makepyfile("""
