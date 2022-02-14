@@ -111,6 +111,27 @@ class TestDecoratorUnit:
         pytester.runpytest("--adaptavist")
         etrs.call_args.kwargs["test_case_key"] == "MARKER-T16"
 
+    @pytest.mark.usefixtures("adaptavist_mock", "configure")
+    def test_respect_project_decorator_if_project_key_set(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
+        """Respect a project key if set in a config file."""
+        pytester.makepyfile("""
+            import pytest
+
+            class TestClass():
+                def test_T1(self, meta_block):
+                    pass
+
+                @pytest.mark.project(project_key="TEST")
+                def test_T17(self, meta_block):
+                    pass
+        """)
+        with open("config/global_config.json", "w", encoding="utf8") as file:
+            file.write('{"project_key": "TESTTEST"}')
+        _, etrs, _ = adaptavist_mock
+        pytester.runpytest("--adaptavist")
+        assert etrs.call_args_list[0].kwargs["test_case_key"] == "TESTTEST-T1"
+        assert etrs.call_args_list[1].kwargs["test_case_key"] == "TEST-T17"
+
 
 @pytest.mark.system
 @pytest.mark.skipif(not system_test_preconditions(), reason="Preconditions for system tests not met. Please see README.md")

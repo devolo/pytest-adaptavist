@@ -106,8 +106,8 @@ class PytestAdaptavist:
     def pytest_collection_modifyitems(self, session: pytest.Session, config: Config, items: list[pytest.Item]):  # pylint: disable=unused-argument
         """Collect items matching given requirements and prepare adaptavist reporting."""
         for item in items:
-            if mark := item.get_closest_marker("project"):
-                self.project_key = mark.kwargs.get("project_key") or self.project_key
+            if (mark := item.get_closest_marker("project")) and not self.project_key:
+                self.project_key = mark.kwargs.get("project_key")
             fullname = get_item_nodeid(item)
             # initialize item's status info
             self.item_status_info[fullname] = {}
