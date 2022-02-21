@@ -157,8 +157,7 @@ class TestPytestAdaptavistUnit:
         outcome = pytester.runpytest("--adaptavist", "-vv").parseoutcomes()
         assert outcome["passed"] == 1
         assert outcome["skipped"] == 1
-        assert etrs.call_args.kwargs["test_case_key"] == "TEST-T125"
-        assert "skipped as requested" in etrs.call_args.kwargs["comment"]
+        assert etrs.call_args.kwargs["test_case_key"] == "TEST-T123"
 
     def test_xfail(self, pytester: pytest.Pytester):
         """Test that xfail is handled properly."""
