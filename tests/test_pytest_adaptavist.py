@@ -192,6 +192,25 @@ class TestPytestAdaptavistUnit:
         regex = re.findall("not not False", str(outcome.outlines).replace('\'', "").replace("[", "").replace("]", ""))
         assert len(regex) == 1
 
+    def test_reporting_skipped_test_cases(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
+        """Don't report a test case if it is not in test_case_keys."""
+        pytester.makepyfile("""
+            import pytest
+
+            class TestClass():
+                def test_T121(self, meta_block):
+                    pass
+
+                def test_T123(self, meta_block):
+                    pass
+        """)
+        with open("config/global_config.json", "w", encoding="utf8") as file:
+            file.write('{"test_case_keys": ["TEST-T123"]}')
+        _, etrs, _ = adaptavist_mock
+        pytester.runpytest("--adaptavist")
+        assert etrs.call_args_list[0].kwargs["test_case_key"] == "TEST-T123"
+        assert etrs.call_count == 1
+
 
 @pytest.mark.system
 @pytest.mark.skipif(not system_test_preconditions(), reason="Preconditions for system tests not met. Please see README.md")
