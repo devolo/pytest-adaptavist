@@ -22,6 +22,7 @@ from .constants import META_BLOCK_TIMEOUT
 from .metablock import MetaBlock
 from .types import MetaBlockFixture, MetaDataFixture
 
+__all__ = ["PytestAdaptavist", "MetaBlock", "MetaBlockFixture", "MetaDataFixture"]
 try:
     __version__ = version("adaptavist")
 except PackageNotFoundError:
