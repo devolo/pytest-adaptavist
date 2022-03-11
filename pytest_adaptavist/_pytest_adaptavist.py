@@ -106,8 +106,8 @@ class PytestAdaptavist:
     def pytest_collection_modifyitems(self, session: pytest.Session, config: Config, items: list[pytest.Item]):  # pylint: disable=unused-argument
         """Collect items matching given requirements and prepare adaptavist reporting."""
         for item in items:
-            if mark := item.get_closest_marker("project"):
-                self.project_key = mark.kwargs.get("project_key") or self.project_key
+            if (mark := item.get_closest_marker("project")) and not self.project_key:
+                self.project_key = mark.kwargs.get("project_key")
             fullname = get_item_nodeid(item)
             # initialize item's status info
             self.item_status_info[fullname] = {}
@@ -705,8 +705,8 @@ class PytestAdaptavist:
                 self.test_refresh_info[project_key + "-" + test_case_key + (specs or "")] = None
 
                 # mark this item with appropriate info (easier to read from when creating test results)
-                item.add_marker(pytest.mark.testcase(project_key=project_key, test_case_key=project_key + "-" + test_case_key, test_step_key=test_step_key))
-
+                if (project_key + "-" + test_case_key) in test_case_keys or not test_case_keys:
+                    item.add_marker(pytest.mark.testcase(project_key=project_key, test_case_key=project_key + "-" + test_case_key, test_step_key=test_step_key))
                 if (test_case_keys and (project_key + "-" + test_case_key) not in test_case_keys):
                     item.add_marker(pytest.mark.skip(reason="skipped as requested"))
                 else:
