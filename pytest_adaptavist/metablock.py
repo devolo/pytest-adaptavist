@@ -50,7 +50,7 @@ class MetaBlock:
         STOP_EXIT_SESSION = 7
         """If condition fails, skip execution of this block/test, set it to 'Blocked' and exit session."""
 
-    def __init__(self, request: pytest.FixtureRequest, timeout: int, action_on_timout: Action, message_on_timeout: str, step: int | None = None):
+    def __init__(self, request: pytest.FixtureRequest, timeout: int, action_on_timeout: Action, message_on_timeout: str, step: int | None = None):
         fullname = get_item_nodeid(request.node)
         self.item = request.node
         self.items = request.session.items
@@ -59,7 +59,7 @@ class MetaBlock:
         self.start = datetime.now().timestamp()
         self.stop = datetime.now().timestamp()
         self.timeout = timeout
-        self.action_on_timeout = action_on_timout
+        self.action_on_timeout = action_on_timeout
         self.message_on_timeout = message_on_timeout
         self.adaptavist: PytestAdaptavist = request.config.pluginmanager.getplugin("_adaptavist")
         self.data: dict[str, Any] = self.adaptavist.test_result_data.setdefault(fullname + ("_" + str(step) if step else ""), {
