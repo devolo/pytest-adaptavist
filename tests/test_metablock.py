@@ -159,6 +159,21 @@ class TestMetaBlockUnit:
         assert outcome["skipped"] == 1
 
     @pytest.mark.usefixtures("adaptavist_mock")
+    def test_meta_block_timeout_fail(self, pytester: pytest.Pytester):
+        """Test if a meta block is timed out with fail action."""
+        pytester.makepyfile("""
+            from time import sleep
+            import pytest
+
+            def test_TEST_T123(meta_block):
+                with meta_block(1, timeout=1, action_on_timeout=0):
+                    sleep(2)
+                    assert True
+        """)
+        outcome = pytester.runpytest("--adaptavist").parseoutcomes()
+        assert outcome["failed"] == 1
+
+    @pytest.mark.usefixtures("adaptavist_mock")
     def test_meta_block_check_unknown_arguments(self, pytester: pytest.Pytester):
         """Test if meta_block handles unknown keyword arguments correctly."""
         pytester.makepyfile("""

@@ -4,12 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.0] - 2022/03/22
+
+### Added
+
+* Choose an action and a message on timeout
+
+### Fixed
+
+* Docstrings of actions
+
 ## [5.1.4] - 2022/02/22
 
 ### Fixed
 
 * Testcases which are skipped due to test_case_keys are no longer reported to adaptavist
-
 
 ## [5.1.3] - 2022/02/14
 

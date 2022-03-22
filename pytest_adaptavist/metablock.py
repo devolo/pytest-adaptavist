@@ -33,24 +33,24 @@ class MetaBlock:
         """Action to take, if a test case fails."""
 
         NONE = 0
-        """If condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')."""
         FAIL_CONTEXT = 0
-        """If condition fails, skip execution of this block, set it to 'Blocked' and continue with next block."""
+        """If condition fails, collect assumption, set block/test to 'Fail' and continue (just like 'assume')."""
         STOP_CONTEXT = 1
-        """If condition fails, skip execution of this block/test, set it to 'Fail' and continue with next test (just like 'assert')."""
+        """If condition fails, skip execution of this block, set it to 'Blocked' and continue with next block."""
         FAIL_METHOD = 2
-        """If condition fails, skip execution of this block/test, set it to 'Blocked' and continue with next test."""
+        """If condition fails, skip execution of this block/test, set it to 'Fail' and continue with next test (just like 'assert')."""
         STOP_METHOD = 3
-        """If condition fails, skip execution of this block/test, set it to 'Fail' and block following tests."""
+        """If condition fails, skip execution of this block/test, set it to 'Blocked' and continue with next test."""
         FAIL_SESSION = 4
-        """If condition fails, skip execution of this block/test, set it to 'Blocked' and block following tests as well."""
+        """If condition fails, skip execution of this block/test, set it to 'Fail' and block following tests."""
         STOP_SESSION = 5
-        """If condition fails, skip execution of this block/test, set it to 'Blocked' and exit session."""
+        """If condition fails, skip execution of this block/test, set it to 'Blocked' and block following tests as well."""
         FAIL_EXIT_SESSION = 6
         """If condition fails, skip execution of this block/test, set it to 'Blocked' and exit session."""
         STOP_EXIT_SESSION = 7
+        """If condition fails, skip execution of this block/test, set it to 'Blocked' and exit session."""
 
-    def __init__(self, request: pytest.FixtureRequest, timeout: int, step: int | None = None):
+    def __init__(self, request: pytest.FixtureRequest, timeout: int, action_on_timout: Action, message_on_timeout: str, step: int | None = None):
         fullname = get_item_nodeid(request.node)
         self.item = request.node
         self.items = request.session.items
@@ -59,6 +59,8 @@ class MetaBlock:
         self.start = datetime.now().timestamp()
         self.stop = datetime.now().timestamp()
         self.timeout = timeout
+        self.action_on_timeout = action_on_timout
+        self.message_on_timeout = message_on_timeout
         self.adaptavist: PytestAdaptavist = request.config.pluginmanager.getplugin("_adaptavist")
         self.data: dict[str, Any] = self.adaptavist.test_result_data.setdefault(fullname + ("_" + str(step) if step else ""), {
             "comment": None, "attachment": None
@@ -84,8 +86,7 @@ class MetaBlock:
         self.stop = datetime.now().timestamp()
         fullname = get_item_nodeid(self.item)
         if exc_type is TimeoutError:
-            self.data["blocked"] = True
-            pytest.skip(msg=f"Blocked. {self.item_name} failed: The test step exceeded its timewindow and timed out")
+            self._process_failed_condition(self.action_on_timeout, self.message_on_timeout)
         skip_status = self.item.get_closest_marker("block") or self.item.get_closest_marker("skip")
 
         # if method was blocked dynamically (during call) an appropriate marker is used
