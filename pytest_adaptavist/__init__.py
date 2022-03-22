@@ -147,6 +147,6 @@ def meta_block(request: pytest.FixtureRequest) -> MetaBlockFixture:
 
     def get_meta_block(step: int | None = None, timeout: int = META_BLOCK_TIMEOUT) -> MetaBlock:
         """Return a meta block context to process single test blocks/steps."""
-        return MetaBlock(request, timeout=timeout, step=step)
+        return MetaBlock(request, timeout=timeout, action_on_timout=MetaBlock.Action.STOP_CONTEXT, message_on_timeout="The test step exceeded its timewindow and timed out.", step=step)
 
     return get_meta_block
