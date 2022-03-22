@@ -38,7 +38,7 @@ class MetaBlock:
         STOP_CONTEXT = 1
         """If condition fails, skip execution of this block, set it to 'Blocked' and continue with next block."""
         FAIL_METHOD = 2
-        """If condition fails, skip execution of this block/test, set it to 'Fail' and continue with next test (just like 'assert')."""      
+        """If condition fails, skip execution of this block/test, set it to 'Fail' and continue with next test (just like 'assert')."""
         STOP_METHOD = 3
         """If condition fails, skip execution of this block/test, set it to 'Blocked' and continue with next test."""
         FAIL_SESSION = 4
