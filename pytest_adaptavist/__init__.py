@@ -57,6 +57,7 @@ def pytest_configure(config: Config):
     config.addinivalue_line("markers", "testcase: mark test method as test case implementation (for internal use only)")
     config.addinivalue_line("markers", "project(project_key): mark test method to be related to given project (used to create appropriate test case key")
     config.addinivalue_line("markers", "block(reason): mark test method to be blocked")
+    config.addinivalue_line("markers", "blockif(condition, ..., *, reason=...): mark test method to be blocked if any of the conditions evaluate to True")
 
     adaptavist = PytestAdaptavist(config)
     config.pluginmanager.register(adaptavist, "_adaptavist")

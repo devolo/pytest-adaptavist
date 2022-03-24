@@ -80,6 +80,54 @@ class TestDecoratorUnit:
         assert "passed" not in outcome
 
     @pytest.mark.usefixtures("adaptavist_mock", "configure")
+    def test_blockif_decorator(self, pytester: pytest.Pytester):
+        """Test blockif decorator."""
+        pytester.makepyfile("""
+            import pytest
+
+            @pytest.mark.blockif(True)
+            def test_dummy():
+                assert True
+        """)
+        outcome = pytester.runpytest().parseoutcomes()
+        assert outcome["blocked"] == 1
+        assert "passed" not in outcome
+
+        pytester.makepyfile("""
+            import pytest
+
+            @pytest.mark.blockif(True)
+            class Test:
+                def test_dummy():
+                    assert True
+        """)
+        outcome = pytester.runpytest().parseoutcomes()
+        assert outcome["blocked"] == 1
+        assert "passed" not in outcome
+
+        pytester.makepyfile("""
+            import pytest
+
+            @pytest.mark.blockif(False)
+            def test_dummy():
+                assert True
+        """)
+        outcome = pytester.runpytest().parseoutcomes()
+        assert outcome["passed"] == 1
+        assert "blocked" not in outcome
+
+        pytester.makepyfile("""
+            import pytest
+
+            @pytest.mark.blockif(False, True)
+            def test_dummy():
+                assert True
+        """)
+        outcome = pytester.runpytest().parseoutcomes()
+        assert outcome["blocked"] == 1
+        assert "passed" not in outcome
+
+    @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_decorator_preferation(self, pytester: pytest.Pytester):
         """Test class block decorator is preferred to method decorator."""
         pytester.makepyfile("""
@@ -89,6 +137,24 @@ class TestDecoratorUnit:
             class TestClass:
 
                 @pytest.mark.skip()
+                def test_dummy(self):
+                    assert True
+        """)
+        report = pytester.runpytest("--adaptavist")
+        outcome = report.parseoutcomes()
+        assert outcome["blocked"] == 1
+        assert "passed" not in outcome
+
+    @pytest.mark.usefixtures("adaptavist_mock", "configure")
+    def test_decorator_preferation_blocked(self, pytester: pytest.Pytester):
+        """Test class block decorator is preferred to method decorator."""
+        pytester.makepyfile("""
+            import pytest
+
+            @pytest.mark.blockif(False)
+            class TestClass:
+
+                @pytest.mark.block()
                 def test_dummy(self):
                     assert True
         """)
