@@ -151,7 +151,7 @@ class TestDecoratorUnit:
         pytester.makepyfile("""
             import pytest
 
-            @pytest.mark.blockif(False)
+            @pytest.mark.blockif(False, reason="asdasd")
             class TestClass:
 
                 @pytest.mark.block()

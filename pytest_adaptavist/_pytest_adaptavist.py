@@ -128,13 +128,19 @@ class PytestAdaptavist:
         if (item.cls and getattr(item.cls, "pytestmark", False) and all((mark.name != "block" or "blockif" for mark in item.cls.pytestmark))  # type: ignore
                 and not item.get_closest_marker("block") and not item.get_closest_marker("blockif")):
             return
-        if skip_status := (item.get_closest_marker("block") or item.get_closest_marker("blockif")):
+
+        if item.get_closest_marker("blockif") and not item.get_closest_marker("blockif").kwargs.get("reason", ""):
+            fail("You need to specify a reason when blocking conditionally.", pytrace=False)
+
+        if skip_status := item.get_closest_marker("blockif"):
+            if any(skip_status.args):
+                pytest.block(msg=skip_status.kwargs["reason"])  # type: ignore
+
+        if skip_status := item.get_closest_marker("block"):
             fullname = get_item_nodeid(item)
             if not (skip_reason := skip_status.kwargs.get("reason", "")) and self.test_result_data[fullname].get("blocked") is True:
                 skip_reason = self.test_result_data[fullname].get("comment", "")
-            if item.get_closest_marker("blockif") and not skip_reason:
-                fail("You need to specify a reason when blocking conditionally.", pytrace=False)
-            if skip_status.name == "block" or any(skip_status.args):
+            if skip_status.name == "block":
                 pytest.block(msg=skip_reason)  # type: ignore
 
     @pytest.hookimpl()
@@ -414,7 +420,8 @@ class PytestAdaptavist:
                                                   and all((mark.name != "block" for mark in item.cls.pytestmark))  # type: ignore
                                                   and any((mark.args[0] is True for mark in item.cls.pytestmark if mark.name == "skipif"))):  # type: ignore
             return
-        if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore
+        if (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore
+            # if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore
             report.blocked = True  # type: ignore
 
         skip_status = item.get_closest_marker("block") or item.get_closest_marker("skip")
