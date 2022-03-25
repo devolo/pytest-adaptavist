@@ -16,6 +16,7 @@ import pytest
 from _pytest._io.saferepr import saferepr
 from _pytest.config import Config
 from _pytest.mark.structures import Mark
+from _pytest.outcomes import fail
 from _pytest.reports import TestReport
 from _pytest.runner import CallInfo
 from _pytest.terminal import TerminalReporter
@@ -124,15 +125,22 @@ class PytestAdaptavist:
     def pytest_runtest_setup(self, item: pytest.Item):
         """This is called before calling the test item. Used to skip test items dynamically (e.g. triggered by some other item or control function)."""
         # Needed to ensure that a class decorator is preferred over a function decorator.
-        if (item.cls and getattr(item.cls, "pytestmark", False)  # type: ignore
-                and all((mark.name != "block" for mark in item.cls.pytestmark)) and not item.get_closest_marker("block")):  # type: ignore
+        if (item.cls and getattr(item.cls, "pytestmark", False) and all((mark.name != "block" or "blockif" for mark in item.cls.pytestmark))  # type: ignore
+                and not item.get_closest_marker("block") and not item.get_closest_marker("blockif")):
             return
-        if skip_status := (item.get_closest_marker("block")):
+
+        if skip_status := item.get_closest_marker("blockif"):
+            if not skip_status.kwargs.get("reason", ""):
+                fail("You need to specify a reason when blocking conditionally.", pytrace=False)
+            elif any(skip_status.args):
+                pytest.block(msg=skip_status.kwargs["reason"])  # type: ignore
+
+        if skip_status := item.get_closest_marker("block"):
             fullname = get_item_nodeid(item)
             if not (skip_reason := skip_status.kwargs.get("reason", "")) and self.test_result_data[fullname].get("blocked") is True:
                 skip_reason = self.test_result_data[fullname].get("comment", "")
-
-            pytest.block(msg=skip_reason)  # type: ignore
+            if skip_status.name == "block":
+                pytest.block(msg=skip_reason)  # type: ignore
 
     @pytest.hookimpl()
     def pytest_runtest_logreport(self, report: TestReport):
@@ -411,7 +419,7 @@ class PytestAdaptavist:
                                                   and all((mark.name != "block" for mark in item.cls.pytestmark))  # type: ignore
                                                   and any((mark.args[0] is True for mark in item.cls.pytestmark if mark.name == "skipif"))):  # type: ignore
             return
-        if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore
+        if call.excinfo and call.excinfo.type is pytest.block.Exception:  # type: ignore
             report.blocked = True  # type: ignore
 
         skip_status = item.get_closest_marker("block") or item.get_closest_marker("skip")
