@@ -226,3 +226,26 @@ class TestDecoratorSystem:
         test_result = adaptavist.get_test_result(test_run_key, f"{config['project_key']}-T5")
         assert test_result["status"] == "Blocked"
         assert test_result["scriptResults"][0]["status"] == "Not Executed"
+
+    def test_T38(self, pytester: pytest.Pytester, adaptavist: Adaptavist):
+        """Test blockif decorator."""
+        pytester.makepyfile("""
+            import pytest
+
+            def test_T4(meta_block):  # As a blocked Testcase has no test_run attached, we need another test case to get the test_run_key
+                with meta_block() as mb:
+                    mb.check(True)
+
+            @pytest.mark.blockif(True)
+            def test_T38(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(False)
+                with meta_block(2) as mb_2:
+                    mb_2.check(False)
+        """)
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, _ = get_test_values(report, "test_T4")
+        config = read_global_config()
+        test_result = adaptavist.get_test_result(test_run_key, f"{config['project_key']}-T38")
+        assert test_result["status"] == "Blocked"
+        assert test_result["scriptResults"][0]["status"] == "Not Executed"
