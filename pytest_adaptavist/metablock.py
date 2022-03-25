@@ -228,7 +228,7 @@ class MetaBlock:
                 item.add_marker("block")
                 self.adaptavist.test_result_data[fullname]["blocked"] = True
                 self.adaptavist.test_result_data[fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
-            pytest.block(msg=message_on_fail)
+            pytest.block(msg=message_on_fail)  # type:ignore
         elif action_on_fail == self.Action.FAIL_SESSION:
             # FAIL_SESSION: skip execution of this block/test, set it to 'Fail' and block following tests
             for item in self.items:
