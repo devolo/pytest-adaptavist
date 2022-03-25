@@ -16,6 +16,7 @@ import pytest
 from _pytest._io.saferepr import saferepr
 from _pytest.config import Config
 from _pytest.mark.structures import Mark
+from _pytest.outcomes import fail
 from _pytest.reports import TestReport
 from _pytest.runner import CallInfo
 from _pytest.terminal import TerminalReporter
@@ -131,6 +132,8 @@ class PytestAdaptavist:
             fullname = get_item_nodeid(item)
             if not (skip_reason := skip_status.kwargs.get("reason", "")) and self.test_result_data[fullname].get("blocked") is True:
                 skip_reason = self.test_result_data[fullname].get("comment", "")
+            if item.get_closest_marker("blockif") and not skip_reason:
+                fail("You need to specify a reason when blocking conditionally.", pytrace=False)
             if skip_status.name == "block" or any(skip_status.args):
                 pytest.block(msg=skip_reason)  # type: ignore
 

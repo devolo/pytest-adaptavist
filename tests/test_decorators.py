@@ -85,7 +85,7 @@ class TestDecoratorUnit:
         pytester.makepyfile("""
             import pytest
 
-            @pytest.mark.blockif(True)
+            @pytest.mark.blockif(True, reason="Test")
             def test_dummy():
                 assert True
         """)
@@ -96,7 +96,7 @@ class TestDecoratorUnit:
         pytester.makepyfile("""
             import pytest
 
-            @pytest.mark.blockif(True)
+            @pytest.mark.blockif(True, reason="Test")
             class Test:
                 def test_dummy():
                     assert True
@@ -108,7 +108,7 @@ class TestDecoratorUnit:
         pytester.makepyfile("""
             import pytest
 
-            @pytest.mark.blockif(False)
+            @pytest.mark.blockif(False, reason="Test")
             def test_dummy():
                 assert True
         """)
@@ -119,7 +119,7 @@ class TestDecoratorUnit:
         pytester.makepyfile("""
             import pytest
 
-            @pytest.mark.blockif(False, True)
+            @pytest.mark.blockif(False, True, reason="Test")
             def test_dummy():
                 assert True
         """)
@@ -146,8 +146,8 @@ class TestDecoratorUnit:
         assert "passed" not in outcome
 
     @pytest.mark.usefixtures("adaptavist_mock", "configure")
-    def test_decorator_preferation_blocked(self, pytester: pytest.Pytester):
-        """Test class block decorator is preferred to method decorator."""
+    def test_decorator_combination_blocked(self, pytester: pytest.Pytester):
+        """Test class block decorator is useful combined with method decorator."""
         pytester.makepyfile("""
             import pytest
 
@@ -161,6 +161,21 @@ class TestDecoratorUnit:
         report = pytester.runpytest("--adaptavist")
         outcome = report.parseoutcomes()
         assert outcome["blocked"] == 1
+        assert "passed" not in outcome
+
+    @pytest.mark.usefixtures("adaptavist_mock", "configure")
+    def test_multiple_skipif(self, pytester: pytest.Pytester):
+        """Test multiple conditions in a skipif decorator."""
+        pytester.makepyfile("""
+            import pytest
+
+            @pytest.mark.skipif(False, True, reason="Test")
+            def test_dummy(self):
+                assert True
+        """)
+        report = pytester.runpytest("--adaptavist")
+        outcome = report.parseoutcomes()
+        assert outcome["skipped"] == 1
         assert "passed" not in outcome
 
     def test_project_decorator(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
