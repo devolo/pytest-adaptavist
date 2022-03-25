@@ -419,8 +419,7 @@ class PytestAdaptavist:
                                                   and all((mark.name != "block" for mark in item.cls.pytestmark))  # type: ignore
                                                   and any((mark.args[0] is True for mark in item.cls.pytestmark if mark.name == "skipif"))):  # type: ignore
             return
-        if (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore
-            # if item.get_closest_marker("block") or (call.excinfo and call.excinfo.type is pytest.block.Exception):  # type: ignore
+        if call.excinfo and call.excinfo.type is pytest.block.Exception:  # type: ignore
             report.blocked = True  # type: ignore
 
         skip_status = item.get_closest_marker("block") or item.get_closest_marker("skip")
