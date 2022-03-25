@@ -236,7 +236,7 @@ class TestDecoratorSystem:
                 with meta_block() as mb:
                     mb.check(True)
 
-            @pytest.mark.blockif(True)
+            @pytest.mark.blockif(True, reason="blockif reason")
             def test_T38(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(False)
@@ -248,4 +248,5 @@ class TestDecoratorSystem:
         config = read_global_config()
         test_result = adaptavist.get_test_result(test_run_key, f"{config['project_key']}-T38")
         assert test_result["status"] == "Blocked"
+        assert "blockif reason" in test_result["comment"]
         assert test_result["scriptResults"][0]["status"] == "Not Executed"
