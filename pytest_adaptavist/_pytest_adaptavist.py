@@ -130,7 +130,7 @@ class PytestAdaptavist:
             return
 
         if skip_status := item.get_closest_marker("blockif"):
-            if skip_status.kwargs.get("reason", ""):
+            if not skip_status.kwargs.get("reason", ""):
                 fail("You need to specify a reason when blocking conditionally.", pytrace=False)
 
         if skip_status := item.get_closest_marker("blockif"):
