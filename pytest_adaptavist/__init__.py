@@ -47,6 +47,8 @@ def pytest_addoption(parser: Parser):
                    option_type="bool",
                    help="Only send data to Adaptavist, if a certain branch is used.")
     add_option_ini("--restrict-branch-name", dest="restrict_branch_name", default="origin/master", help="Branch to restrict to (default: origin/master)")
+    add_option_ini("--test_run_name", dest="test_run_name")
+    add_option_ini("--test_plan_name", dest="test_plan_name")
 
 
 @pytest.hookimpl(trylast=True)

@@ -16,3 +16,6 @@ COLORMAP = {
 }
 
 META_BLOCK_TIMEOUT = 600
+
+TEST_RUN_NAME_DEFAULT = "%(project_key) %(test_run_suffix)"
+TEST_PLAN_NAME_DEFAULT = "%(project_key) %(test_plan_suffix)"
