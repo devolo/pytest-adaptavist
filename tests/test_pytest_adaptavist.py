@@ -210,7 +210,7 @@ class TestPytestAdaptavistUnit:
         pytester.runpytest("--adaptavist")
         assert etrs.call_args_list[0].kwargs["test_case_key"] == "TEST-T123"
         assert etrs.call_count == 1
-    # TODO: pytest fails with an internalerror, but ctr is called correctly. Something goes wrong while test case collection. System tests are fine...
+
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_test_run_name(self, pytester: pytest.Pytester):
         """Test that test_run_name template is working."""
@@ -237,14 +237,13 @@ class TestPytestAdaptavistUnit:
             """)
             pytester.runpytest("--adaptavist")
             assert "Change test_run_name TEST" == ctr.call_args[1]['test_run_name']
-            
-            
+
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_test_plan_name_template(self, pytester: pytest.Pytester):
         """Test that test_run_name template is working."""
         import os
         del os.environ["TEST_PLAN_KEY"]
-        with patch("adaptavist.Adaptavist.create_test_plan") as ctp, patch("adaptavist.Adaptavist.get_test_plans", return_value = {}):
+        with patch("adaptavist.Adaptavist.create_test_plan") as ctp, patch("adaptavist.Adaptavist.get_test_plans", return_value={}):
             pytester.makepyfile("""
             import pytest
 
@@ -291,7 +290,7 @@ class TestPytestAdaptavistUnit:
             outcome = pytester.runpytest("--adaptavist")
             assert outcome.ret == 6
             # TODO: Test the error message
-            
+
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_test_run_name_invalid_type(self, pytester: pytest.Pytester):
         """Test that test_run_name template is working."""
@@ -314,6 +313,7 @@ class TestPytestAdaptavistUnit:
             """)
             outcome = pytester.runpytest("--adaptavist")
             assert outcome.ret == 6
+
 
 @pytest.mark.system
 @pytest.mark.skipif(not system_test_preconditions(), reason="Preconditions for system tests not met. Please see README.md")

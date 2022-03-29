@@ -26,7 +26,7 @@ from pytest_assume.plugin import Assumption, FailedAssumption
 
 from ._atm_configuration import ATMConfiguration
 from ._helpers import apply_test_case_range, calc_test_result_status, get_item_nodeid, get_option_ini, get_spec, html_row, intersection
-from .constants import TEST_RUN_NAME_DEFAULT, TEST_PLAN_NAME_DEFAULT
+from .constants import TEST_PLAN_NAME_DEFAULT, TEST_RUN_NAME_DEFAULT
 
 
 class PytestAdaptavist:
@@ -728,7 +728,7 @@ class PytestAdaptavist:
             elif self.cfg.get_bool("skip_ntc_methods", False):
                 # skip methods that are no test case methods
                 item.add_marker(pytest.mark.skip)
-                
+
     def _eval_format(self, string: str) -> str:
         try:
             placeholders = re.findall('(?<=%\()(.*?)(?=\))', string)
