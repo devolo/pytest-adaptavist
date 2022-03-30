@@ -3,15 +3,23 @@
 This [pytest](http://pytest.org) plugin generates test execution results within [Zephyr Scale](https://marketplace.atlassian.com/apps/1213259/zephyr-scale-test-management-for-jira), formerly known as Adaptavist.
 
 # Table of Contents
-- [Installation](#installation)
-- [Restrict reporting](#restrict-eporting)
-- [Getting Started](#getting-started)
-- [Examples and Features](#examples-and-features)
+- [pytest-adaptavist](#pytest-adaptavist)
+- [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+  - [Restrict reporting](#restrict-reporting)
+  - [Getting Started](#getting-started)
+  - [Examples and Features](#examples-and-features)
     - [General Workflow](#general-workflow)
-    - [Context Reporting](#context-reporting)
+      - [Examples](#examples)
+    - [Context reporting](#context-reporting)
     - [Testcase Order](#testcase-order)
+      - [Examples:](#examples-1)
     - [Testcase Range](#testcase-range)
-    - [Skipping vs. Blocking](#skipping-vs.-blocking)
+      - [Examples:](#examples-2)
+    - [Skipping vs. Blocking](#skipping-vs-blocking)
+      - [Using markers](#using-markers)
+      - [Using metablock action modes](#using-metablock-action-modes)
+      - [Using pytest methods](#using-pytest-methods)
     - [Callbacks](#callbacks)
 
 ## Installation
@@ -75,9 +83,22 @@ Alternatively, if ```project_key``` is given and ```test_run_key``` is left empt
 
 New test plans can be created by specifying ```test_plan_suffix``` which is used as identifier to find existing test plans and must be unique. If there is a matching test plan, it will be used for creating new test runs. Else a new test plan is created within the given project and new test runs are linked to that. If both test plan key and suffix are missing, test runs are created just for the given project.
 
-*Naming convention for new test plans and test runs within pytest_adaptavist:*
-- *new test plans are named like ```<project key> <test plan suffix>```*
-- *new test runs are named like ```<test plan name or project key> <test run suffix> <datetime now>```*
+Default naming convention for new test plans and test runs within pytest_adaptavist:
+- new test plans are named like ```<project key> <test plan suffix>```
+- new test runs are named like ```<test plan name or project key> <test run suffix> <datetime now>```
+
+If you want to use a different schema, you can configure ```test_run_name``` or ```test_plan_name``` in your pytest.ini and use the following placeholders:
+- project_key
+- test_plan_key
+- test_run_key
+- test_environment
+- test_plan_folder
+- test_run_folder
+- test_plan_suffix
+- test_run_suffix
+- local_user
+
+e.g. ```test_run_name = %(project_key) Regressiontest on %(test_environment)```
 
 ```test_case_keys``` can be used as an option to run only a subset of implemented test cases. All others are skipped in this case. For new created test runs these test cases are excluded while for existing test runs the appropriate test case results stay as they are (if existing).
 
