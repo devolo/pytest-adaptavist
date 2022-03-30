@@ -26,7 +26,6 @@ from pytest_assume.plugin import Assumption, FailedAssumption
 
 from ._atm_configuration import ATMConfiguration
 from ._helpers import apply_test_case_range, calc_test_result_status, get_item_nodeid, get_option_ini, get_spec, html_row, intersection
-from .constants import TEST_PLAN_NAME_DEFAULT, TEST_RUN_NAME_DEFAULT
 
 
 class PytestAdaptavist:
@@ -35,8 +34,11 @@ class PytestAdaptavist:
 
     :param config: The pytest config object
     """
+    _ATTRIBUTE_PLACEHOLDERS = re.compile("(?<=%\()(.*?)(?=\))")
+    _ATTRIBUTE_REPLACEMENT = re.compile("%\(.*?\)")
 
     def __init__(self, config: Config):
+        self.config = config
         self.item_status_info: dict[str, Any] = {}
         self.test_refresh_info: dict[str, Any] = {}
         self.test_result_data: dict[str, Any] = {}
@@ -64,9 +66,9 @@ class PytestAdaptavist:
         self.cfg = ATMConfiguration()
         self.adaptavist: Adaptavist = Adaptavist(self.cfg.get("jira_server", ""), self.cfg.get("jira_username", ""), self.cfg.get("jira_password", ""))
 
-        self.atm_configure(config)
+        self.atm_configure()
 
-    def atm_configure(self, config: Config):
+    def atm_configure(self):
         """Setup adaptavist reporting based on given requirements (config)."""
         if not self.project_key:
             self.project_key = self.cfg.get("project_key", None)
@@ -74,7 +76,7 @@ class PytestAdaptavist:
         # support of multiple environments
         # in case of using xdist's "each" mode, a test run for each specified environment is created
         # and test_environment can be used (when given as a list or comma-separated string) to specify keys for each test run resp. worker node
-        worker_input = getattr(config, "workerinput", {})
+        worker_input = getattr(self.config, "workerinput", {})
         distribution = worker_input.get("options", {}).get("dist", None)
         index = int(worker_input.get("workerid", "gw0").split("gw")[1]) if (distribution == "each") else 0
 
@@ -497,13 +499,8 @@ class PytestAdaptavist:
             * New test plans are named like "<project key> <test plan suffix>" (where test plan suffix must be unique)
             * New test runs are named like "<test plan name or project key> <test run suffix> <datetime now>"
         """
-        test_run_name = self.reporter.config.inicfg.get("test_run_name", TEST_RUN_NAME_DEFAULT)
-        test_plan_name = self.reporter.config.inicfg.get("test_plan_name", TEST_PLAN_NAME_DEFAULT)
-        if type(test_run_name) is not str or type(test_plan_name) is not str:
-            raise ValueError("Invalid test_run_name or test_plan_name configured.")
-
-        test_run_name = self._eval_format(test_run_name)
-        test_plan_name = self._eval_format(test_plan_name)
+        test_run_name = self._eval_format(str(self.config.getini("test_run_name")))
+        test_plan_name = self._eval_format(str(self.config.getini("test_plan_name")))
 
         if self.project_key:
             if not self.test_plan_key and self.test_plan_suffix:
@@ -730,12 +727,13 @@ class PytestAdaptavist:
                 item.add_marker(pytest.mark.skip)
 
     def _eval_format(self, string: str) -> str:
+        """Evaluate configured test_run_name or test_plan_name setting."""
         try:
-            placeholders = re.findall('(?<=%\()(.*?)(?=\))', string)
-            pytest_adaptavist_variables = []
+            placeholders: list[str] = self._ATTRIBUTE_PLACEHOLDERS.findall(string)
+            pytest_adaptavist_variables: list[str] = []
             for placeholder in placeholders:
                 pytest_adaptavist_variables.append(getattr(self, placeholder))
-            string = re.sub('%\(.*?\)', "{}", string)
+            string = self._ATTRIBUTE_REPLACEMENT.sub("{}", string)
             return string.format(*pytest_adaptavist_variables)
         except AttributeError:
             pytest.exit(f"Invalid test_run_name or test_plan_name configured: '{placeholder}' not known.", returncode=6)

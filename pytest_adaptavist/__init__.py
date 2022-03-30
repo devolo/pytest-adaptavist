@@ -18,7 +18,7 @@ from ._atm_configuration import atm_user_is_valid
 from ._helpers import get_code_base_url, get_option_ini
 from ._pytest_adaptavist import PytestAdaptavist
 from ._xdist import XdistHooks
-from .constants import META_BLOCK_TIMEOUT
+from .constants import META_BLOCK_TIMEOUT, TEST_PLAN_NAME_DEFAULT, TEST_RUN_NAME_DEFAULT
 from .metablock import MetaBlock
 from .types import MetaBlockFixture, MetaDataFixture
 
@@ -47,8 +47,8 @@ def pytest_addoption(parser: Parser):
                    option_type="bool",
                    help="Only send data to Adaptavist, if a certain branch is used.")
     add_option_ini("--restrict-branch-name", dest="restrict_branch_name", default="origin/master", help="Branch to restrict to (default: origin/master)")
-    add_option_ini("--test_run_name", dest="test_run_name")
-    add_option_ini("--test_plan_name", dest="test_plan_name")
+    add_option_ini("--test_run_name", dest="test_run_name", default=TEST_RUN_NAME_DEFAULT)
+    add_option_ini("--test_plan_name", dest="test_plan_name", default=TEST_PLAN_NAME_DEFAULT)
 
 
 @pytest.hookimpl(trylast=True)
