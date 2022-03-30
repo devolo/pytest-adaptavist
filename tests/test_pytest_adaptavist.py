@@ -268,7 +268,7 @@ class TestPytestAdaptavistUnit:
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_test_run_name_invalid_key(self, pytester: pytest.Pytester):
         """Test that test_run_name template is working."""
-        with patch ("adaptavist.Adaptavist.create_test_run", return_value="TEST-C123"), patch("adaptavist.Adaptavist.get_test_run_by_name", return_value={}):
+        with patch("adaptavist.Adaptavist.create_test_run", return_value="TEST-C123"), patch("adaptavist.Adaptavist.get_test_run_by_name", return_value={}):
             pytester.makepyfile("""
                 import pytest
 
