@@ -34,8 +34,8 @@ class PytestAdaptavist:
 
     :param config: The pytest config object
     """
-    _ATTRIBUTE_PLACEHOLDERS = re.compile("(?<=%\()(.*?)(?=\))")
-    _ATTRIBUTE_REPLACEMENT = re.compile("%\(.*?\)")
+    _ATTRIBUTE_PLACEHOLDERS = re.compile(r"(?<=%\()(.*?)(?=\))")
+    _ATTRIBUTE_REPLACEMENT = re.compile(r"%\(.*?\)")
 
     def __init__(self, config: Config):
         self.config = config
