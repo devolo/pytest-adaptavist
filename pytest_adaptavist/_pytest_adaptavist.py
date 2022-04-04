@@ -34,8 +34,11 @@ class PytestAdaptavist:
 
     :param config: The pytest config object
     """
+    _ATTRIBUTE_PLACEHOLDERS = re.compile(r"(?<=%\()(.*?)(?=\))")
+    _ATTRIBUTE_REPLACEMENT = re.compile(r"%\(.*?\)")
 
     def __init__(self, config: Config):
+        self.config = config
         self.item_status_info: dict[str, Any] = {}
         self.test_refresh_info: dict[str, Any] = {}
         self.test_result_data: dict[str, Any] = {}
@@ -63,9 +66,9 @@ class PytestAdaptavist:
         self.cfg = ATMConfiguration()
         self.adaptavist: Adaptavist = Adaptavist(self.cfg.get("jira_server", ""), self.cfg.get("jira_username", ""), self.cfg.get("jira_password", ""))
 
-        self.atm_configure(config)
+        self.atm_configure()
 
-    def atm_configure(self, config: Config):
+    def atm_configure(self):
         """Setup adaptavist reporting based on given requirements (config)."""
         if not self.project_key:
             self.project_key = self.cfg.get("project_key", None)
@@ -73,7 +76,7 @@ class PytestAdaptavist:
         # support of multiple environments
         # in case of using xdist's "each" mode, a test run for each specified environment is created
         # and test_environment can be used (when given as a list or comma-separated string) to specify keys for each test run resp. worker node
-        worker_input = getattr(config, "workerinput", {})
+        worker_input = getattr(self.config, "workerinput", {})
         distribution = worker_input.get("options", {}).get("dist", None)
         index = int(worker_input.get("workerid", "gw0").split("gw")[1]) if (distribution == "each") else 0
 
@@ -496,10 +499,11 @@ class PytestAdaptavist:
             * New test plans are named like "<project key> <test plan suffix>" (where test plan suffix must be unique)
             * New test runs are named like "<test plan name or project key> <test run suffix> <datetime now>"
         """
+        test_run_name = self._eval_format(str(self.config.getini("test_run_name")))
+        test_plan_name = self._eval_format(str(self.config.getini("test_plan_name")))
 
         if self.project_key:
             if not self.test_plan_key and self.test_plan_suffix:
-                test_plan_name = f"{self.project_key} {self.test_plan_suffix}"
                 test_plans = self.adaptavist.get_test_plans(f'projectKey = "{self.project_key}"')
 
                 self.test_plan_key = ([test_plan["key"] for test_plan in test_plans if test_plan["name"] == test_plan_name]
@@ -512,7 +516,6 @@ class PytestAdaptavist:
 
             if not self.test_run_key:
                 test_plan_name = self.adaptavist.get_test_plan(test_plan_key=self.test_plan_key).get("name", None) if self.test_plan_key else ""
-                test_run_name = f"{test_plan_name or self.project_key} {self.test_run_suffix}"
 
                 # create new test run either in master (normal sequential mode) or worker0 (load balanced mode) only or - if requested - in each worker
                 distribution = worker_input.get("options", {}).get("dist", None)
@@ -722,6 +725,18 @@ class PytestAdaptavist:
             elif self.cfg.get_bool("skip_ntc_methods", False):
                 # skip methods that are no test case methods
                 item.add_marker(pytest.mark.skip)
+
+    def _eval_format(self, string: str) -> str:
+        """Evaluate configured test_run_name or test_plan_name setting."""
+        try:
+            placeholders: list[str] = self._ATTRIBUTE_PLACEHOLDERS.findall(string)
+            pytest_adaptavist_variables: list[str] = []
+            for placeholder in placeholders:
+                pytest_adaptavist_variables.append(getattr(self, placeholder))
+            string = self._ATTRIBUTE_REPLACEMENT.sub("{}", string)
+            return string.format(*pytest_adaptavist_variables)
+        except AttributeError:
+            pytest.exit(f"Invalid test_run_name or test_plan_name configured: '{placeholder}' not known.", returncode=6)
 
 
 class AdaptavistAssumption(Assumption):

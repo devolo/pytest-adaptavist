@@ -183,7 +183,7 @@ class TestPytestAdaptavistUnit:
                         mb_1.check(False)
                     with meta_block(2) as mb_2:
                         mb_2.check(not not False)
-                            """)
+        """)
         outcome = pytester.runpytest()
         regex = re.findall("not True", str(outcome.outlines).replace('\'', "").replace("[", "").replace("]", ""))
         assert len(regex) == 1
@@ -210,6 +210,84 @@ class TestPytestAdaptavistUnit:
         pytester.runpytest("--adaptavist")
         assert etrs.call_args_list[0].kwargs["test_case_key"] == "TEST-T123"
         assert etrs.call_count == 1
+
+    @pytest.mark.usefixtures("adaptavist_mock")
+    def test_test_run_name(self, pytester: pytest.Pytester):
+        """Test that test_run_name template is working."""
+        with patch("adaptavist.Adaptavist.create_test_run", return_value="TEST-C123") as ctr, patch("adaptavist.Adaptavist.get_test_run_by_name", return_value={}):
+            pytester.makepyfile("""
+                import pytest
+
+                class TestClass():
+                    def test_T121(self, meta_block):
+                        pass
+
+                    def test_T123(self, meta_block):
+                        pass
+            """)
+            with open("config/global_config.json", "w", encoding="utf8") as file:
+                file.write('{"jira_server": "https://jira.test", "project_key": "TEST"}')
+
+            pytester.runpytest("--adaptavist")
+            assert "TEST test run" in ctr.call_args_list[0][1]['test_run_name']
+
+            pytester.makeini("""
+            [pytest]
+            test_run_name = Change test_run_name %(project_key)
+            """)
+            pytester.runpytest("--adaptavist")
+            assert ctr.call_args[1]["test_run_name"] == "Change test_run_name TEST"
+
+    @pytest.mark.usefixtures("adaptavist_mock")
+    def test_test_plan_name_template(self, pytester: pytest.Pytester):
+        """Test that test_run_name template is working."""
+        with patch("adaptavist.Adaptavist.create_test_plan") as ctp, patch("adaptavist.Adaptavist.get_test_plans", return_value={}):
+            pytester.makepyfile("""
+                import pytest
+
+                class TestClass():
+                    def test_T121(self, meta_block):
+                        pass
+
+                    def test_T123(self, meta_block):
+                        pass
+            """)
+            with open("config/global_config.json", "w", encoding="utf8") as file:
+                file.write('{"jira_server": "https://jira.test", "project_key": "TEST", "test_plan_suffix": "suffix"}')
+
+            pytester.runpytest("--adaptavist")
+            assert "TEST suffix" in ctp.call_args_list[0][1]['test_plan_name']
+
+            pytester.makeini("""
+                [pytest]
+                test_plan_name = Change test_plan_name %(project_key)
+            """)
+            pytester.runpytest("--adaptavist")
+            assert "Change test_plan_name TEST" == ctp.call_args[1]['test_plan_name']
+
+    @pytest.mark.usefixtures("adaptavist_mock")
+    def test_test_run_name_invalid_key(self, pytester: pytest.Pytester):
+        """Test that test_run_name template is working."""
+        with patch("adaptavist.Adaptavist.create_test_run", return_value="TEST-C123"), patch("adaptavist.Adaptavist.get_test_run_by_name", return_value={}):
+            pytester.makepyfile("""
+                import pytest
+
+                class TestClass():
+                    def test_T121(self, meta_block):
+                        pass
+
+                    def test_T123(self, meta_block):
+                        pass
+            """)
+            with open("config/global_config.json", "w", encoding="utf8") as file:
+                file.write('{"jira_server": "https://jira.test", "project_key": "TEST"}')
+            pytester.makeini("""
+                [pytest]
+                test_run_name = Change test_run_name %(project_ey)
+            """)
+            outcome = pytester.runpytest("--adaptavist")
+            assert outcome.ret == 6
+            assert any("project_ey" in line for line in outcome.outlines)
 
 
 @pytest.mark.system
