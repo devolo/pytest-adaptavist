@@ -1,2 +1,4 @@
 # Migrate code style to Black
 c07d1561c9e583672719ee9bd609a3a08f78efa2
+# Migrate code style of tests to Black
+bd25000cb2c4ba8f848bc3dec849c0032180f90d
