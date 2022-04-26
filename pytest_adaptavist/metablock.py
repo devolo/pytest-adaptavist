@@ -50,7 +50,14 @@ class MetaBlock:
         STOP_EXIT_SESSION = 7
         """If condition fails, skip execution of this block/test, set it to 'Blocked' and exit session."""
 
-    def __init__(self, request: pytest.FixtureRequest, timeout: int, action_on_timeout: Action, message_on_timeout: str, step: int | None = None):
+    def __init__(
+        self,
+        request: pytest.FixtureRequest,
+        timeout: int,
+        action_on_timeout: Action,
+        message_on_timeout: str,
+        step: int | None = None,
+    ):
         fullname = get_item_nodeid(request.node)
         self.item = request.node
         self.items = request.session.items
@@ -62,9 +69,9 @@ class MetaBlock:
         self.action_on_timeout = action_on_timeout
         self.message_on_timeout = message_on_timeout
         self.adaptavist: PytestAdaptavist = request.config.pluginmanager.getplugin("_adaptavist")
-        self.data: dict[str, Any] = self.adaptavist.test_result_data.setdefault(fullname + ("_" + str(step) if step else ""), {
-            "comment": None, "attachment": None
-        })
+        self.data: dict[str, Any] = self.adaptavist.test_result_data.setdefault(
+            fullname + ("_" + str(step) if step else ""), {"comment": None, "attachment": None}
+        )
 
     @staticmethod
     def _timeout_handler(signum: int, frame: FrameType | None) -> NoReturn:
@@ -92,35 +99,62 @@ class MetaBlock:
         # if method was blocked dynamically (during call) an appropriate marker is used
         # to handle the reporting in the same way as for statically blocked methods
         # (status will be reported as "Blocked" with given comment in Adaptavist)
-        if not skip_status and (exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception)  # type:ignore
-                                or exc_type in (None, MetaBlockAborted) and self.data.get("blocked") is True):
+        if not skip_status and (
+            exc_type
+            and exc_type in (pytest.block.Exception, pytest.skip.Exception)  # type:ignore
+            or exc_type in (None, MetaBlockAborted)
+            and self.data.get("blocked") is True
+        ):
             reason = self.data.get("comment") or (
-                str(exc_value).partition("\n")[0] if exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception) else "")  # type:ignore
+                str(exc_value).partition("\n")[0]
+                if exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception)
+                else ""
+            )  # type:ignore
 
-            skip_status = pytest.mark.block(reason=reason) if ((exc_type and exc_type is pytest.block.Exception)  # type:ignore
-                                                               or self.data.get("blocked", None) is True) else pytest.mark.skip(reason=reason)
+            skip_status = (
+                pytest.mark.block(reason=reason)
+                if (
+                    (exc_type and exc_type is pytest.block.Exception)  # type:ignore
+                    or self.data.get("blocked", None) is True
+                )
+                else pytest.mark.skip(reason=reason)
+            )
 
         # report exceptions
         if exc_type and exc_type is not MetaBlockAborted:
             exc_info = self.adaptavist.build_exception_info(fullname, exc_type, exc_value, traceback)
 
-            if (exc_info and exc_info not in (self.data.get("comment") or "") and (exc_type is not pytest.skip.Exception) and not skip_status):
+            if (
+                exc_info
+                and exc_info not in (self.data.get("comment") or "")
+                and (exc_type is not pytest.skip.Exception)
+                and not skip_status
+            ):
                 self.data["comment"] = "".join((self.data.get("comment", None) or "", html_row("failed", exc_info)))
 
-        passed = not exc_type and (len(self.adaptavist.failed_assumptions_step) <= len(getattr(pytest, "_failed_assumptions", [])[:]))
-        status: Literal["passed", "failed", "skipped", "blocked"] = ("passed" if passed else "failed") if not skip_status \
+        passed = not exc_type and (
+            len(self.adaptavist.failed_assumptions_step) <= len(getattr(pytest, "_failed_assumptions", [])[:])
+        )
+        status: Literal["passed", "failed", "skipped", "blocked"] = (
+            ("passed" if passed else "failed")
+            if not skip_status
             else ("blocked" if (skip_status.name == "block" or self.data.get("blocked")) else "skipped")
+        )
 
         # custom item callback
-        prefix = getattr(self.item.config, "workerinput", {}).get("workerid") \
-            if getattr(self.item.config, "workerinput", {}).get("options", {}).get("dist") == "each" \
+        prefix = (
+            getattr(self.item.config, "workerinput", {}).get("workerid")
+            if getattr(self.item.config, "workerinput", {}).get("options", {}).get("dist") == "each"
             else None
-        getattr(self.item, "meta_block_cb",
-                lambda **kwargs: None)(signature="_".join(filter(None, (prefix, self.item.name, str(self.step) if self.step else "x"))), status=status)
+        )
+        getattr(self.item, "meta_block_cb", lambda **kwargs: None)(
+            signature="_".join(filter(None, (prefix, self.item.name, str(self.step) if self.step else "x"))), status=status
+        )
 
         if self.step:
-            build_terminal_report(when="call", item=self.item, status=status, step=self.step,
-                                  level=2)  # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)'))
+            build_terminal_report(
+                when="call", item=self.item, status=status, step=self.step, level=2
+            )  # level = 2 to get info from outside of this plugin (i.e. caller of 'with metablock(...)'))
 
         # adjust parent's test result status if necessary (needed for makereport call later)
         if self.adaptavist.test_result_data[fullname].get("blocked") is True and not passed and not skip_status:
@@ -145,7 +179,9 @@ class MetaBlock:
                 return exc_type is MetaBlockAborted  # suppress MetaBlockAborted exception
 
             specs = get_spec(get_item_nodeid(self.item))
-            self.adaptavist.create_report(test_case_key, self.step, self.stop - self.start, skip_status, passed, self.data, specs)
+            self.adaptavist.create_report(
+                test_case_key, self.step, self.stop - self.start, skip_status, passed, self.data, specs
+            )
 
         self.data["done"] = True  # tell pytest_runtest_makereport that this item has been processed already
 
@@ -181,9 +217,13 @@ class MetaBlock:
 
             content, name = _read_attachment(attachment)
             if self.step:
-                self.data["attachment_test_step"].append(Attachment(content, filename=filename or name or "", step=self.step or 0))
+                self.data["attachment_test_step"].append(
+                    Attachment(content, filename=filename or name or "", step=self.step or 0)
+                )
             else:
-                self.data["attachment_test_case"].append(Attachment(content, filename=filename or name or "", step=self.step or 0))
+                self.data["attachment_test_case"].append(
+                    Attachment(content, filename=filename or name or "", step=self.step or 0)
+                )
 
         if not condition and message_on_fail:
             self.data["comment"] = "".join((self.data.get("comment", "") or "", html_row("failed", message_on_fail)))
@@ -194,14 +234,18 @@ class MetaBlock:
             self.data["description"] = "<br>".join((self.data.get("description", ""), description))
 
         # custom item callback
-        prefix = getattr(self.item.config, "workerinput", {}).get("workerid") \
-            if getattr(self.item.config, "workerinput", {}).get("options", {}).get("dist") == "each" \
+        prefix = (
+            getattr(self.item.config, "workerinput", {}).get("workerid")
+            if getattr(self.item.config, "workerinput", {}).get("options", {}).get("dist") == "each"
             else None
+        )
         self.__dict__["numchecks"] = self.__dict__.get("numchecks", 0) + 1
-        signature = "_".join(filter(None, (prefix, self.item.name, str(self.step) if self.step else "x", str(self.__dict__["numchecks"]))))
-        getattr(self.item, "meta_block_condition_cb", lambda **kwargs: None)(signature=signature,
-                                                                             condition=condition,
-                                                                             reference=message_on_pass if condition else message_on_fail)
+        signature = "_".join(
+            filter(None, (prefix, self.item.name, str(self.step) if self.step else "x", str(self.__dict__["numchecks"])))
+        )
+        getattr(self.item, "meta_block_condition_cb", lambda **kwargs: None)(
+            signature=signature, condition=condition, reference=message_on_pass if condition else message_on_fail
+        )
 
         if condition:
             return
@@ -235,7 +279,9 @@ class MetaBlock:
                 if item.name not in self.item.name:
                     item.add_marker("block")
                     self.adaptavist.test_result_data[fullname]["blocked"] = True
-                    self.adaptavist.test_result_data[fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
+                    self.adaptavist.test_result_data[fullname][
+                        "comment"
+                    ] = f"Blocked. {self.item_name} failed: {message_on_fail}"
             assert False, message_on_fail
         elif action_on_fail == self.Action.STOP_EXIT_SESSION:
             # EXIT_SESSION: skip execution of this block/test, set it to 'Blocked' and exit session

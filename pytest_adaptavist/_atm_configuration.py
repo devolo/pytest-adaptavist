@@ -68,4 +68,6 @@ class ATMConfiguration:
 def atm_user_is_valid(user: str) -> bool:
     """Check if user is known to Adaptavist/Jira."""
     cfg = ATMConfiguration()
-    return user in Adaptavist(cfg.get("jira_server", ""), cfg.get("jira_username", ""), cfg.get("jira_password", "")).get_users()
+    return (
+        user in Adaptavist(cfg.get("jira_server", ""), cfg.get("jira_username", ""), cfg.get("jira_password", "")).get_users()
+    )
