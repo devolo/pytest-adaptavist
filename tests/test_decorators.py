@@ -153,11 +153,11 @@ class TestDecoratorUnit:
 
             class TestClass:
 
-                @pytest.mark.testcase(project_key="TEST", test_case_key="T121", test_step_key=1)
+                @pytest.mark.testcase(test_case_key="T121", test_step_key=1)
                 def test_dasda(self):
                     assert True
         """)
-        ctr, etrs, etss = adaptavist_mock
+        _, etrs, _ = adaptavist_mock
         report = pytester.runpytest("--adaptavist")
         outcome = report.parseoutcomes()
         assert outcome["passed"] == 1
