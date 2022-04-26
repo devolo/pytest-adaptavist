@@ -693,17 +693,23 @@ class PytestAdaptavist:
             self.item_status_info[fullname] = {}
             # initialize item's test result data (see meta_data function down below)
             self.test_result_data[fullname] = {"comment": None, "attachment": None}
-
+            test_case_key = ""
+            marker = item.get_closest_marker("testcase")
             # check for valid test case method signature test_[<project>_]T<test case>[_<test step>]
             # (project key and step index are optional)
             if result := re.search("^test_(([A-Z]+[A-Z0-9_]*[^_])_)?(T[1-9]+[0-9]*)(_([1-9]+[0-9]*))*", item.name, re.IGNORECASE):
                 _, project_key, test_case_key, _, test_step_key = result.groups()
+            elif marker:
+                test_case_key = marker.kwargs["test_case_key"]
+                test_step_key = marker.kwargs.get("test_step_key")
+                project_key = marker.kwargs.get("project_key")
 
+            if test_case_key:
                 if not project_key:
                     project_key = getattr(item.cls, "project_key", None)  # type:ignore
 
-                    if marker := item.get_closest_marker("project"):
-                        project_key = marker.kwargs["project_key"]
+                    if project_marker := item.get_closest_marker("project"):
+                        project_key = project_marker.kwargs["project_key"]
 
                 if not project_key:
                     project_key = self.project_key or "TEST"
@@ -711,17 +717,21 @@ class PytestAdaptavist:
                 if project_key not in collected_project_keys:
                     collected_project_keys.append(project_key)
 
+                if marker and project_key not in marker.kwargs["test_case_key"]:
+                    test_case_key = marker.kwargs["test_case_key"]
+                    marker.kwargs["test_case_key"] = f"{project_key}-{test_case_key}"  # type: ignore
+
                 # initialize refresh info
                 specs = get_spec(fullname)
-                self.test_refresh_info[project_key + "-" + test_case_key + (specs or "")] = None
+                self.test_refresh_info[f"{project_key}-{test_case_key}{specs or ''}"] = None
 
                 # mark this item with appropriate info (easier to read from when creating test results)
-                if (project_key + "-" + test_case_key) in test_case_keys or not test_case_keys:
+                if f'{project_key}-{test_case_key}' in test_case_keys or not test_case_keys:
                     item.add_marker(pytest.mark.testcase(project_key=project_key, test_case_key=project_key + "-" + test_case_key, test_step_key=test_step_key))
-                if (test_case_keys and (project_key + "-" + test_case_key) not in test_case_keys):
+                if test_case_keys and f'{project_key}-{test_case_key}' not in test_case_keys:
                     item.add_marker(pytest.mark.skip(reason="skipped as requested"))
                 else:
-                    collected_items.setdefault(project_key + "-" + test_case_key, []).append(item)
+                    collected_items.setdefault(f'{project_key}-{test_case_key}', []).append(item)
             elif self.cfg.get_bool("skip_ntc_methods", False):
                 # skip methods that are no test case methods
                 item.add_marker(pytest.mark.skip)

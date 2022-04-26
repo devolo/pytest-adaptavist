@@ -72,7 +72,7 @@ class TestDecoratorUnit:
             import pytest
 
             @pytest.mark.block()
-            def test_dummy():
+            def test_T121():
                 assert True
         """)
         outcome = pytester.runpytest().parseoutcomes()
@@ -144,6 +144,25 @@ class TestDecoratorUnit:
         outcome = report.parseoutcomes()
         assert outcome["blocked"] == 1
         assert "passed" not in outcome
+
+    @pytest.mark.usefixtures("configure")
+    def test_testcase_decorator(self, pytester: pytest.Pytester, adaptavist_mock):
+        """docstring."""
+        pytester.makepyfile("""
+            import pytest
+
+            class TestClass:
+
+                @pytest.mark.testcase(test_case_key="T121", test_step_key=1)
+                def test_dasda(self):
+                    assert True
+        """)
+        _, etrs, _ = adaptavist_mock
+        report = pytester.runpytest("--adaptavist")
+        outcome = report.parseoutcomes()
+        assert outcome["passed"] == 1
+        assert etrs.call_count == 1
+        assert etrs.call_args.kwargs["test_case_key"] == "TEST-T121"
 
     @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_decorator_combination_blocked(self, pytester: pytest.Pytester):
