@@ -11,7 +11,7 @@ class XdistHooks:
     @pytest.hookimpl(trylast=True)
     def pytest_configure_node(node: Node):
         """This is called in case of using xdist to pass data to worker nodes."""
-        node.workerinput["options"] = {
+        node.workerinput["options"] = {  # type: ignore
             "dist": node.config.option.dist,  # type: ignore
             "numprocesses": node.config.option.numprocesses,  # type: ignore
         }
