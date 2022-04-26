@@ -10,7 +10,13 @@ from .metablock import MetaBlock
 class MetaBlockFixture(Protocol):
     """MetaBlock fixture type."""
 
-    def __call__(self, step: int | None = ..., timeout: int = ..., action_on_timeout: MetaBlock.Action = ..., message_on_timeout: str = ...) -> MetaBlock:
+    def __call__(
+        self,
+        step: int | None = ...,
+        timeout: int = ...,
+        action_on_timeout: MetaBlock.Action = ...,
+        message_on_timeout: str = ...,
+    ) -> MetaBlock:
         ...
 
 

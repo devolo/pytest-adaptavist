@@ -34,19 +34,36 @@ def pytest_addoption(parser: Parser):
     """Add options to control plugin."""
     group = parser.getgroup("adaptavist", "adaptavist test reporting")
 
-    def add_option_ini(option: str, dest: str, default: str | None = None, option_type: Literal['bool'] | None = None, **kwargs: Any):
+    def add_option_ini(
+        option: str, dest: str, default: str | None = None, option_type: Literal["bool"] | None = None, **kwargs: Any
+    ):
         group.addoption(option, dest=dest, **kwargs)
         kwargs.pop("store", "")
         parser.addini(dest, default=default, type=option_type, help="default value for " + option)
 
-    add_option_ini("--adaptavist", dest="adaptavist", option_type="bool", action="store_true", help="Enable adaptavist reporting (default: False).")
-    add_option_ini("--restrict-user", dest="restrict_user", help="Only send data to Adaptavist, if this user is executing the tests.")
-    add_option_ini("--restrict-branch",
-                   dest="restrict_branch",
-                   action="store_true",
-                   option_type="bool",
-                   help="Only send data to Adaptavist, if a certain branch is used.")
-    add_option_ini("--restrict-branch-name", dest="restrict_branch_name", default="origin/master", help="Branch to restrict to (default: origin/master)")
+    add_option_ini(
+        "--adaptavist",
+        dest="adaptavist",
+        option_type="bool",
+        action="store_true",
+        help="Enable adaptavist reporting (default: False).",
+    )
+    add_option_ini(
+        "--restrict-user", dest="restrict_user", help="Only send data to Adaptavist, if this user is executing the tests."
+    )
+    add_option_ini(
+        "--restrict-branch",
+        dest="restrict_branch",
+        action="store_true",
+        option_type="bool",
+        help="Only send data to Adaptavist, if a certain branch is used.",
+    )
+    add_option_ini(
+        "--restrict-branch-name",
+        dest="restrict_branch_name",
+        default="origin/master",
+        help="Branch to restrict to (default: origin/master)",
+    )
     add_option_ini("--test_run_name", dest="test_run_name", default=TEST_RUN_NAME_DEFAULT)
     add_option_ini("--test_plan_name", dest="test_plan_name", default=TEST_PLAN_NAME_DEFAULT)
 
@@ -57,9 +74,15 @@ def pytest_configure(config: Config):
 
     # Register custom markers
     config.addinivalue_line("markers", "testcase: mark test method as test case implementation (for internal use only)")
-    config.addinivalue_line("markers", "project(project_key): mark test method to be related to given project (used to create appropriate test case key")
+    config.addinivalue_line(
+        "markers",
+        "project(project_key): mark test method to be related to given project (used to create appropriate test case key",
+    )
     config.addinivalue_line("markers", "block(reason): mark test method to be blocked")
-    config.addinivalue_line("markers", "blockif(condition, ..., *, reason=...): mark test method to be blocked if any of the conditions evaluate to True")
+    config.addinivalue_line(
+        "markers",
+        "blockif(condition, ..., *, reason=...): mark test method to be blocked if any of the conditions evaluate to True",
+    )
 
     adaptavist = PytestAdaptavist(config)
     config.pluginmanager.register(adaptavist, "_adaptavist")
@@ -95,10 +118,14 @@ def pytest_configure(config: Config):
     code_base = metadata.get("GIT_URL", get_code_base_url())
     branch = metadata.get("GIT_BRANCH", "")
     commit = metadata.get("GIT_COMMIT", "")
-    adaptavist.build_url = "/".join(build_url.split("/")[:5]) if build_url and jenkins_url and build_url.startswith(jenkins_url) else build_url
-    adaptavist.code_base = code_base.replace(":", "/").replace(".git", "").replace("git@", "https://") \
-        if code_base and code_base.startswith("git@") \
+    adaptavist.build_url = (
+        "/".join(build_url.split("/")[:5]) if build_url and jenkins_url and build_url.startswith(jenkins_url) else build_url
+    )
+    adaptavist.code_base = (
+        code_base.replace(":", "/").replace(".git", "").replace("git@", "https://")
+        if code_base and code_base.startswith("git@")
         else code_base
+    )
 
     # Check, if correct branch is used
     if get_option_ini(config, "restrict_branch") and branch != get_option_ini(config, "restrict_branch_name"):
@@ -112,7 +139,8 @@ def pytest_configure(config: Config):
         adaptavist.reporter.line(f"build_usr: {build_usr or 'unknown'}")
         adaptavist.reporter.line(f"build_url: {build_url or 'unknown'}")
         adaptavist.reporter.line(
-            f"code_base: {code_base or 'unknown'} {(branch or 'unknown') if code_base else ''} {(commit or 'unknown') if code_base and branch else ''}")
+            f"code_base: {code_base or 'unknown'} {(branch or 'unknown') if code_base else ''} {(commit or 'unknown') if code_base and branch else ''}"
+        )
         adaptavist.reporter.line(f"reporting: {'enabled' if adaptavist.enabled else 'disabled'}")
 
 
@@ -148,11 +176,15 @@ def meta_block(request: pytest.FixtureRequest) -> MetaBlockFixture:
 
     """
 
-    def get_meta_block(step: int | None = None,
-                       timeout: int = META_BLOCK_TIMEOUT,
-                       action_on_timeout: MetaBlock.Action = MetaBlock.Action.STOP_METHOD,
-                       message_on_timeout: str = "The test step exceeded its timewindow and timed out.") -> MetaBlock:
+    def get_meta_block(
+        step: int | None = None,
+        timeout: int = META_BLOCK_TIMEOUT,
+        action_on_timeout: MetaBlock.Action = MetaBlock.Action.STOP_METHOD,
+        message_on_timeout: str = "The test step exceeded its timewindow and timed out.",
+    ) -> MetaBlock:
         """Return a meta block context to process single test blocks/steps."""
-        return MetaBlock(request, timeout=timeout, action_on_timeout=action_on_timeout, message_on_timeout=message_on_timeout, step=step)
+        return MetaBlock(
+            request, timeout=timeout, action_on_timeout=action_on_timeout, message_on_timeout=message_on_timeout, step=step
+        )
 
     return get_meta_block

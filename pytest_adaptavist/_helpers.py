@@ -45,7 +45,7 @@ def calc_test_result_status(step_results: list[dict[str, str]]) -> str:
         STATUS_PASS: 0x7,  # 0111
         STATUS_IN_PROGRESS: 0x3,  # 0011
         STATUS_BLOCKED: 0x1,  # 0001
-        STATUS_FAIL: 0x0  # 0000
+        STATUS_FAIL: 0x0,  # 0000
     }
     if not step_results:
         return STATUS_NOT_EXECUTED
@@ -133,7 +133,13 @@ def apply_test_case_range(collected_items: dict[str, list[Function]], test_case_
     return collected_items
 
 
-def build_terminal_report(when: str, item: pytest.Function, step: int, status: Literal["passed", "failed", "skipped", "blocked"] | None = None, level: int = 1):
+def build_terminal_report(
+    when: str,
+    item: pytest.Function,
+    step: int,
+    status: Literal["passed", "failed", "skipped", "blocked"] | None = None,
+    level: int = 1,
+):
     """
     Generate terminal output.
 
@@ -152,7 +158,7 @@ def build_terminal_report(when: str, item: pytest.Function, step: int, status: L
         # extract doc string from source
         (frame, _, line, _, _) = inspect.stack()[level][0:5]
         source_list = inspect.getsourcelines(frame)
-        source_code = "".join(source_list[0][line - source_list[1]:])
+        source_code = "".join(source_list[0][line - source_list[1] :])
         docs = re.findall(r"^[\s]*\"\"\"(.*?)\"\"\"", source_code, re.DOTALL | re.MULTILINE | re.IGNORECASE)
         doc_string = inspect.cleandoc(docs[0]) if docs else ""
 
@@ -165,7 +171,7 @@ def build_terminal_report(when: str, item: pytest.Function, step: int, status: L
 
 
 @dataclass
-class Attachment():
+class Attachment:
     """Storage for attachments to be uploaded to Adaptavist."""
 
     attachment: BinaryIO

@@ -1,0 +1,4 @@
+[flake8]
+# Higher line-length than black because black cannot format f-strings: https://github.com/psf/black/issues/567
+max-line-length = 160
+ignore = E203, W503

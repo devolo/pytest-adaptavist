@@ -19,13 +19,15 @@ class TestPytestAdaptavistUnit:
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_block_call(self, pytester: pytest.Pytester):
         """Test calling block."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             def test_dummy():
                 pytest.block()
                 assert True
-        """)
+        """
+        )
         outcome = pytester.runpytest().parseoutcomes()
         assert outcome["blocked"] == 1
         assert "passed" not in outcome
@@ -33,13 +35,15 @@ class TestPytestAdaptavistUnit:
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_default_test_project(self, pytester: pytest.Pytester):
         """Test if a project is set to TEST if not found in markers, testcasename or config."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             def test_T123(meta_block):
                 with meta_block(1):
                     assert True
-        """)
+        """
+        )
         with open("config/global_config.json", "w", encoding="utf8") as file:
             file.write('{"test_run_key":"TEST-C1"}')
         hook_record = pytester.inline_run("--adaptavist")
@@ -48,13 +52,15 @@ class TestPytestAdaptavistUnit:
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_skip_no_test_case_methods(self, pytester: pytest.Pytester):
         """Test if a test method which is not a valid adaptavist test case is skipped, if 'skip_ntc_methods' is set"""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             def test_not_a_test_case(meta_block):
                 with meta_block(1):
                     assert True
-        """)
+        """
+        )
         with open("config/global_config.json", "w", encoding="utf8") as file:
             file.write('{"skip_ntc_methods": true}')
         report = pytester.runpytest("--adaptavist")
@@ -62,33 +68,39 @@ class TestPytestAdaptavistUnit:
 
     def test_early_return_on_no_config(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Test the early return in create_report if config is not valid."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             def test_T123(meta_block):
                 with meta_block(1):
                     assert True
-        """)
+        """
+        )
         with open("config/global_config.json", "w", encoding="utf8") as file:
-            file.write('{}')
+            file.write("{}")
         pytester.runpytest("--adaptavist")
         ctr, etrs, etss = adaptavist_mock
         assert ctr.call_count == 0
         assert etrs.call_count == 0
         assert etss.call_count == 0
 
-    @pytest.mark.xfail(pkg_resources.get_distribution("adaptavist").version == '2.0.0',
-                       reason="As long as adaptavist package didn't release the constant fix, this test will fail.")
+    @pytest.mark.xfail(
+        pkg_resources.get_distribution("adaptavist").version == "2.0.0",
+        reason="As long as adaptavist package didn't release the constant fix, this test will fail.",
+    )
     def test_skipped_test_cases(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Test that a skipped test case is reported as 'Not Executed'."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             @pytest.mark.skip()
             def test_T123(meta_block):
                 with meta_block(1):
                     assert True
-        """)
+        """
+        )
         with patch("adaptavist.Adaptavist.get_test_result", return_value={"scriptResults": [{"index": "0"}]}):
             pytester.runpytest("--adaptavist")
         _, etrs, _ = adaptavist_mock
@@ -97,26 +109,30 @@ class TestPytestAdaptavistUnit:
 
     def test_test_case_reporting(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Test that a testcase is reported correctly. The steps must not reported in this test."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             def test_T123(meta_block):
                 with meta_block() as mb:
                     mb.check(True)
-        """)
+        """
+        )
         with patch("adaptavist.Adaptavist.get_test_result", return_value={"scriptResults": [{"index": "0"}]}):
             pytester.runpytest("--adaptavist")
             _, etrs, _ = adaptavist_mock
             assert etrs.call_count == 1
             assert etrs.call_args.kwargs["status"] == "Pass"
 
-            pytester.makepyfile("""
+            pytester.makepyfile(
+                """
                 import pytest
 
                 def test_T123(meta_block):
                     with meta_block() as mb:
                         mb.check(False)
-            """)
+            """
+            )
             pytester.runpytest("--adaptavist")
             assert etrs.call_count == 2
             assert etrs.call_args.kwargs["status"] == "Fail"
@@ -125,13 +141,15 @@ class TestPytestAdaptavistUnit:
     def test_result_attachment(self, pytester: pytest.Pytester):
         """Test that an attachment is correctly attached to the testcase (not to the step)."""
         pytester.maketxtfile(first_file="foo")
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             def test_T123(meta_block):
                 with meta_block() as mb:
                     mb.check(True, attachment="first_file.txt", filename="test.txt")
-        """)
+        """
+        )
         with patch("adaptavist.Adaptavist.add_test_result_attachment") as atra:
             pytester.runpytest("--adaptavist")
         assert atra.call_count == 1
@@ -140,7 +158,8 @@ class TestPytestAdaptavistUnit:
 
     def test_skipped_test_cases_keys(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Test that testcases which are not defined in test_case_keys are skipped."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             def test_T125(meta_block):
@@ -150,7 +169,8 @@ class TestPytestAdaptavistUnit:
             def test_T123(meta_block):
                 with meta_block() as mb:
                     mb.check(True)
-        """)
+        """
+        )
         with open("config/global_config.json", "w", encoding="utf8") as file:
             file.write('{"project_key": "TEST", "test_run_key":"TEST-C1", "test_case_keys": ["TEST-T123"]}')
         _, etrs, _ = adaptavist_mock
@@ -161,19 +181,22 @@ class TestPytestAdaptavistUnit:
 
     def test_xfail(self, pytester: pytest.Pytester):
         """Test that xfail is handled properly."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             @pytest.mark.xfail
             def test_T125(meta_block):
                 assert False
-        """)
+        """
+        )
         outcome = pytester.runpytest().parseoutcomes()
         assert outcome["xfailed"] == 1
 
     def test_correct_stacktrace(self, pytester: pytest.Pytester):
         """Test that the correct stack trace is printed."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
                 def test_a(meta_block):
                     with meta_block(1) as mb_1:
                         mb_1.check(not True)
@@ -183,18 +206,20 @@ class TestPytestAdaptavistUnit:
                         mb_1.check(False)
                     with meta_block(2) as mb_2:
                         mb_2.check(not not False)
-        """)
+        """
+        )
         outcome = pytester.runpytest()
-        regex = re.findall("not True", str(outcome.outlines).replace('\'', "").replace("[", "").replace("]", ""))
+        regex = re.findall("not True", str(outcome.outlines).replace("'", "").replace("[", "").replace("]", ""))
         assert len(regex) == 1
-        regex = re.findall("\\(False", str(outcome.outlines).replace('\'', "").replace("[", "").replace("]", ""))
+        regex = re.findall("\\(False", str(outcome.outlines).replace("'", "").replace("[", "").replace("]", ""))
         assert len(regex) == 1
-        regex = re.findall("not not False", str(outcome.outlines).replace('\'', "").replace("[", "").replace("]", ""))
+        regex = re.findall("not not False", str(outcome.outlines).replace("'", "").replace("[", "").replace("]", ""))
         assert len(regex) == 1
 
     def test_reporting_skipped_test_cases(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Don't report a test case if it is not in test_case_keys."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             class TestClass():
@@ -203,7 +228,8 @@ class TestPytestAdaptavistUnit:
 
                 def test_T123(self, meta_block):
                     pass
-        """)
+        """
+        )
         with open("config/global_config.json", "w", encoding="utf8") as file:
             file.write('{"test_case_keys": ["TEST-T123"]}')
         _, etrs, _ = adaptavist_mock
@@ -214,8 +240,11 @@ class TestPytestAdaptavistUnit:
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_test_run_name(self, pytester: pytest.Pytester):
         """Test that test_run_name template is working."""
-        with patch("adaptavist.Adaptavist.create_test_run", return_value="TEST-C123") as ctr, patch("adaptavist.Adaptavist.get_test_run_by_name", return_value={}):
-            pytester.makepyfile("""
+        with patch("adaptavist.Adaptavist.create_test_run", return_value="TEST-C123") as ctr, patch(
+            "adaptavist.Adaptavist.get_test_run_by_name", return_value={}
+        ):
+            pytester.makepyfile(
+                """
                 import pytest
 
                 class TestClass():
@@ -224,25 +253,31 @@ class TestPytestAdaptavistUnit:
 
                     def test_T123(self, meta_block):
                         pass
-            """)
+            """
+            )
             with open("config/global_config.json", "w", encoding="utf8") as file:
                 file.write('{"jira_server": "https://jira.test", "project_key": "TEST"}')
 
             pytester.runpytest("--adaptavist")
-            assert "TEST test run" in ctr.call_args_list[0][1]['test_run_name']
+            assert "TEST test run" in ctr.call_args_list[0][1]["test_run_name"]
 
-            pytester.makeini("""
+            pytester.makeini(
+                """
             [pytest]
             test_run_name = Change test_run_name %(project_key)
-            """)
+            """
+            )
             pytester.runpytest("--adaptavist")
             assert ctr.call_args[1]["test_run_name"] == "Change test_run_name TEST"
 
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_test_plan_name_template(self, pytester: pytest.Pytester):
         """Test that test_run_name template is working."""
-        with patch("adaptavist.Adaptavist.create_test_plan") as ctp, patch("adaptavist.Adaptavist.get_test_plans", return_value={}):
-            pytester.makepyfile("""
+        with patch("adaptavist.Adaptavist.create_test_plan") as ctp, patch(
+            "adaptavist.Adaptavist.get_test_plans", return_value={}
+        ):
+            pytester.makepyfile(
+                """
                 import pytest
 
                 class TestClass():
@@ -251,25 +286,31 @@ class TestPytestAdaptavistUnit:
 
                     def test_T123(self, meta_block):
                         pass
-            """)
+            """
+            )
             with open("config/global_config.json", "w", encoding="utf8") as file:
                 file.write('{"jira_server": "https://jira.test", "project_key": "TEST", "test_plan_suffix": "suffix"}')
 
             pytester.runpytest("--adaptavist")
-            assert "TEST suffix" in ctp.call_args_list[0][1]['test_plan_name']
+            assert "TEST suffix" in ctp.call_args_list[0][1]["test_plan_name"]
 
-            pytester.makeini("""
+            pytester.makeini(
+                """
                 [pytest]
                 test_plan_name = Change test_plan_name %(project_key)
-            """)
+            """
+            )
             pytester.runpytest("--adaptavist")
-            assert "Change test_plan_name TEST" == ctp.call_args[1]['test_plan_name']
+            assert "Change test_plan_name TEST" == ctp.call_args[1]["test_plan_name"]
 
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_test_run_name_invalid_key(self, pytester: pytest.Pytester):
         """Test that test_run_name template is working."""
-        with patch("adaptavist.Adaptavist.create_test_run", return_value="TEST-C123"), patch("adaptavist.Adaptavist.get_test_run_by_name", return_value={}):
-            pytester.makepyfile("""
+        with patch("adaptavist.Adaptavist.create_test_run", return_value="TEST-C123"), patch(
+            "adaptavist.Adaptavist.get_test_run_by_name", return_value={}
+        ):
+            pytester.makepyfile(
+                """
                 import pytest
 
                 class TestClass():
@@ -278,13 +319,16 @@ class TestPytestAdaptavistUnit:
 
                     def test_T123(self, meta_block):
                         pass
-            """)
+            """
+            )
             with open("config/global_config.json", "w", encoding="utf8") as file:
                 file.write('{"jira_server": "https://jira.test", "project_key": "TEST"}')
-            pytester.makeini("""
+            pytester.makeini(
+                """
                 [pytest]
                 test_run_name = Change test_run_name %(project_ey)
-            """)
+            """
+            )
             outcome = pytester.runpytest("--adaptavist")
             assert outcome.ret == 6
             assert any("project_ey" in line for line in outcome.outlines)
@@ -297,16 +341,20 @@ class TestPytestAdaptavistSystem:
 
     def test_T1(self, pytester: pytest.Pytester, adaptavist: Adaptavist):
         """Test passing a test."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             def test_T1(meta_block):
                 with meta_block():
                     with meta_block(1) as mb_1:
                         mb_1.check(True)
-        """)
-        pytester.makeini(f"""
+        """
+        )
+        pytester.makeini(
+            f"""
             [pytest]
             restrict_user = {getpass.getuser().lower()}
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         test_run_key, test_name = get_test_values(report)
         test_result = adaptavist.get_test_result(test_run_key, test_name)
@@ -315,11 +363,13 @@ class TestPytestAdaptavistSystem:
 
     def test_T2(self, pytester: pytest.Pytester, adaptavist: Adaptavist):
         """Test failing a test."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             def test_T2(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(False)
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         test_run_key, test_name = get_test_values(report)
         test_result = adaptavist.get_test_result(test_run_key, test_name)
@@ -328,13 +378,15 @@ class TestPytestAdaptavistSystem:
 
     def test_T3(self, pytester: pytest.Pytester, adaptavist: Adaptavist):
         """Test reporting steps."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             def test_T3(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(True)
                 with meta_block(2) as mb_2:
                     mb_2.check(False)
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         test_run_key, test_name = get_test_values(report)
         test_result = adaptavist.get_test_result(test_run_key, test_name)
@@ -344,7 +396,8 @@ class TestPytestAdaptavistSystem:
 
     def test_T4(self, pytester: pytest.Pytester, adaptavist: Adaptavist):
         """Test blocking a step."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             def test_T4(meta_block):
@@ -353,7 +406,8 @@ class TestPytestAdaptavistSystem:
                 with meta_block(2) as mb_2:
                     pytest.block("Testing block")  # type: ignore
                     mb_2.check(False)
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         test_run_key, test_name = get_test_values(report)
         test_result = adaptavist.get_test_result(test_run_key, test_name)
@@ -364,7 +418,8 @@ class TestPytestAdaptavistSystem:
 
     def test_T6(self, pytester: pytest.Pytester, adaptavist: Adaptavist):
         """Test skipping a step."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             def test_T6(meta_block):
@@ -372,7 +427,8 @@ class TestPytestAdaptavistSystem:
                     mb_1.check(True)
                 with meta_block(2) as mb_2:
                     pytest.skip("Testing skip")
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         test_run_key, test_name = get_test_values(report)
         test_result = adaptavist.get_test_result(test_run_key, test_name)
@@ -382,7 +438,8 @@ class TestPytestAdaptavistSystem:
 
     def test_T7(self, pytester: pytest.Pytester, adaptavist: Adaptavist):
         """Test comments."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             def test_T7(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(True, message_on_pass="testing pass comment")
@@ -390,7 +447,8 @@ class TestPytestAdaptavistSystem:
                     mb_2.check(False, message_on_fail="testing fail comment")
                 with meta_block(3) as mb_3:
                     raise ValueError("testing exception reporting")
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         test_run_key, test_name = get_test_values(report)
         test_result = adaptavist.get_test_result(test_run_key, test_name)
@@ -406,7 +464,8 @@ class TestPytestAdaptavistSystem:
         """Test attachments."""
         pytester.maketxtfile(first_file="foo")
         pytester.maketxtfile(second_file="bar")
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             def test_T8(meta_block):
                 with open("first_file.txt", "rb") as f:
                     with meta_block() as mb:
@@ -417,7 +476,8 @@ class TestPytestAdaptavistSystem:
                     with open("first_file.txt", "rb") as f:
                         mb_1.check(True, attachment=f)
                         mb_1.check(True, attachment="second_file.txt")
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         test_run_key, test_name = get_test_values(report)
         test_result = adaptavist.get_test_result_attachment(test_run_key, test_name)
@@ -438,7 +498,8 @@ class TestPytestAdaptavistSystem:
         """
         pytester.maketxtfile(first_file="foo")
         pytester.maketxtfile(second_file="bar")
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             def test_T9(meta_block):
                 with meta_block() as mb:
                     mb.check(True)
@@ -447,7 +508,8 @@ class TestPytestAdaptavistSystem:
                     mb_1.check(True, attachment="second_file.txt")
                 with meta_block(2) as mb_2:
                     mb_2.check(True)
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         test_run_key, test_name = get_test_values(report)
         attachments = adaptavist.get_test_result_attachment(test_run_key, test_name)
@@ -464,14 +526,16 @@ class TestPytestAdaptavistSystem:
         """
         pytester.maketxtfile(first_file="foo")
         pytester.maketxtfile(second_file="bar")
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             def test_T10(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(False, action_on_fail=mb_1.Action.STOP_CONTEXT)
                     mb_1.check(True, attachment="second_file.txt")
                 with meta_block(2) as mb_2:
                     mb_2.check(True)
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         test_run_key, test_name = get_test_values(report)
         attachments = adaptavist.get_test_result_attachment(test_run_key, test_name)
@@ -489,14 +553,16 @@ class TestPytestAdaptavistSystem:
         """
         pytester.maketxtfile(first_file="foo")
         pytester.maketxtfile(second_file="bar")
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             def test_T11(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(False, action_on_fail=mb_1.Action.FAIL_METHOD)
                     mb_1.check(True, attachment="second_file.txt")
                 with meta_block(2) as mb_2:
                     mb_2.check(True)
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         test_run_key, test_name = get_test_values(report)
         attachments = adaptavist.get_test_result_attachment(test_run_key, test_name)
@@ -514,14 +580,16 @@ class TestPytestAdaptavistSystem:
         """
         pytester.maketxtfile(first_file="foo")
         pytester.maketxtfile(second_file="bar")
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             def test_T12(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(False, action_on_fail=mb_1.Action.STOP_METHOD)
                     mb_1.check(True, attachment="second_file.txt")
                 with meta_block(2) as mb_2:
                     mb_2.check(True)
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         test_run_key, test_name = get_test_values(report)
         attachments = adaptavist.get_test_result_attachment(test_run_key, test_name)
@@ -538,7 +606,8 @@ class TestPytestAdaptavistSystem:
         """
         pytester.maketxtfile(first_file="foo")
         pytester.maketxtfile(second_file="bar")
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             def test_T11(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(True)
@@ -551,7 +620,8 @@ class TestPytestAdaptavistSystem:
             def test_T12(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(True)
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         _, test_name = get_test_values(report, "test_T13")
         test_result = adaptavist.get_test_result(test_run, test_name)
@@ -570,7 +640,8 @@ class TestPytestAdaptavistSystem:
         """
         pytester.maketxtfile(first_file="foo")
         pytester.maketxtfile(second_file="bar")
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             def test_T14(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(False, action_on_fail=mb_1.Action.STOP_SESSION)
@@ -579,7 +650,8 @@ class TestPytestAdaptavistSystem:
             def test_T12(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(True)
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         _, test_name = get_test_values(report, "test_T14")
         test_result = adaptavist.get_test_result(test_run, test_name)
@@ -594,7 +666,8 @@ class TestPytestAdaptavistSystem:
         """
         pytester.maketxtfile(first_file="foo")
         pytester.maketxtfile(second_file="bar")
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             def test_T15(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(False, action_on_fail=mb_1.Action.STOP_EXIT_SESSION)
@@ -603,7 +676,8 @@ class TestPytestAdaptavistSystem:
             def test_T12(meta_block):
                 with meta_block(1) as mb_1:
                     mb_1.check(True)
-        """)
+        """
+        )
         pytester.inline_run("--adaptavist")
         test_name = test_run.split("-")[0] + "-T15"
         test_result = adaptavist.get_test_result(test_run, test_name)
@@ -619,7 +693,8 @@ class TestPytestAdaptavistSystem:
         """
         pytester.maketxtfile(first_file="foo")
         pytester.maketxtfile(second_file="bar")
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import io
             def test_T16(meta_data):
                 meta_data["comment"] = "unexpected result"
@@ -628,7 +703,8 @@ class TestPytestAdaptavistSystem:
                 meta_data["attachment"] = attachment
                 meta_data["filename"] = "content.txt"
                 assert False
-        """)
+        """
+        )
         pytester.inline_run("--adaptavist")
         test_name = test_run.split("-")[0] + "-T16"
         test_result = adaptavist.get_test_result(test_run, test_name)
