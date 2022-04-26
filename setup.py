@@ -10,6 +10,7 @@ setup(
     author="Stephan Steinberg, Markus Bong, Guido Schmitz",
     author_email="markus.bong@devolo.de, guido.schmitz@devolo.de",
     license="MIT",
+    license_files=("LICENSE.md",),
     py_modules=["pytest_adaptavist"],
     packages=["pytest_adaptavist"],
     package_data={"pytest_adaptavist": ["py.typed"]},

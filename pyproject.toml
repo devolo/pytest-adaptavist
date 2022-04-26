@@ -8,3 +8,6 @@ line_length = 127
 multi_line_output = 1
 order_by_type = true
 profile = "black"
+
+[tool.mypy]
+ignore_missing_imports = true
