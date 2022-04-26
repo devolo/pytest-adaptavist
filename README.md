@@ -77,7 +77,7 @@ restrict_branch_name=development
 
 ## Getting Started
 
-1. pytest-adaptavist searches for test methods named like ```test_<test_case_key>``` or ```test_<test_case_key>_<step>``` where ```test_case_key``` is the key of the Jira test case excluding the project key (e.g. "T1") and ```step``` defines a single test script step (if existing). In order to build real test case key strings from test methods, the corresponding project key needs to be specified for each relevant class or single test methods by using markers (see examples below). Alternatively, ```test_case_key``` can be given as it appears in Adaptavist, but with hyphens replaced by underscores (e.g. "TEST_T1"). Each of these kind of test methods is marked as Adaptavist test case for reporting appropriate results into Adaptavist test management. Any other test methods are processed as usual.
+1. pytest-adaptavist searches for test methods named like ```test_<test_case_key>``` or ```test_<test_case_key>_<step>``` where ```test_case_key``` is the key of the Jira test case excluding the project key (e.g. "T1") and ```step``` defines a single test script step (if existing). In order to build real test case key strings from test methods, the corresponding project key needs to be specified for each relevant class or single test methods by using markers (see [examples](#examples) below). Alternatively, ```test_case_key``` can be given as it appears in Adaptavist, but with hyphens replaced by underscores (e.g. "TEST_T1"). Each of these kind of test methods is marked as Adaptavist test case for reporting appropriate results into Adaptavist test management. Any other test methods are processed as usual. If you don't want to stick to this convention, you can decorate any test method with the testcase marker and specify ```project_key```, ```test_case_key``` and ```test_step_key``` there.
 
 1. Finally, pytest-adaptavist needs either ```test_run_key``` to use an existing test run or ```project_key``` to create a new test run every time with collected test cases linked to it. In order to work properly, either of these parameters need to be specified at the very start of the test session. If both parameters are empty, neither test runs nor test results are created in Adaptavist test management. Please also note that any of these parameters mentioned here and in the following documentation can either be set programmatically by storing them in the environment or be provided as part of json config file (./config/global_config.json).
 
@@ -173,6 +173,27 @@ class TestClass(object):
 ```
 
 However, the final status would be ```Fail``` because not all test steps passed.
+
+The same example using the testcase marker:
+
+```python
+@pytest.mark.project(project_key="myproject")
+class TestClass(object):
+
+    @pytest.mark.testcase(test_case_key="T1", test_step_key=2)
+    def test_unexpected_result(self, meta_data):
+        meta_data["comment"] = "unexpected result"
+        attachment = io.StringIO()
+        attachment.write("this is just a simple attachment")
+        meta_data["attachment"] = attachment
+        meta_data["filename"] = "content.txt"
+        assert False
+
+    @pytest.mark.testcase(test_case_key="T1")
+    def test_all_good(self, meta_data):
+        meta_data["comment"] = "all good"
+        assert True
+```
 
 ### Context reporting
 
