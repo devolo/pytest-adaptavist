@@ -719,7 +719,7 @@ class PytestAdaptavist:
 
                 if marker and project_key not in marker.kwargs["test_case_key"]:
                     test_case_key = marker.kwargs["test_case_key"]
-                    marker.kwargs["test_case_key"] = f"{project_key}-{test_case_key}"
+                    marker.kwargs["test_case_key"] = f"{project_key}-{test_case_key}"  #type: ignore
 
                 # initialize refresh info
                 specs = get_spec(fullname)
