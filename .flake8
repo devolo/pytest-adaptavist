@@ -1,3 +1,3 @@
 [flake8]
-max-line-length = 127
+max-line-length = 160  # Higher line-length than black because black cannot format f-strings: https://github.com/psf/black/issues/567
 ignore = E203, W503

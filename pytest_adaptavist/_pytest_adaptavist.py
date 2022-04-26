@@ -86,7 +86,8 @@ class PytestAdaptavist:
 
         # support of multiple environments
         # in case of using xdist's "each" mode, a test run for each specified environment is created
-        # and test_environment can be used (when given as a list or comma-separated string) to specify keys for each test run resp. worker node
+        # and test_environment can be used (when given as a list or comma-separated string)
+        # to specify keys for each test run resp. worker node
         worker_input = getattr(self.config, "workerinput", {})
         distribution = worker_input.get("options", {}).get("dist", None)
         index = int(worker_input.get("workerid", "gw0").split("gw")[1]) if (distribution == "each") else 0
@@ -141,7 +142,10 @@ class PytestAdaptavist:
 
     @pytest.hookimpl(tryfirst=True)
     def pytest_runtest_setup(self, item: pytest.Item):
-        """This is called before calling the test item. Used to skip test items dynamically (e.g. triggered by some other item or control function)."""
+        """
+        This is called before calling the test item.
+        Used to skip test items dynamically (e.g. triggered by some other item or control function).
+        """
         # Needed to ensure that a class decorator is preferred over a function decorator.
         if (
             item.cls  # type: ignore
@@ -260,11 +264,7 @@ class PytestAdaptavist:
         attachments_test_steps = None if skip_status else test_result_data.get("attachment_test_step")
         attachment = None if skip_status else test_result_data.get("attachment")
 
-        header = (
-            f"---------------------------------------- {datetime.now().strftime('%Y-%m-%d %H:%M')} ----------------------------------------"
-            if specs
-            else ""
-        )
+        header = f"{'-' * 40} {datetime.now().strftime('%Y-%m-%d %H:%M')} {'-' * 40}" if specs else ""
 
         if not skip_status and not test_step_key:
             # update test case with CI related info
@@ -472,7 +472,10 @@ class PytestAdaptavist:
 
     @pytest.hookimpl(hookwrapper=True, trylast=True)
     def pytest_runtest_makereport(self, item: pytest.Item, call: CallInfo):
-        """This is called at setup, run/call and teardown of test items. Generates adaptavist test run results from test reports."""
+        """
+        This is called at setup, run/call and teardown of test items.
+        Generates adaptavist test run results from test reports.
+        """
         outcome = yield
         report: TestReport = outcome.get_result()
 
@@ -622,7 +625,8 @@ class PytestAdaptavist:
                     else ""
                 )
 
-                # create new test run either in master (normal sequential mode) or worker0 (load balanced mode) only or - if requested - in each worker
+                # create new test run either in master (normal sequential mode)
+                # or worker0 (load balanced mode) only or - if requested - in each worker
                 distribution = worker_input.get("options", {}).get("dist", None)
                 if not worker_input or (worker_input.get("workerid", "gw0") in [None, "gw0"]) or (distribution == "each"):
                     self.test_run_key = (
@@ -915,7 +919,16 @@ class AdaptavistAssumption(Assumption):
 
 
 def is_unexpected_exception(exc_type: Exception) -> bool:
-    """Check if exception type is unexpected (any exception except AssertionError, pytest.block.Exception, pytest.skip.Exception)."""
+    """
+    Check if exception type is unexpected
+    (any exception except AssertionError, pytest.block.Exception, pytest.skip.Exception).
+    """
     if exc_type and (isinstance(exc_type, (Exception, BaseException)) or issubclass(exc_type, (Exception, BaseException))):
-        return exc_type not in (None, FailedAssumption, AssertionError, pytest.block.Exception, pytest.skip.Exception)  # type: ignore
+        return exc_type not in (
+            None,
+            FailedAssumption,
+            AssertionError,
+            pytest.block.Exception,  # type: ignore
+            pytest.skip.Exception,
+        )
     return False
