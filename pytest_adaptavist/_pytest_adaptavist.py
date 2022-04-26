@@ -696,9 +696,15 @@ class PytestAdaptavist:
 
             # check for valid test case method signature test_[<project>_]T<test case>[_<test step>]
             # (project key and step index are optional)
-            if result := re.search("^test_(([A-Z]+[A-Z0-9_]*[^_])_)?(T[1-9]+[0-9]*)(_([1-9]+[0-9]*))*", item.name, re.IGNORECASE):
-                _, project_key, test_case_key, _, test_step_key = result.groups()
-
+            if (result := re.search("^test_(([A-Z]+[A-Z0-9_]*[^_])_)?(T[1-9]+[0-9]*)(_([1-9]+[0-9]*))*", item.name,
+                                    re.IGNORECASE)) or item.get_closest_marker("testcase"):
+                if result:
+                    _, project_key, test_case_key, _, test_step_key = result.groups()
+                else:
+                    marker = item.get_closest_marker("testcase")
+                    test_case_key = marker.kwargs["test_case_key"]
+                    test_step_key = marker.kwargs.get("test_step_key")
+                    project_key = marker.kwargs.get("project_key")
                 if not project_key:
                     project_key = getattr(item.cls, "project_key", None)  # type:ignore
 
@@ -711,17 +717,22 @@ class PytestAdaptavist:
                 if project_key not in collected_project_keys:
                     collected_project_keys.append(project_key)
 
+                # This is ugly
+                if marker := item.get_closest_marker("testcase"):
+                    if project_key not in marker.kwargs["test_case_key"]:
+                        test_case_key = marker.kwargs["test_case_key"]
+                        marker.kwargs["test_case_key"] = f"{project_key}-{test_case_key}"
                 # initialize refresh info
                 specs = get_spec(fullname)
-                self.test_refresh_info[project_key + "-" + test_case_key + (specs or "")] = None
+                self.test_refresh_info[f"{project_key}-{test_case_key}{specs or ''}"] = None
 
                 # mark this item with appropriate info (easier to read from when creating test results)
-                if (project_key + "-" + test_case_key) in test_case_keys or not test_case_keys:
+                if f'{project_key}-{test_case_key}' in test_case_keys or not test_case_keys:
                     item.add_marker(pytest.mark.testcase(project_key=project_key, test_case_key=project_key + "-" + test_case_key, test_step_key=test_step_key))
-                if (test_case_keys and (project_key + "-" + test_case_key) not in test_case_keys):
+                if test_case_keys and f'{project_key}-{test_case_key}' not in test_case_keys:
                     item.add_marker(pytest.mark.skip(reason="skipped as requested"))
                 else:
-                    collected_items.setdefault(project_key + "-" + test_case_key, []).append(item)
+                    collected_items.setdefault(f'{project_key}-{test_case_key}', []).append(item)
             elif self.cfg.get_bool("skip_ntc_methods", False):
                 # skip methods that are no test case methods
                 item.add_marker(pytest.mark.skip)
