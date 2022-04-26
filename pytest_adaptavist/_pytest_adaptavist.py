@@ -10,13 +10,13 @@ import sys
 import time
 from datetime import datetime
 from types import FrameType, TracebackType
-from typing import Any, Type
+from typing import Any
 
 import pytest
 from _pytest._io.saferepr import saferepr
 from _pytest.config import Config
 from _pytest.mark.structures import Mark
-from _pytest.outcomes import Exit, fail
+from _pytest.outcomes import fail
 from _pytest.reports import TestReport
 from _pytest.runner import CallInfo
 from _pytest.terminal import TerminalReporter
