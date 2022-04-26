@@ -107,9 +107,9 @@ class MetaBlock:
         ):
             reason = self.data.get("comment") or (
                 str(exc_value).partition("\n")[0]
-                if exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception)
+                if exc_type and exc_type in (pytest.block.Exception, pytest.skip.Exception)  # type:ignore
                 else ""
-            )  # type:ignore
+            )
 
             skip_status = (
                 pytest.mark.block(reason=reason)

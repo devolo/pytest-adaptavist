@@ -144,8 +144,8 @@ class PytestAdaptavist:
         """This is called before calling the test item. Used to skip test items dynamically (e.g. triggered by some other item or control function)."""
         # Needed to ensure that a class decorator is preferred over a function decorator.
         if (
-            item.cls
-            and getattr(item.cls, "pytestmark", False)
+            item.cls  # type: ignore
+            and getattr(item.cls, "pytestmark", False)  # type: ignore
             and all((mark.name != "block" or "blockif" for mark in item.cls.pytestmark))  # type: ignore
             and not item.get_closest_marker("block")
             and not item.get_closest_marker("blockif")
@@ -492,10 +492,10 @@ class PytestAdaptavist:
         report.user_properties.append(("docstr", inspect.cleandoc(item.obj.__doc__ or "")))  # type: ignore
 
         if call.when not in ("call", "setup") or (
-            item.cls
+            item.cls  # type: ignore
             and getattr(item.cls, "pytestmark", False)  # type: ignore
             and all((mark.name != "block" for mark in item.cls.pytestmark))  # type: ignore
-            and any((mark.args[0] is True for mark in item.cls.pytestmark if mark.name == "skipif"))
+            and any((mark.args[0] is True for mark in item.cls.pytestmark if mark.name == "skipif"))  # type: ignore
         ):  # type: ignore
             return
         if call.excinfo and call.excinfo.type is pytest.block.Exception:  # type: ignore
@@ -524,9 +524,9 @@ class PytestAdaptavist:
         ):
             reason = (
                 self.test_result_data[fullname].get("comment") or str(call.excinfo.value).partition("\n")[0]
-                if call_info
+                if call_info and call.excinfo
                 else ""
-            )  # type: ignore
+            )
             skip_status = (
                 pytest.mark.block(reason=reason)
                 if (
