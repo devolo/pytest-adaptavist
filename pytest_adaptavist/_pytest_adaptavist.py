@@ -10,13 +10,13 @@ import sys
 import time
 from datetime import datetime
 from types import FrameType, TracebackType
-from typing import Any
+from typing import Any, Type
 
 import pytest
 from _pytest._io.saferepr import saferepr
 from _pytest.config import Config
 from _pytest.mark.structures import Mark
-from _pytest.outcomes import fail
+from _pytest.outcomes import Exit, fail
 from _pytest.reports import TestReport
 from _pytest.runner import CallInfo
 from _pytest.terminal import TerminalReporter
@@ -693,23 +693,23 @@ class PytestAdaptavist:
             self.item_status_info[fullname] = {}
             # initialize item's test result data (see meta_data function down below)
             self.test_result_data[fullname] = {"comment": None, "attachment": None}
-
+            test_case_key = ""
+            marker = item.get_closest_marker("testcase")
             # check for valid test case method signature test_[<project>_]T<test case>[_<test step>]
             # (project key and step index are optional)
-            if (result := re.search("^test_(([A-Z]+[A-Z0-9_]*[^_])_)?(T[1-9]+[0-9]*)(_([1-9]+[0-9]*))*", item.name,
-                                    re.IGNORECASE)) or item.get_closest_marker("testcase"):
-                if result:
-                    _, project_key, test_case_key, _, test_step_key = result.groups()
-                else:
-                    marker = item.get_closest_marker("testcase")
-                    test_case_key = marker.kwargs["test_case_key"]
-                    test_step_key = marker.kwargs.get("test_step_key")
-                    project_key = marker.kwargs.get("project_key")
+            if result := re.search("^test_(([A-Z]+[A-Z0-9_]*[^_])_)?(T[1-9]+[0-9]*)(_([1-9]+[0-9]*))*", item.name, re.IGNORECASE):
+                _, project_key, test_case_key, _, test_step_key = result.groups()
+            elif marker:
+                test_case_key = marker.kwargs["test_case_key"]
+                test_step_key = marker.kwargs.get("test_step_key")
+                project_key = marker.kwargs.get("project_key")
+
+            if test_case_key:
                 if not project_key:
                     project_key = getattr(item.cls, "project_key", None)  # type:ignore
 
-                    if marker := item.get_closest_marker("project"):
-                        project_key = marker.kwargs["project_key"]
+                    if project_marker := item.get_closest_marker("project"):
+                        project_key = project_marker.kwargs["project_key"]
 
                 if not project_key:
                     project_key = self.project_key or "TEST"
@@ -717,11 +717,10 @@ class PytestAdaptavist:
                 if project_key not in collected_project_keys:
                     collected_project_keys.append(project_key)
 
-                # This is ugly
-                if marker := item.get_closest_marker("testcase"):
-                    if project_key not in marker.kwargs["test_case_key"]:
-                        test_case_key = marker.kwargs["test_case_key"]
-                        marker.kwargs["test_case_key"] = f"{project_key}-{test_case_key}"
+                if marker and project_key not in marker.kwargs["test_case_key"]:
+                    test_case_key = marker.kwargs["test_case_key"]
+                    marker.kwargs["test_case_key"] = f"{project_key}-{test_case_key}"
+
                 # initialize refresh info
                 specs = get_spec(fullname)
                 self.test_refresh_info[f"{project_key}-{test_case_key}{specs or ''}"] = None
