@@ -11,7 +11,7 @@ from adaptavist import Adaptavist
 
 from . import AdaptavistMock, read_global_config, system_test_preconditions
 
-pytest_plugins = ("pytester", )
+pytest_plugins = ("pytester",)
 
 
 def pytest_configure(config: Config):
@@ -22,7 +22,9 @@ def pytest_configure(config: Config):
 @pytest.fixture(scope="session", autouse=True)
 def create_test_plan(request):
     """Creates a test plan. All system test will link the test cycle with this test plan."""
-    if system_test_preconditions() and request.config.option.markexpr != "not system":  # This should only be used if test is a system test
+    if (
+        system_test_preconditions() and request.config.option.markexpr != "not system"
+    ):  # This should only be used if test is a system test
         config = read_global_config()
         atm = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
         test_plan = atm.create_test_plan(config["project_key"], "pytest_adaptavist_system_test")
@@ -69,20 +71,33 @@ def valid_user() -> Generator[None, None, None]:
 @pytest.fixture
 def adaptavist_mock(valid_user: None) -> Generator[AdaptavistMock, None, None]:
     """Patch adaptavist to prevent real I/O."""
-    with patch("adaptavist.Adaptavist.get_test_result", return_value={"scriptResults": [{"status": "Pass", "index": "0"}], "status": "Pass"}), \
-         patch("adaptavist.Adaptavist.get_test_run", return_value={"items": [{"testCaseKey": "TEST-T121"},
-                                                                             {"testCaseKey": "TEST-T123"},
-                                                                             {"testCaseKey": "TEST-T124"}
-                                                                             ]}), \
-         patch("adaptavist.Adaptavist.get_test_cases", return_value=[{"key": "TEST-T123"}]), \
-         patch("adaptavist.Adaptavist.get_test_run_by_name", return_value={"key": "TEST_RUN_TEST"}), \
-         patch("adaptavist.Adaptavist.get_test_case", return_value={"name": "TEST-T123", "priority": "Normal"}), \
-         patch("adaptavist.Adaptavist.edit_test_case", return_value=True), \
-         patch("adaptavist.Adaptavist._delete"), \
-         patch("adaptavist.Adaptavist._get"), \
-         patch("adaptavist.Adaptavist._post"), \
-         patch("adaptavist.Adaptavist._put"), \
-         patch("adaptavist.Adaptavist.create_test_result") as ctr, \
-         patch("adaptavist.Adaptavist.edit_test_result_status") as etrs, \
-         patch("adaptavist.Adaptavist.edit_test_script_status") as etss:
+    with patch(
+        "adaptavist.Adaptavist.get_test_result",
+        return_value={"scriptResults": [{"status": "Pass", "index": "0"}], "status": "Pass"},
+    ), patch(
+        "adaptavist.Adaptavist.get_test_run",
+        return_value={"items": [{"testCaseKey": "TEST-T121"}, {"testCaseKey": "TEST-T123"}, {"testCaseKey": "TEST-T124"}]},
+    ), patch(
+        "adaptavist.Adaptavist.get_test_cases", return_value=[{"key": "TEST-T123"}]
+    ), patch(
+        "adaptavist.Adaptavist.get_test_run_by_name", return_value={"key": "TEST_RUN_TEST"}
+    ), patch(
+        "adaptavist.Adaptavist.get_test_case", return_value={"name": "TEST-T123", "priority": "Normal"}
+    ), patch(
+        "adaptavist.Adaptavist.edit_test_case", return_value=True
+    ), patch(
+        "adaptavist.Adaptavist._delete"
+    ), patch(
+        "adaptavist.Adaptavist._get"
+    ), patch(
+        "adaptavist.Adaptavist._post"
+    ), patch(
+        "adaptavist.Adaptavist._put"
+    ), patch(
+        "adaptavist.Adaptavist.create_test_result"
+    ) as ctr, patch(
+        "adaptavist.Adaptavist.edit_test_result_status"
+    ) as etrs, patch(
+        "adaptavist.Adaptavist.edit_test_script_status"
+    ) as etss:
         yield ctr, etrs, etss

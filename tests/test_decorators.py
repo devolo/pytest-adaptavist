@@ -18,7 +18,8 @@ class TestDecoratorUnit:
     @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_block_decorator_with_class_decorator(self, pytester: pytest.Pytester):
         """Test block decorator."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             @pytest.mark.parametrize("a", [1,2])
@@ -26,7 +27,8 @@ class TestDecoratorUnit:
                 @pytest.mark.block()
                 def test_dummy(self, a):
                     assert True
-        """)
+        """
+        )
         outcome = pytester.runpytest().parseoutcomes()
         assert outcome["blocked"] == 2
         assert "passed" not in outcome
@@ -34,7 +36,8 @@ class TestDecoratorUnit:
     @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_block_decorator_with_two_class_decorators(self, pytester: pytest.Pytester):
         """Test block decorator."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             @pytest.mark.parametrize("a", [1,2])
@@ -43,7 +46,8 @@ class TestDecoratorUnit:
                 @pytest.mark.block()
                 def test_dummy(self, a):
                     assert True
-        """)
+        """
+        )
         outcome = pytester.runpytest().parseoutcomes()
         assert outcome["skipped"] == 2
         assert "passed" not in outcome
@@ -51,7 +55,8 @@ class TestDecoratorUnit:
     @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_block_decorator_with_class_skipif_decorator(self, pytester: pytest.Pytester):
         """Test block decorator."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             @pytest.mark.skipif(True)
@@ -59,7 +64,8 @@ class TestDecoratorUnit:
                 @pytest.mark.block()
                 def test_dummy(self):
                     assert True
-        """)
+        """
+        )
         outcome = pytester.runpytest().parseoutcomes()
         assert outcome["skipped"] == 1
         assert "passed" not in outcome
@@ -68,13 +74,15 @@ class TestDecoratorUnit:
     @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_block_decorator(self, pytester: pytest.Pytester):
         """Test block decorator."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             @pytest.mark.block()
             def test_T121():
                 assert True
-        """)
+        """
+        )
         outcome = pytester.runpytest().parseoutcomes()
         assert outcome["blocked"] == 1
         assert "passed" not in outcome
@@ -82,47 +90,55 @@ class TestDecoratorUnit:
     @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_blockif_decorator(self, pytester: pytest.Pytester):
         """Test blockif decorator."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             @pytest.mark.blockif(True, reason="Test")
             def test_dummy():
                 assert True
-        """)
+        """
+        )
         outcome = pytester.runpytest().parseoutcomes()
         assert outcome["blocked"] == 1
         assert "passed" not in outcome
 
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             @pytest.mark.blockif(True, reason="Test")
             class Test:
                 def test_dummy():
                     assert True
-        """)
+        """
+        )
         outcome = pytester.runpytest().parseoutcomes()
         assert outcome["blocked"] == 1
         assert "passed" not in outcome
 
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             @pytest.mark.blockif(False, reason="Test")
             def test_dummy():
                 assert True
-        """)
+        """
+        )
         outcome = pytester.runpytest().parseoutcomes()
         assert outcome["passed"] == 1
         assert "blocked" not in outcome
 
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             @pytest.mark.blockif(False, True, reason="Test")
             def test_dummy():
                 assert True
-        """)
+        """
+        )
         outcome = pytester.runpytest().parseoutcomes()
         assert outcome["blocked"] == 1
         assert "passed" not in outcome
@@ -130,7 +146,8 @@ class TestDecoratorUnit:
     @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_decorator_preferation(self, pytester: pytest.Pytester):
         """Test class block decorator is preferred to method decorator."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             @pytest.mark.block()
@@ -139,7 +156,8 @@ class TestDecoratorUnit:
                 @pytest.mark.skip()
                 def test_dummy(self):
                     assert True
-        """)
+        """
+        )
         report = pytester.runpytest("--adaptavist")
         outcome = report.parseoutcomes()
         assert outcome["blocked"] == 1
@@ -148,7 +166,8 @@ class TestDecoratorUnit:
     @pytest.mark.usefixtures("configure")
     def test_testcase_decorator(self, pytester: pytest.Pytester, adaptavist_mock):
         """docstring."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             class TestClass:
@@ -156,7 +175,8 @@ class TestDecoratorUnit:
                 @pytest.mark.testcase(test_case_key="T121", test_step_key=1)
                 def test_dasda(self):
                     assert True
-        """)
+        """
+        )
         _, etrs, _ = adaptavist_mock
         report = pytester.runpytest("--adaptavist")
         outcome = report.parseoutcomes()
@@ -167,7 +187,8 @@ class TestDecoratorUnit:
     @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_decorator_combination_blocked(self, pytester: pytest.Pytester):
         """Test class block decorator is useful combined with method decorator."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             @pytest.mark.blockif(False, reason="asdasd")
@@ -176,7 +197,8 @@ class TestDecoratorUnit:
                 @pytest.mark.block()
                 def test_dummy(self):
                     assert True
-        """)
+        """
+        )
         report = pytester.runpytest("--adaptavist")
         outcome = report.parseoutcomes()
         assert outcome["blocked"] == 1
@@ -185,13 +207,15 @@ class TestDecoratorUnit:
     @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_multiple_skipif(self, pytester: pytest.Pytester):
         """Test multiple conditions in a skipif decorator."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             @pytest.mark.skipif(False, True, reason="Test")
             def test_dummy(self):
                 assert True
-        """)
+        """
+        )
         report = pytester.runpytest("--adaptavist")
         outcome = report.parseoutcomes()
         assert outcome["skipped"] == 1
@@ -199,14 +223,16 @@ class TestDecoratorUnit:
 
     def test_project_decorator(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Test project decorator."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             class TestClass:
                 @pytest.mark.project(project_key="MARKER")
                 def test_T16(self):
                     assert True
-        """)
+        """
+        )
         _, etrs, _ = adaptavist_mock
         pytester.runpytest("--adaptavist")
         assert etrs.call_args.kwargs["test_case_key"] == "MARKER-T16"
@@ -214,7 +240,8 @@ class TestDecoratorUnit:
     @pytest.mark.usefixtures("configure")
     def test_respect_project_decorator_if_project_key_set(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Respect a project key if set in a config file."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             class TestClass():
@@ -224,7 +251,8 @@ class TestDecoratorUnit:
                 @pytest.mark.project(project_key="TEST")
                 def test_T17(self, meta_block):
                     pass
-        """)
+        """
+        )
         with open("config/global_config.json", "w", encoding="utf8") as file:
             file.write('{"project_key": "OTHERTEST"}')
         _, etrs, _ = adaptavist_mock
@@ -240,7 +268,8 @@ class TestDecoratorSystem:
 
     def test_T5(self, pytester: pytest.Pytester, adaptavist: Adaptavist):
         """Test blocking decorator."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             def test_T4(meta_block):  # As a blocked Testcase has no test_run attached, we need another test case to get the test_run_key
@@ -253,7 +282,8 @@ class TestDecoratorSystem:
                     mb_1.check(False)
                 with meta_block(2) as mb_2:
                     mb_2.check(False)
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         test_run_key, _ = get_test_values(report, "test_T4")
         config = read_global_config()
@@ -263,7 +293,8 @@ class TestDecoratorSystem:
 
     def test_T38(self, pytester: pytest.Pytester, adaptavist: Adaptavist):
         """Test blockif decorator."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             def test_T4(meta_block):  # As a blocked Testcase has no test_run attached, we need another test case to get the test_run_key
@@ -276,7 +307,8 @@ class TestDecoratorSystem:
                     mb_1.check(False)
                 with meta_block(2) as mb_2:
                     mb_2.check(False)
-        """)
+        """
+        )
         report = pytester.inline_run("--adaptavist")
         test_run_key, _ = get_test_values(report, "test_T4")
         config = read_global_config()

@@ -21,22 +21,26 @@ class TestCliUnit:
         config = pytester.parseconfig("--adaptavist")
         assert config.getoption("adaptavist")
 
-        pytester.makeini("""
+        pytester.makeini(
+            """
             [pytest]
             adaptavist = 1
-        """)
+        """
+        )
         config = pytester.parseconfig()
         assert config.getini("adaptavist")
 
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_invalid_branch(self, pytester: pytest.Pytester):
         """Test the correct behavior of an invalid branch."""
-        pytester.makepyfile("""
+        pytester.makepyfile(
+            """
             import pytest
 
             def test_TEST_T123():
                 assert True
-        """)
+        """
+        )
         os.environ["GIT_BRANCH"] = "test"
         report = pytester.runpytest("--adaptavist", "--restrict-branch")
         assert report.ret == ExitCode.INTERNAL_ERROR
