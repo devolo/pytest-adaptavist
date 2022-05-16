@@ -14,9 +14,9 @@ This [pytest](http://pytest.org) plugin generates test execution results within 
       - [Examples](#examples)
     - [Context reporting](#context-reporting)
     - [Test Case Order](#test-case-order)
-      - [Examples:](#examples-1)
+      - [Examples](#examples-1)
     - [Test Case Range](#test-case-range)
-      - [Examples:](#examples-2)
+      - [Examples](#examples-2)
     - [Skipping vs. Blocking](#skipping-vs-blocking)
       - [Using markers](#using-markers)
       - [Using metablock action modes](#using-metablock-action-modes)
@@ -87,7 +87,7 @@ restrict_branch_name=development
 
 pytest-adaptavist collects test cases (and single test steps) as mentioned above and prepares them for Adaptavist reporting.
 
-```test_run_key``` is used to specify an existing test run. In this case, it is important to mention that collected test cases must be linked to that test run.
+```test_run_key``` is used to specify an existing test run. In this case, you must either link collected test cases to that test run in Adaptavist. Not linked but collected test cases are skipped. Or you have to use the ```append_to_cycle``` option to automatically append found test cases that are not linked yet.
 
 Alternatively, if ```project_key``` is given and ```test_run_key``` is left empty, pytest-adaptavist creates a new test run every time with collected test cases linked to it. In this case, ```test_run_suffix``` can be used to create a meaningful test run name. In addition, ```test_plan_key``` is available to link the new created test run to an existing test plan.
 
@@ -281,7 +281,7 @@ Alternatively, if an existing test run is specified by ```test_run_key```, the c
 
 Note that ```test_case_order``` overrules the test case order of the given test run as well as the order specified by ```test_case_keys```. This might be helpful in cases, where the default order should be changed temporarily. If ```test_case_order``` is not specified, the order will be as defined by ```test_run_key``` or - if a new test run should be created - ```test_case_keys```.
 
-#### Examples:
+#### Examples
 
 Assume there is a project TEST with exactly two test cases TEST-T1 and TEST-T2 while a test implementation contains methods in the following order (top to bottom):
 
@@ -304,7 +304,7 @@ For cases where a new test run should be created including only a subset of test
 
 In addition to specify a list of test cases to be executed it is possible to define ranges of test cases by using ```test_case_range```.
 
-#### Examples:
+#### Examples
 
 Defining ```["TEST-T2", "TEST-T5", "TEST-200", "TEST-299"]``` as a range will include any test cases from TEST-T2 to TEST-5 and from TEST-200 to TEST-299.
 

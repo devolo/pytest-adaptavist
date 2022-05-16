@@ -64,10 +64,10 @@ def pytest_addoption(parser: Parser):
         default="origin/master",
         help="Branch to restrict to (default: origin/master)",
     )
-    add_option_ini("--test_run_name", dest="test_run_name", default=TEST_RUN_NAME_DEFAULT)
-    add_option_ini("--test_plan_name", dest="test_plan_name", default=TEST_PLAN_NAME_DEFAULT)
+    add_option_ini("--test_run_name", dest="test_run_name", default=TEST_RUN_NAME_DEFAULT, help="Specify test run name (default: <project_key> <test_run_suffix>)")
+    add_option_ini("--test_plan_name", dest="test_plan_name", default=TEST_PLAN_NAME_DEFAULT, help="Specify test plan name (default: <project_key> <test_plan_suffix>)")
     add_option_ini(
-        "--append_to_cycle", dest="append_to_cycle", action="store_true", option_type="bool", help="Useful help message"
+        "--append_to_cycle", dest="append_to_cycle", action="store_true", option_type="bool", help="Append found test cases to test cycle instead of skipping it."
     )
 
 
