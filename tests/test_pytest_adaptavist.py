@@ -180,7 +180,7 @@ class TestPytestAdaptavistUnit:
         assert etrs.call_args.kwargs["test_case_key"] == "TEST-T123"
 
         _, etrs, _ = adaptavist_mock
-        outcome = pytester.runpytest("--adaptavist", "-vv", "--append_to_cycle").parseoutcomes()
+        outcome = pytester.runpytest("--adaptavist", "-vv", "--append-to-cycle").parseoutcomes()
         assert outcome["passed"] == 1
         assert outcome["failed"] == 1
         assert etrs.call_args.kwargs["test_case_key"] == "TEST-T125"
