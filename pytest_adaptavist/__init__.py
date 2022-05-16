@@ -39,7 +39,7 @@ def pytest_addoption(parser: Parser):
     ):
         group.addoption(option, dest=dest, **kwargs)
         kwargs.pop("store", "")
-        parser.addini(dest, default=default, type=option_type, help="default value for " + option)
+        parser.addini(dest, default=default, type=option_type, help=f"default value for {option}")
 
     add_option_ini(
         "--adaptavist",
@@ -66,6 +66,9 @@ def pytest_addoption(parser: Parser):
     )
     add_option_ini("--test_run_name", dest="test_run_name", default=TEST_RUN_NAME_DEFAULT)
     add_option_ini("--test_plan_name", dest="test_plan_name", default=TEST_PLAN_NAME_DEFAULT)
+    add_option_ini(
+        "--append_to_cycle", dest="append_to_cycle", action="store_true", option_type="bool", help="Useful help message"
+    )
 
 
 @pytest.hookimpl(trylast=True)

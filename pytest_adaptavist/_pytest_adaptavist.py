@@ -881,15 +881,24 @@ class PytestAdaptavist:
                 self.test_refresh_info[f"{project_key}-{test_case_key}{specs or ''}"] = None
 
                 # mark this item with appropriate info (easier to read from when creating test results)
-                if f"{project_key}-{test_case_key}" in test_case_keys or not test_case_keys:
+                if (
+                    f"{project_key}-{test_case_key}" in test_case_keys
+                    or not test_case_keys
+                    or get_option_ini(item.config, "append_to_cycle")
+                ):
                     item.add_marker(
                         pytest.mark.testcase(
                             project_key=project_key,
-                            test_case_key=project_key + "-" + test_case_key,
+                            test_case_key=f"{project_key}-{test_case_key}",
                             test_step_key=test_step_key,
                         )
                     )
-                if test_case_keys and f"{project_key}-{test_case_key}" not in test_case_keys:
+
+                if (
+                    not get_option_ini(item.config, "append_to_cycle")
+                    and test_case_keys
+                    and f"{project_key}-{test_case_key}" not in test_case_keys
+                ):
                     item.add_marker(pytest.mark.skip(reason="skipped as requested"))
                 else:
                     collected_items.setdefault(f"{project_key}-{test_case_key}", []).append(item)
