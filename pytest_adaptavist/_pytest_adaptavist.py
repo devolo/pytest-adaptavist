@@ -50,9 +50,7 @@ class PytestAdaptavist:
 
     def __init__(self, config: Config):
         self.config = config
-        if (
-            get_option_ini(config, "test_run_name") != TEST_CYCLE_NAME_DEFAULT
-        ):  # TODO: Remove in pytest-adaptavist 6
+        if get_option_ini(config, "test_run_name") != TEST_CYCLE_NAME_DEFAULT:  # TODO: Remove in pytest-adaptavist 6
             self.config.issue_config_time_warning(
                 PytestDeprecationWarning("test_run_name is deprecated. Please use --test-cycle-name"), stacklevel=2
             )
