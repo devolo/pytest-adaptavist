@@ -57,7 +57,7 @@ class PytestAdaptavist:
                 PytestDeprecationWarning("test_run_name is deprecated. Please use --test-cycle-name"), stacklevel=2
             )
         if (
-            get_option_ini(config, "test_plan_name_deprecated") != "%(project_key) %(test_plan_suffix)"
+            get_option_ini(config, "test_plan_name_deprecated") != TEST_PLAN_NAME_DEFAULT
         ):  # TODO: Remove in pytest-adaptavist 6
             self.config.issue_config_time_warning(
                 PytestDeprecationWarning("test_plan_name is deprecated. Please use --test-plan-name"), stacklevel=2
