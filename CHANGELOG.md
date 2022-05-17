@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
-* Add support adding not attached testcases to a test run if the test cycle key is given.
+* Add support for adding not attached testcases to a test run if the test cycle key is given. Use it with the option '--append-to-cycle'
 
 ### Deprecated
 
