@@ -18,7 +18,7 @@ from ._atm_configuration import atm_user_is_valid
 from ._helpers import get_code_base_url, get_option_ini
 from ._pytest_adaptavist import PytestAdaptavist
 from ._xdist import XdistHooks
-from .constants import META_BLOCK_TIMEOUT, TEST_PLAN_NAME_DEFAULT, TEST_RUN_NAME_DEFAULT
+from .constants import META_BLOCK_TIMEOUT, TEST_CYCLE_NAME_DEFAULT, TEST_PLAN_NAME_DEFAULT
 from .metablock import MetaBlock
 from .types import MetaBlockFixture, MetaDataFixture
 
@@ -37,6 +37,7 @@ def pytest_addoption(parser: Parser):
     def add_option_ini(
         option: str, dest: str, default: str | None = None, option_type: Literal["bool"] | None = None, **kwargs: Any
     ):
+
         group.addoption(option, dest=dest, **kwargs)
         kwargs.pop("store", "")
         parser.addini(dest, default=default, type=option_type, help=f"default value for {option}")
@@ -67,11 +68,23 @@ def pytest_addoption(parser: Parser):
     add_option_ini(
         "--test_run_name",
         dest="test_run_name",
-        default=TEST_RUN_NAME_DEFAULT,
+        default=TEST_CYCLE_NAME_DEFAULT,
         help="Specify test run name (default: <project_key> <test_run_suffix>)",
-    )
+    )  # deprecated
     add_option_ini(
         "--test_plan_name",
+        dest="test_plan_name_deprecated",
+        default=TEST_PLAN_NAME_DEFAULT,
+        help="Specify test plan name (default: <project_key> <test_plan_suffix>)",
+    )  # deprecated
+    add_option_ini(
+        "--test-cycle-name",
+        dest="test_cycle_name",
+        default=TEST_CYCLE_NAME_DEFAULT,
+        help="Specify test cycle name (default: <project_key> <test_run_suffix>)",
+    )
+    add_option_ini(
+        "--test-plan-name",
         dest="test_plan_name",
         default=TEST_PLAN_NAME_DEFAULT,
         help="Specify test plan name (default: <project_key> <test_plan_suffix>)",
