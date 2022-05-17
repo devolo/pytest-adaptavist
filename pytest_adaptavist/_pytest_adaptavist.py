@@ -8,7 +8,6 @@ import os
 import re
 import sys
 import time
-import warnings
 from datetime import datetime
 from types import FrameType, TracebackType
 from typing import Any
