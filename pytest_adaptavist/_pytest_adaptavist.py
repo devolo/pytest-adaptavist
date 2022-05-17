@@ -621,7 +621,6 @@ class PytestAdaptavist:
                 if self.config.getini("test_cycle_name") != TEST_CYCLE_NAME_DEFAULT
                 else self.config.getini("test_run_name")
             )
-            or TEST_CYCLE_NAME_DEFAULT
         )  # TODO: Remove 'if' in pytest-adaptavist 6. Hint for future-me ;)   self._eval_format(str(self.config.getini("test_cycle_name")))
         test_plan_name = self._eval_format(
             str(
