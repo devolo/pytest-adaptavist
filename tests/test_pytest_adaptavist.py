@@ -237,6 +237,28 @@ class TestPytestAdaptavistUnit:
         assert etrs.call_args_list[0].kwargs["test_case_key"] == "TEST-T123"
         assert etrs.call_count == 1
 
+    @pytest.mark.filterwarnings("default")
+    @pytest.mark.usefixtures("adaptavist_mock")
+    def test_deprecated_options(self, pytester: pytest.Pytester):
+        """Test deprecated options."""
+        pytester.makepyfile(
+            """
+            def test_dummy():
+                assert True
+            """
+        )
+        result = pytester.runpytest("--test_run_name=abc", "--adaptavist")
+        assert any(
+            "PytestDeprecationWarning: test_run_name is deprecated. Please use --test-cycle-name" in line
+            for line in result.outlines
+        )
+
+        result = pytester.runpytest("--test_plan_name=abc", "--adaptavist")
+        assert any(
+            "PytestDeprecationWarning: test_plan_name is deprecated. Please use --test-plan-name" in line
+            for line in result.outlines
+        )
+
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_test_run_name(self, pytester: pytest.Pytester):
         """Test that test_run_name template is working."""
