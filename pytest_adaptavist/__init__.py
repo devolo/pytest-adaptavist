@@ -66,27 +66,29 @@ def pytest_addoption(parser: Parser):
         help="Branch to restrict to (default: origin/master)",
     )
     add_option_ini(
-      "--test_run_name",
-      dest="test_run_name",
-      default=TEST_CYCLE_NAME_DEFAULT,
-      help="Specify test run name (default: <project_key> <test_run_suffix>)",
+        "--test_run_name",
+        dest="test_run_name",
+        default=TEST_CYCLE_NAME_DEFAULT,
+        help="Specify test run name (default: <project_key> <test_run_suffix>)",
     )  # deprecated
     add_option_ini(
-      "--test_plan_name",
-      dest="test_plan_name_deprecated",
-      default=TEST_PLAN_NAME_DEFAULT,
-      help="Specify test plan name (default: <project_key> <test_plan_suffix>)",
+        "--test_plan_name",
+        dest="test_plan_name_deprecated",
+        default=TEST_PLAN_NAME_DEFAULT,
+        help="Specify test plan name (default: <project_key> <test_plan_suffix>)",
     )  # deprecated
     add_option_ini(
-      "--test-cycle-name",
-      dest="test_cycle_name",
-      default=TEST_CYCLE_NAME_DEFAULT,
-      help="Specify test cycle name (default: <project_key> <test_run_suffix>)",)
+        "--test-cycle-name",
+        dest="test_cycle_name",
+        default=TEST_CYCLE_NAME_DEFAULT,
+        help="Specify test cycle name (default: <project_key> <test_run_suffix>)",
+    )
     add_option_ini(
-      "--test-plan-name",
-      dest="test_plan_name",
-      default=TEST_PLAN_NAME_DEFAULT,
-      help="Specify test plan name (default: <project_key> <test_plan_suffix>)",)
+        "--test-plan-name",
+        dest="test_plan_name",
+        default=TEST_PLAN_NAME_DEFAULT,
+        help="Specify test plan name (default: <project_key> <test_plan_suffix>)",
+    )
     add_option_ini(
         "--append-to-cycle",
         dest="append_to_cycle",
@@ -94,7 +96,6 @@ def pytest_addoption(parser: Parser):
         option_type="bool",
         help="Append found test cases to test cycle instead of skipping it.",
     )
-
 
 
 @pytest.hookimpl(trylast=True)
