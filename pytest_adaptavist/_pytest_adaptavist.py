@@ -859,7 +859,8 @@ class PytestAdaptavist:
         # define the test case keys to be processed
         test_case_keys = self.test_case_keys
 
-        # ATTENTION: test_case_keys gets processed in this function while self.test_case_keys will hold the test cases set in the configuration. So they will not always be the same list
+        # ATTENTION: test_case_keys gets processed in this function while self.test_case_keys
+        # will hold the test cases set in the configuration. So they will not always be the same list
         if self.test_run_key:
             test_run = self.adaptavist.get_test_run(self.test_run_key)
             test_cases = [item["testCaseKey"] for item in test_run.get("items", [])]
