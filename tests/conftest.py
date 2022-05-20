@@ -38,16 +38,14 @@ def adaptavist(pytester: pytest.Pytester) -> Generator[Adaptavist, None, None]:
     pytester.mkdir("config")
     shutil.move("global_config.json", "config/global_config.json")
     config = read_global_config()
-    atm = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
-    yield atm
+    yield Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
 
 
 @pytest.fixture(name="test_run")
 def create_test_run(adaptavist: Adaptavist) -> Generator[str, None, None]:
     """Create a new test run."""
     config = read_global_config()
-    test_run = adaptavist.create_test_run(config["project_key"], "pytest_system_tests")
-    if test_run:
+    if test_run := adaptavist.create_test_run(config["project_key"], "pytest_system_tests"):
         os.environ["TEST_RUN_KEY"] = test_run
         yield test_run
         del os.environ["TEST_RUN_KEY"]

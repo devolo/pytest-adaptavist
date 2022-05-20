@@ -864,6 +864,13 @@ class PytestAdaptavist:
             # if test case keys are specified as well, take the intersection of both (if empty then all methods are skipped)
             test_case_keys = intersection(self.test_case_keys, test_cases) or [None] if self.test_case_keys else test_cases
 
+        # Catch those test cases which are defined in test_case_keys and not append to the test cycle yet
+        # Only matters if append-to-cycle is activated
+        if get_option_ini(items[0].config, "append_to_cycle") and self.test_case_keys:
+            for test_case in self.test_case_keys:
+                if test_case not in test_case_keys:
+                    test_case_keys.append(test_case)
+
         # run over all found test methods and collect the relevant
         for item in items:
             fullname = get_item_nodeid(item)
@@ -918,9 +925,13 @@ class PytestAdaptavist:
                             test_step_key=test_step_key,
                         )
                     )
-
                 if (
-                    not get_option_ini(item.config, "append_to_cycle")
+                    (
+                        not get_option_ini(item.config, "append_to_cycle")
+                        or (
+                            self.test_case_keys and f"{project_key}-{test_case_key}" not in self.test_case_keys
+                        )  # Catch case that test_case_keys contains new test_case
+                    )
                     and test_case_keys
                     and f"{project_key}-{test_case_key}" not in test_case_keys
                 ):

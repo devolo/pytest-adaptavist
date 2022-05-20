@@ -169,21 +169,32 @@ class TestPytestAdaptavistUnit:
             def test_T123(meta_block):
                 with meta_block() as mb:
                     mb.check(True)
+
+            def test_T124(meta_block):
+                with meta_block() as mb:
+                    mb.check(True)
         """
         )
+        # Test that test cases skipped if append-to-cycle is off and test_case_keys are set
         with open("config/global_config.json", "w", encoding="utf8") as file:
             file.write('{"project_key": "TEST", "test_run_key":"TEST-C1", "test_case_keys": ["TEST-T123"]}')
-        _, etrs, _ = adaptavist_mock
         outcome = pytester.runpytest("--adaptavist", "-vv").parseoutcomes()
         assert outcome["passed"] == 1
-        assert outcome["skipped"] == 1
-        assert etrs.call_args.kwargs["test_case_key"] == "TEST-T123"
+        assert outcome["skipped"] == 2
 
-        _, etrs, _ = adaptavist_mock
+        # Test that test cases which are not defined in test_case_keys are skipped if append-to-cycle is on
+        with open("config/global_config.json", "w", encoding="utf8") as file:
+            file.write('{"project_key": "TEST", "test_run_key":"TEST-C1", "test_case_keys": ["TEST-T125"]}')
         outcome = pytester.runpytest("--adaptavist", "-vv", "--append-to-cycle").parseoutcomes()
-        assert outcome["passed"] == 1
         assert outcome["failed"] == 1
-        assert etrs.call_args.kwargs["test_case_key"] == "TEST-T125"
+        assert outcome["skipped"] == 2
+
+        # Test that test cases run if append-to-cycle is on and test_case_keys are not set
+        with open("config/global_config.json", "w", encoding="utf8") as file:
+            file.write('{"project_key": "TEST", "test_run_key":"TEST-C1", "test_case_keys": []}')
+        outcome = pytester.runpytest("--adaptavist", "-vv", "--append-to-cycle").parseoutcomes()
+        assert outcome["passed"] == 2
+        assert outcome["failed"] == 1
 
     def test_xfail(self, pytester: pytest.Pytester):
         """Test that xfail is handled properly."""
