@@ -156,7 +156,8 @@ class TestPytestAdaptavistUnit:
         assert isinstance(atra.call_args.kwargs["attachment"], BytesIO)
         assert atra.call_args.kwargs["filename"] == "test.txt"
 
-    def test_skipped_test_cases_keys(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
+    @pytest.mark.usefixtures("adaptavist_mock")
+    def test_skipped_test_cases_keys(self, pytester: pytest.Pytester):
         """Test that testcases which are not defined in test_case_keys are skipped."""
         pytester.makepyfile(
             """
