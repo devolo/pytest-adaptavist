@@ -853,16 +853,27 @@ class PytestAdaptavist:
         self, items: list[pytest.Item], collected_project_keys: list[str], collected_items: dict[str, list[pytest.Item]]
     ):
         """Setup and prepare collection of available test methods."""
+        if items:
+            config = items[0].config
 
         # define the test case keys to be processed
         test_case_keys = self.test_case_keys
 
+        # ATTENTION: test_case_keys gets processed in this function while self.test_case_keys
+        # will hold the test cases set in the configuration. So they will not always be the same list
         if self.test_run_key:
             test_run = self.adaptavist.get_test_run(self.test_run_key)
             test_cases = [item["testCaseKey"] for item in test_run.get("items", [])]
 
             # if test case keys are specified as well, take the intersection of both (if empty then all methods are skipped)
             test_case_keys = intersection(self.test_case_keys, test_cases) or [None] if self.test_case_keys else test_cases
+
+        # Catch those test cases which are defined in test_case_keys and not append to the test cycle yet
+        # Only matters if append-to-cycle is activated
+        if get_option_ini(config, "append_to_cycle") and self.test_case_keys:
+            for test_case in self.test_case_keys:
+                if test_case not in test_case_keys:
+                    test_case_keys.append(test_case)
 
         # run over all found test methods and collect the relevant
         for item in items:
@@ -909,7 +920,7 @@ class PytestAdaptavist:
                 if (
                     f"{project_key}-{test_case_key}" in test_case_keys
                     or not test_case_keys
-                    or get_option_ini(item.config, "append_to_cycle")
+                    or get_option_ini(config, "append_to_cycle")
                 ):
                     item.add_marker(
                         pytest.mark.testcase(
@@ -918,9 +929,13 @@ class PytestAdaptavist:
                             test_step_key=test_step_key,
                         )
                     )
-
                 if (
-                    not get_option_ini(item.config, "append_to_cycle")
+                    (
+                        not get_option_ini(config, "append_to_cycle")
+                        or (
+                            self.test_case_keys and f"{project_key}-{test_case_key}" not in self.test_case_keys
+                        )  # Catch case that we have test_case_keys and our currently looped test case is not set in this test_case_keys
+                    )
                     and test_case_keys
                     and f"{project_key}-{test_case_key}" not in test_case_keys
                 ):
