@@ -855,7 +855,7 @@ class PytestAdaptavist:
         """Setup and prepare collection of available test methods."""
         if not items:
             return
-        
+
         config = items[0].config
 
         # define the test case keys to be processed
