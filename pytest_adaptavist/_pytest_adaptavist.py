@@ -853,8 +853,10 @@ class PytestAdaptavist:
         self, items: list[pytest.Item], collected_project_keys: list[str], collected_items: dict[str, list[pytest.Item]]
     ):
         """Setup and prepare collection of available test methods."""
-        if items:
-            config = items[0].config
+        if not items:
+            return
+        
+        config = items[0].config
 
         # define the test case keys to be processed
         test_case_keys = self.test_case_keys
