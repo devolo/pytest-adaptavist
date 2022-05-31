@@ -51,13 +51,13 @@ class PytestAdaptavist:
     def __init__(self, config: Config):
         self.config = config
         if get_option_ini(config, "test_run_name") != TEST_CYCLE_NAME_DEFAULT:  # TODO: Remove in pytest-adaptavist 6
-            self.config.issue_config_time_warning(
+            config.issue_config_time_warning(
                 PytestDeprecationWarning("test_run_name is deprecated. Please use --test-cycle-name"), stacklevel=2
             )
         if (
             get_option_ini(config, "test_plan_name_deprecated") != TEST_PLAN_NAME_DEFAULT
         ):  # TODO: Remove in pytest-adaptavist 6
-            self.config.issue_config_time_warning(
+            config.issue_config_time_warning(
                 PytestDeprecationWarning("test_plan_name is deprecated. Please use --test-plan-name"), stacklevel=2
             )
 
@@ -85,7 +85,7 @@ class PytestAdaptavist:
         self.local_user = getpass.getuser().lower()
         self.enabled = get_option_ini(config, "adaptavist")
 
-        self.cfg = ATMConfiguration(self.config)
+        self.cfg = ATMConfiguration(config)
         self.adaptavist: Adaptavist = Adaptavist(
             self.cfg.get("jira_server", ""), self.cfg.get("jira_username", ""), self.cfg.get("jira_password", "")
         )

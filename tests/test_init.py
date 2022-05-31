@@ -22,26 +22,3 @@ def test_restrict_user(pytester: pytest.Pytester):
     )
     report = pytester.inline_run("--adaptavist")
     assert not report._pluginmanager.get_plugin("_adaptavist").enabled  # pylint: disable=protected-access
-
-
-@pytest.mark.usefixtures("adaptavist_mock")
-def test_atm_get_placeholder(pytester: pytest.Pytester):
-    """Test if restrict_user is handles correctly"""
-    pytester.makepyfile(
-        """
-            def test_T1(meta_block):
-                with meta_block():
-                    with meta_block(1) as mb_1:
-                        mb_1.check(True)
-        """
-    )
-    pytester.makeini(
-        """
-        [pytest]
-        restrict_user = abc
-        cycle = C12
-    """
-    )
-    pytest.fail()  # write a correct test ;)
-    report = pytester.inline_run("--adaptavist")
-    assert not report._pluginmanager.get_plugin("_adaptavist").enabled  # pylint: disable=protected-access

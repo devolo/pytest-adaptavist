@@ -31,6 +31,31 @@ def test_get_environ():
     assert atm_config.get("upper_test_variable") == "upper case variable"
 
 
+@pytest.mark.usefixtures("adaptavist_mock")
+def test_atm_ini(pytester: pytest.Pytester):
+    """Test if restrict_user is handles correctly"""
+    pytester.makepyfile(
+        """
+            def test_T1(meta_block):
+                with meta_block():
+                    with meta_block(1) as mb_1:
+                        mb_1.check(True)
+        """
+    )
+    pytester.makeini(
+        """
+        [pytest]
+        test_run_key = C1
+    """
+    )
+    report = pytester.inline_run("--adaptavist")
+    assert report._pluginmanager.get_plugin("_adaptavist").test_run_key == "C1"  # pylint: disable=protected-access
+
+    os.environ["test_run_key"] = "C2"
+    report = pytester.inline_run("--adaptavist")
+    assert report._pluginmanager.get_plugin("_adaptavist").test_run_key == "C2"  # pylint: disable=protected-access
+
+
 @pytest.mark.parametrize(
     "input_values, output_values",
     [

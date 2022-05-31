@@ -6,9 +6,8 @@ import json
 import os
 from typing import Any
 
+from _pytest.config import Config
 from adaptavist import Adaptavist
-
-from pytest import Config
 
 
 class ATMConfiguration:
