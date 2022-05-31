@@ -5,6 +5,7 @@ from __future__ import annotations
 import getpass
 import logging
 import os
+from datetime import datetime
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Literal, NoReturn
 
@@ -96,6 +97,21 @@ def pytest_addoption(parser: Parser):
         option_type="bool",
         help="Append found test cases to test cycle instead of skipping it.",
     )
+    parser.addini("project_key", help="Specify project key")
+    parser.addini("test_plan_key", help="Specify test plan key")
+    parser.addini("test_plan_folder", help="Specify test plan folder")
+    parser.addini("test_plan_suffix", help="Specify test plan suffix")
+    parser.addini("test_run_key", help="Specify test run key")
+    parser.addini("test_run_folder", help="Specify test run folder")
+    parser.addini(
+        "test_run_suffix",
+        default="test run " + datetime.now().strftime("%Y%m%d%H%M"),
+        help=f"Specify test run suffix (default: test run {datetime.now().strftime('%Y%m%d%H%M')})",
+    )
+    parser.addini("test_environment", help="Specify test environment")
+    parser.addini("test_case_keys", help="Specify test case keys")
+    parser.addini("test_case_order", help="Specify test case order")
+    parser.addini("test_case_range", help="Specify test case range")
 
 
 @pytest.hookimpl(trylast=True)
