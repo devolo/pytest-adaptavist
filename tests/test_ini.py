@@ -1,9 +1,6 @@
-import logging
 import os
 
 import pytest
-
-LOGGER = logging.getLogger(__name__)
 
 
 @pytest.mark.usefixtures("configure")
@@ -36,7 +33,6 @@ def test_atm_ini(pytester: pytest.Pytester):
             {option} = C1
         """
         )
-        LOGGER.info(option)
         report = pytester.inline_run("--adaptavist")
         assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) == "C1"  # pylint: disable=protected-access
 

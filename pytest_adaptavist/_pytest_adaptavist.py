@@ -131,7 +131,7 @@ class PytestAdaptavist:
         if not self.test_run_folder:
             self.test_run_folder = self.cfg.get("test_run_folder")
         if not self.test_run_suffix:
-            self.test_run_suffix = self.cfg.get("test_run_suffix")
+            self.test_run_suffix = self.cfg.get("test_run_suffix", f"test run {datetime.now().strftime('%Y%m%d%H%M')}")
 
     @pytest.hookimpl(trylast=True)
     def pytest_collection_modifyitems(
