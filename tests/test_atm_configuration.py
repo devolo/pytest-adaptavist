@@ -53,6 +53,7 @@ def test_atm_ini(pytester: pytest.Pytester):
 
     os.environ["test_run_key"] = "C2"
     report = pytester.inline_run("--adaptavist")
+    del os.environ["test_run_key"]
     assert report._pluginmanager.get_plugin("_adaptavist").test_run_key == "C2"  # pylint: disable=protected-access
 
 
