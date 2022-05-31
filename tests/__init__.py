@@ -18,17 +18,17 @@ def system_test_preconditions() -> bool:
     """Check preconditions for system tests."""
     atmcfg = ATMConfiguration()
     if (
-        not atmcfg.config
-        or "project_key" not in atmcfg.config
-        or "jira_server" not in atmcfg.config
-        or "jira_username" not in atmcfg.config
-        or "jira_password" not in atmcfg.config
+        not atmcfg.global_config
+        or "project_key" not in atmcfg.global_config
+        or "jira_server" not in atmcfg.global_config
+        or "jira_username" not in atmcfg.global_config
+        or "jira_password" not in atmcfg.global_config
     ):
         return False
 
     try:
         requests.adapters.DEFAULT_RETRIES = 1
-        requests.get(atmcfg.config.get("jira_server"), timeout=1)
+        requests.get(atmcfg.global_config.get("jira_server"), timeout=1)
         return True
     except Exception:  # pylint: disable=broad-except
         return False

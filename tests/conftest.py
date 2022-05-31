@@ -1,7 +1,9 @@
 """Fixtures for tests."""
+from __future__ import annotations
 
 import os
 import shutil
+from contextlib import suppress
 from typing import Generator
 from unittest.mock import patch
 
@@ -20,15 +22,24 @@ def pytest_configure(config: Config):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def create_test_plan(request):
+def create_test_plan(request: pytest.FixtureRequest) -> str | None:
     """Creates a test plan. All system test will link the test cycle with this test plan."""
     if (
         system_test_preconditions() and request.config.option.markexpr != "not system"
     ):  # This should only be used if test is a system test
         config = read_global_config()
         atm = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
-        test_plan = atm.create_test_plan(config["project_key"], "pytest_adaptavist_system_test")
-        os.environ["TEST_PLAN_KEY"] = test_plan
+        return atm.create_test_plan(config["project_key"], "pytest_adaptavist_system_test")
+
+
+@pytest.fixture(autouse=True)
+def environmental_test_plan(request: pytest.FixtureRequest, create_test_plan: str | None) -> Generator[None, None, None]:
+    """Set test plan key for system tests."""
+    if request.node.get_closest_marker("system"):
+        os.environ["TEST_PLAN_KEY"] = create_test_plan
+    yield
+    with suppress(KeyError):
+        del os.environ["TEST_PLAN_KEY"]
 
 
 @pytest.fixture

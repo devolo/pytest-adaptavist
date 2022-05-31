@@ -79,7 +79,7 @@ restrict_branch_name=development
 
 1. pytest-adaptavist searches for test methods named like ```test_<test_case_key>``` or ```test_<test_case_key>_<step>``` where ```test_case_key``` is the key of the Jira test case excluding the project key (e.g. "T1") and ```step``` defines a single test script step (if existing). In order to build real test case key strings from test methods, the corresponding project key needs to be specified for each relevant class or single test methods by using markers (see [examples](#examples) below). Alternatively, ```test_case_key``` can be given as it appears in Adaptavist, but with hyphens replaced by underscores (e.g. "TEST_T1"). Each of these kind of test methods is marked as Adaptavist test case for reporting appropriate results into Adaptavist test management. Any other test methods are processed as usual. If you don't want to stick to this convention, you can decorate any test method with the testcase marker and specify ```project_key```, ```test_case_key``` and ```test_step_key``` there.
 
-1. Finally, pytest-adaptavist needs either ```test_run_key``` to use an existing test run or ```project_key``` to create a new test run every time with collected test cases linked to it. In order to work properly, either of these parameters need to be specified at the very start of the test session. If both parameters are empty, neither test runs nor test results are created in Adaptavist test management. Please also note that any of these parameters mentioned here and in the following documentation can either be set programmatically by storing them in the environment or be provided as part of json config file (./config/global_config.json).
+1. Finally, pytest-adaptavist needs either ```test_run_key``` to use an existing test run or ```project_key``` to create a new test run every time with collected test cases linked to it. In order to work properly, either of these parameters need to be specified at the very start of the test session. If both parameters are empty, neither test runs nor test results are created in Adaptavist test management. Please also note that any of these parameters mentioned here and in the following documentation can either be set programmatically by storing them in the environment, be defined in pytest.ini or be provided as part of a json config file (./config/global_config.json).
 
 ## Examples and Features
 
@@ -118,7 +118,7 @@ e.g. ```test_run_name = %(project_key) Regression Test on %(test_environment)```
 
 In addition, ```test_case_keys``` may contain test cases that are not implemented in the current python test script. This can be useful in cases where the new test run also needs to include manual test cases (e.g. for later execution). Furthermore, it is even possible to just create a new test run with only test cases that are not (yet) implemented.
 
-If either of these parameters is missing, pytest-adaptavist tries to read appropriate values from config file (global_config.json).
+If either of these parameters is missing, pytest-adaptavist tries to read appropriate values from pytest.ini or config file (global_config.json).
 
 Specifying a project key for relevant test classes or test methods can be done by using markers:
 

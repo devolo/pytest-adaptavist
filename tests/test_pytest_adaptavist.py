@@ -197,6 +197,7 @@ class TestPytestAdaptavistUnit:
         assert outcome["passed"] == 2
         assert outcome["failed"] == 1
 
+    @pytest.mark.usefixtures("adaptavist_mock")
     def test_xfail(self, pytester: pytest.Pytester):
         """Test that xfail is handled properly."""
         pytester.makepyfile(
@@ -204,13 +205,14 @@ class TestPytestAdaptavistUnit:
             import pytest
 
             @pytest.mark.xfail
-            def test_T125(meta_block):
+            def test_T123(meta_block):
                 assert False
         """
         )
         outcome = pytester.runpytest().parseoutcomes()
         assert outcome["xfailed"] == 1
 
+    @pytest.mark.usefixtures("adaptavist_mock")
     def test_correct_stacktrace(self, pytester: pytest.Pytester):
         """Test that the correct stack trace is printed."""
         pytester.makepyfile(

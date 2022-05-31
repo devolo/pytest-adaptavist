@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.7.0] - 2022/05/31
+
+### Added
+
+* Define settings in pytest.ini as alternative to global_config.json
+
 ## [5.6.2] - 2022/05/30
 
 ### Fixed
@@ -24,8 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Deprecated
 
-*  --test_run_name is deprecated now and will be removed in pytest-adaptavist 6. Use --test-cycle-name instead
-*  --test_plan_name is deprecated now and will be removed in pytest-adaptavist 6. Use --test-plan-name instead
+* --test_run_name is deprecated now and will be removed in pytest-adaptavist 6. Use --test-cycle-name instead
+* --test_plan_name is deprecated now and will be removed in pytest-adaptavist 6. Use --test-plan-name instead
 
 ## [5.5.0] - 2022/04/26
 
