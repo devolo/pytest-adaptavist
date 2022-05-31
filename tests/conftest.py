@@ -22,7 +22,7 @@ def pytest_configure(config: Config):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def create_test_plan(request: pytest.FixtureRequest):
+def create_test_plan(request: pytest.FixtureRequest) -> str | None:
     """Creates a test plan. All system test will link the test cycle with this test plan."""
     if (
         system_test_preconditions() and request.config.option.markexpr != "not system"
@@ -33,7 +33,8 @@ def create_test_plan(request: pytest.FixtureRequest):
 
 
 @pytest.fixture(autouse=True)
-def environmental_test_plan(request: pytest.FixtureRequest, create_test_plan: str | None):
+def environmental_test_plan(request: pytest.FixtureRequest, create_test_plan: str | None) -> Generator[None, None, None]:
+    """Set test plan key for system tests."""
     if request.node.get_closest_marker("system"):
         os.environ["TEST_PLAN_KEY"] = create_test_plan
     yield
