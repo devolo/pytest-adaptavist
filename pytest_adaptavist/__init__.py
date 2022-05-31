@@ -64,31 +64,31 @@ def pytest_addoption(parser: Parser):
         "--restrict-branch-name",
         dest="restrict_branch_name",
         default="origin/master",
-        help="Branch to restrict to (default: origin/master)",
+        help="Branch to restrict to (default: origin/master).",
     )
     add_option_ini(
         "--test_run_name",
         dest="test_run_name",
         default=TEST_CYCLE_NAME_DEFAULT,
-        help="Specify test run name (default: <project_key> <test_run_suffix>)",
+        help="Specify test run name (default: <project_key> <test_run_suffix>).",
     )  # deprecated
     add_option_ini(
         "--test_plan_name",
         dest="test_plan_name_deprecated",
         default=TEST_PLAN_NAME_DEFAULT,
-        help="Specify test plan name (default: <project_key> <test_plan_suffix>)",
+        help="Specify test plan name (default: <project_key> <test_plan_suffix>).",
     )  # deprecated
     add_option_ini(
         "--test-cycle-name",
         dest="test_cycle_name",
         default=TEST_CYCLE_NAME_DEFAULT,
-        help="Specify test cycle name (default: <project_key> <test_run_suffix>)",
+        help="Specify test cycle name (default: <project_key> <test_run_suffix>).",
     )
     add_option_ini(
         "--test-plan-name",
         dest="test_plan_name",
         default=TEST_PLAN_NAME_DEFAULT,
-        help="Specify test plan name (default: <project_key> <test_plan_suffix>)",
+        help="Specify test plan name (default: <project_key> <test_plan_suffix>).",
     )
     add_option_ini(
         "--append-to-cycle",
@@ -97,21 +97,21 @@ def pytest_addoption(parser: Parser):
         option_type="bool",
         help="Append found test cases to test cycle instead of skipping it.",
     )
-    parser.addini("project_key", help="Specify project key")
-    parser.addini("test_plan_key", help="Specify test plan key")
-    parser.addini("test_plan_folder", help="Specify test plan folder")
-    parser.addini("test_plan_suffix", help="Specify test plan suffix")
-    parser.addini("test_run_key", help="Specify test run key")
-    parser.addini("test_run_folder", help="Specify test run folder")
+    parser.addini("project_key", help="Specify project key.")
+    parser.addini("test_plan_key", help="Specify test plan key.")
+    parser.addini("test_plan_folder", help="Specify test plan folder.")
+    parser.addini("test_plan_suffix", help="Specify test plan suffix.")
+    parser.addini("test_run_key", help="Specify test run key.")
+    parser.addini("test_run_folder", help="Specify test run folder.")
     parser.addini(
         "test_run_suffix",
         default="test run " + datetime.now().strftime("%Y%m%d%H%M"),
-        help=f"Specify test run suffix (default: test run {datetime.now().strftime('%Y%m%d%H%M')})",
+        help=f"Specify test run suffix (default: test run {datetime.now().strftime('%Y%m%d%H%M')}).",
     )
-    parser.addini("test_environment", help="Specify test environment")
-    parser.addini("test_case_keys", help="Specify test case keys")
-    parser.addini("test_case_order", help="Specify test case order")
-    parser.addini("test_case_range", help="Specify test case range")
+    parser.addini("test_environment", help="Specify test environment.")
+    parser.addini("test_case_keys", help="Specify test case keys.")
+    parser.addini("test_case_order", help="Specify test case order.")
+    parser.addini("test_case_range", help="Specify test case range.")
 
 
 @pytest.hookimpl(trylast=True)
