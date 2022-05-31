@@ -85,7 +85,7 @@ class PytestAdaptavist:
         self.local_user = getpass.getuser().lower()
         self.enabled = get_option_ini(config, "adaptavist")
 
-        self.cfg = ATMConfiguration()
+        self.cfg = ATMConfiguration(self.config)
         self.adaptavist: Adaptavist = Adaptavist(
             self.cfg.get("jira_server", ""), self.cfg.get("jira_username", ""), self.cfg.get("jira_password", "")
         )

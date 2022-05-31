@@ -8,17 +8,20 @@ from typing import Any
 
 from adaptavist import Adaptavist
 
+from pytest import Config
+
 
 class ATMConfiguration:
     """Configuration class to read config parameters (either from env or from "global_config.json")."""
 
-    def __init__(self):
-        self.config = {}
+    def __init__(self, pytest_config: Config | None = None):
+        self.global_config = {}
+        self.pytest_config = pytest_config.inicfg if pytest_config else {}
         config_file_name = os.path.join("config", "global_config.json")
         if os.path.exists(os.path.abspath(config_file_name)):
             with open(config_file_name, "r", encoding="utf-8") as config_file:
                 try:
-                    self.config.update(json.load(config_file))
+                    self.global_config.update(json.load(config_file))
                 except Exception as ex:
                     raise ValueError(f'Failed to load config from file "{config_file}"!', ex) from ex
 
@@ -30,15 +33,19 @@ class ATMConfiguration:
 
         OS environment[key]
         OS environment[KEY]
+        pytest.ini[key]
+        pytest.ini[KEY]
         Configuration dictionary[key]
         Configuration dictionary[cfg_key]
         """
 
         if key.lower().startswith("cfg_"):
-            return self.config.get(key) or default
+            return self.global_config.get(key) or default
 
         values: tuple[Any, ...] = ()
-        for config_storage, lookups in zip([os.environ, self.config], [[key, key.upper()], [key, "cfg_" + key]]):
+        for config_storage, lookups in zip(
+            [{**self.pytest_config, **os.environ}, self.global_config], [[key, key.upper()], [key, f"cfg_{key}"]]
+        ):
             values += tuple(config_storage[lookup] for lookup in lookups if lookup in config_storage)
         return next(iter(values), default)
 
