@@ -1,33 +1,28 @@
 """ Test Adaptavist test management configuration."""
-import os
-
 import pytest
 from _pytest.config import ExitCode
 
 from pytest_adaptavist._atm_configuration import ATMConfiguration
 
 
-def test_get():
+def test_get(monkeypatch: pytest.MonkeyPatch):
     """Test atm get function. Config dictionary is preferred over OS environment."""
     atm_config = ATMConfiguration()
     atm_config.global_config["cfg_test_variable"] = "correct source"
-
-    os.environ["cfg_test_variable"] = "wrong source"
-
+    monkeypatch.setenv("cfg_test_variable", "wrong source")
     assert atm_config.get("cfg_test_variable") == "correct source"
 
     atm_config.global_config["cfg_test"] = "test_cfg"
     assert atm_config.get("test") == "test_cfg"
 
 
-def test_get_environ():
+def test_get_environ(monkeypatch: pytest.MonkeyPatch):
     """Test that an OS environment variable is returned if no config is set in dictionary."""
     atm_config = ATMConfiguration()
-
-    os.environ["test_variable"] = "variable from environment"
+    monkeypatch.setenv("test_variable", "variable from environment")
     assert atm_config.get("test_variable") == "variable from environment"
 
-    os.environ["UPPER_TEST_VARIABLE"] = "upper case variable"
+    monkeypatch.setenv("UPPER_TEST_VARIABLE", "upper case variable")
     assert atm_config.get("upper_test_variable") == "upper case variable"
 
 

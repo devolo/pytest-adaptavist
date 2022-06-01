@@ -1,9 +1,7 @@
 """Fixtures for tests."""
 from __future__ import annotations
 
-import os
 import shutil
-from contextlib import suppress
 from typing import Generator
 from unittest.mock import patch
 
@@ -33,13 +31,10 @@ def create_test_plan(request: pytest.FixtureRequest) -> str | None:
 
 
 @pytest.fixture(autouse=True)
-def environmental_test_plan(request: pytest.FixtureRequest, create_test_plan: str | None) -> Generator[None, None, None]:
+def set_test_plan(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest, create_test_plan: str | None):
     """Set test plan key for system tests."""
     if request.node.get_closest_marker("system"):
-        os.environ["TEST_PLAN_KEY"] = create_test_plan or ""
-    yield
-    with suppress(KeyError):
-        del os.environ["TEST_PLAN_KEY"]
+        monkeypatch.setenv("TEST_PLAN_KEY", create_test_plan or "")
 
 
 @pytest.fixture
@@ -53,18 +48,17 @@ def adaptavist(pytester: pytest.Pytester) -> Generator[Adaptavist, None, None]:
 
 
 @pytest.fixture(name="test_run")
-def create_test_run(adaptavist: Adaptavist) -> Generator[str, None, None]:
+def create_test_run(monkeypatch: pytest.MonkeyPatch, adaptavist: Adaptavist) -> Generator[str, None, None]:
     """Create a new test run."""
     config = read_global_config()
     if test_run := adaptavist.create_test_run(config["project_key"], "pytest_system_tests"):
-        os.environ["TEST_RUN_KEY"] = test_run
+        monkeypatch.setenv("TEST_RUN_KEY", test_run)
         yield test_run
-        del os.environ["TEST_RUN_KEY"]
 
 
 @pytest.fixture
 def configure(pytester: pytest.Pytester):
-    """Configure environment for unittests."""
+    """Configure environment for unit tests."""
     pytester.mkdir("config")
     with open("config/global_config.json", "w", encoding="utf8") as file:
         file.write('{"jira_server": "https://jira.test", "project_key": "TEST", "test_run_key":"TEST-C1"}')

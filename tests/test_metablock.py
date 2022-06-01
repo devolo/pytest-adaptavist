@@ -1,5 +1,4 @@
 """Test meta block functionality."""
-
 from unittest.mock import patch
 
 import pytest
@@ -175,8 +174,7 @@ class TestMetaBlockUnit:
                     assert True
         """
         )
-        outcome = pytester.runpytest("--adaptavist").parseoutcomes()
-        assert outcome["skipped"] == 1
+        pytester.runpytest("--adaptavist").assert_outcomes(skipped=1)
 
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_meta_block_timeout_fail(self, pytester: pytest.Pytester):
@@ -192,8 +190,7 @@ class TestMetaBlockUnit:
                     assert True
         """
         )
-        outcome = pytester.runpytest("--adaptavist").parseoutcomes()
-        assert outcome["failed"] == 1
+        pytester.runpytest("--adaptavist").assert_outcomes(failed=1)
 
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_meta_block_check_unknown_arguments(self, pytester: pytest.Pytester):
@@ -246,7 +243,6 @@ class TestMetaBlockUnit:
 
     def test_meta_block_stop_context(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Test Action.STOP_CONTEXT. The second check in meta_block 1 must not be executed, but step 2 must be executed."""
-
         pytester.makepyfile(
             """
             import pytest
@@ -266,7 +262,7 @@ class TestMetaBlockUnit:
         assert etss.call_count == 2
         assert etss.call_args.kwargs["step"] == 2
         assert etss.call_args.kwargs["status"] == "Pass"
-        assert report.parseoutcomes()["skipped"] == 1
+        report.assert_outcomes(skipped=1)
 
     def test_meta_block_stop_method(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Test Action.STOP_METHOD. We expect to not see step 2 and the second check of meta_block 1. TEST-T124 must be executed normally."""
