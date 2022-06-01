@@ -6,7 +6,22 @@ import pytest
 class TestIniConfig:
     """Test pytest.ini configuration on unit test level."""
 
-    @pytest.mark.parametrize("option", ["project_key", "test_case_keys", "test_case_order", "test_case_range", "test_environment", "test_plan_folder", "test_plan_suffix", "test_plan_key", "test_run_folder", "test_run_key", "test_run_suffix"])
+    @pytest.mark.parametrize(
+        "option",
+        [
+            "project_key",
+            "test_case_keys",
+            "test_case_order",
+            "test_case_range",
+            "test_environment",
+            "test_plan_folder",
+            "test_plan_suffix",
+            "test_plan_key",
+            "test_run_folder",
+            "test_run_key",
+            "test_run_suffix",
+        ],
+    )
     def test_ini_config_strings(self, pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch, option: str):
         """Test that string values in pytest.ini are correctly used and recognized by pytest."""
         monkeypatch.setenv("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
@@ -23,14 +38,17 @@ class TestIniConfig:
             {option} = C1
             """
         )
-        
+
         report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
-        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) == "C1" or ["C1"] # pylint: disable=protected-access
+        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) == "C1" or [
+            "C1"
+        ]  # pylint: disable=protected-access
 
         result = pytester.runpytest("--adaptavist", plugins=["adaptavist", "assume"])
-        report = result.parseoutcomes()
-        assert "warnings" not in report
+        assert "warnings" not in result.parseoutcomes()
 
         monkeypatch.setenv(option, "C2")
         report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
-        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) == "C2" or ["C2"]  # pylint: disable=protected-access
+        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) == "C2" or [
+            "C2"
+        ]  # pylint: disable=protected-access
