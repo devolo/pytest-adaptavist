@@ -105,7 +105,6 @@ def pytest_addoption(parser: Parser):
     parser.addini("test_run_folder", help="Specify test run folder.")
     parser.addini(
         "test_run_suffix",
-        default=f"test run {datetime.now().strftime('%Y%m%d%H%M')}",
         help=f"Specify test run suffix (default: test run {datetime.now().strftime('%Y%m%d%H%M')}).",
     )
     parser.addini("test_environment", help="Specify test environment.")
