@@ -1,9 +1,12 @@
 """Test pytest.ini configuration."""
 import pytest
+from adaptavist import Adaptavist
+
+from tests import get_test_values, read_global_config, system_test_preconditions
 
 
 @pytest.mark.usefixtures("adaptavist_mock")
-class TestIniConfig:
+class TestIniConfigUnit:
     """Test pytest.ini configuration on unit test level."""
 
     @pytest.mark.parametrize(
@@ -105,3 +108,35 @@ class TestIniConfig:
         report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
         adaptavist = report._pluginmanager.get_plugin("_adaptavist")
         assert getattr(adaptavist.adaptavist, option) == "C1"  # pylint: disable=protected-access
+
+
+@pytest.mark.system
+@pytest.mark.skipif(not system_test_preconditions(), reason="Preconditions for system tests not met. Please see README.md")
+class TestIniConfigSystem:
+    """Test pytest.ini configuration on system test level."""
+
+    def test_T1(self, pytester: pytest.Pytester):
+        """Test passing a test."""
+        pytester.makepyfile(
+            """
+            def test_T1(meta_block):
+                with meta_block():
+                    with meta_block(1) as mb_1:
+                        mb_1.check(True)
+        """
+        )
+        config = read_global_config()
+        adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
+        pytester.makeini(
+            f"""
+            [pytest]
+            jira_server = {config["jira_server"]}
+            jira_user = {config["jira_username"]}
+            jira_password = {config["jira_password"]}
+        """
+        )
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, test_name = get_test_values(report)
+        test_result = adaptavist.get_test_result(test_run_key, test_name)
+        assert test_result["status"] == "Pass"
+        assert test_result["scriptResults"][0]["status"] == "Pass"
