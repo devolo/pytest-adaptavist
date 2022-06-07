@@ -40,15 +40,17 @@ class TestIniConfig:
         )
 
         report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
-        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) == "C1" or [
-            "C1"
-        ]  # pylint: disable=protected-access
+        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) in (
+            "C1",
+            ["C1"],
+        )  # pylint: disable=protected-access
 
         result = pytester.runpytest("--adaptavist", plugins=["adaptavist", "assume"])
         assert "warnings" not in result.parseoutcomes()
 
         monkeypatch.setenv(option, "C2")
         report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
-        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) == "C2" or [
-            "C2"
-        ]  # pylint: disable=protected-access
+        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) in (
+            "C2",
+            ["C2"],
+        )  # pylint: disable=protected-access
