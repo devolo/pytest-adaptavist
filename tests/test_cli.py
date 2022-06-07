@@ -29,7 +29,7 @@ class TestCliUnit:
         config = pytester.parseconfig()
         assert config.getini("adaptavist")
 
-    def test_cycle_info_urls(self, pytester: pytest.Pytester, adaptavist_mock):
+    def test_cycle_info_urls(self, pytester: pytest.Pytester):
         """Test that the cycle information urls are build correctly."""
         pytester.makepyfile(
             """
