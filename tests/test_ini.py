@@ -1,4 +1,5 @@
 """Test pytest.ini configuration."""
+import os
 import pytest
 from adaptavist import Adaptavist
 
@@ -113,7 +114,7 @@ class TestIniConfigUnit:
 class TestIniConfigSystem:
     """Test pytest.ini configuration on system test level."""
 
-    def test_T1(self, pytester: pytest.Pytester):
+    def test_T1(self, pytester: pytest.Pytester, adaptavist: Adaptavist):
         """Test passing a test."""
         pytester.makepyfile(
             """
@@ -124,7 +125,6 @@ class TestIniConfigSystem:
         """
         )
         config = read_global_config()
-        adaptavist = Adaptavist(config["jira_server"], config["jira_username"], config["jira_password"])
         pytester.makeini(
             f"""
             [pytest]
@@ -133,6 +133,7 @@ class TestIniConfigSystem:
             jira_password = {config["jira_password"]}
         """
         )
+        os.remove("config/global_config.json")
         report = pytester.inline_run("--adaptavist")
         test_run_key, test_name = get_test_values(report)
         test_result = adaptavist.get_test_result(test_run_key, test_name)
