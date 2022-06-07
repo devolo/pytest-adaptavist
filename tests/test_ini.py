@@ -67,7 +67,6 @@ class TestIniConfigUnit:
     )
     def test_jira_username_and_password(self, pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch, option: str):
         """Test that jira username and password string values in pytest.ini are correctly used and recognized by pytest."""
-        monkeypatch.setenv("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
         pytester.makepyfile(
             """
                 def test_T1(meta_block):
@@ -81,7 +80,7 @@ class TestIniConfigUnit:
             {option} = C1
             """
         )
-        report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
+        report = pytester.inline_run("--adaptavist")
         adaptavist = report._pluginmanager.get_plugin("_adaptavist")
         assert (
             getattr(adaptavist.adaptavist._authentication, option.split("_")[-1]) == "C1"
@@ -91,7 +90,6 @@ class TestIniConfigUnit:
         """Test that the jira_server string values in pytest.ini is correctly used and recognized by pytest."""
         option = "jira_server"
 
-        monkeypatch.setenv("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
         pytester.makepyfile(
             """
                 def test_T1(meta_block):
@@ -105,7 +103,7 @@ class TestIniConfigUnit:
             {option} = C1
             """
         )
-        report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
+        report = pytester.inline_run("--adaptavist")
         adaptavist = report._pluginmanager.get_plugin("_adaptavist")
         assert getattr(adaptavist.adaptavist, option) == "C1"  # pylint: disable=protected-access
 
