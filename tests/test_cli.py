@@ -49,7 +49,6 @@ class TestCliUnit:
             ]
         )
 
-    @pytest.mark.usefixtures("adaptavist_mock")
     def test_invalid_branch(self, pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch):
         """Test the correct behavior of an invalid branch."""
         pytester.makepyfile(
