@@ -121,17 +121,17 @@ class PytestAdaptavist:
         self.test_case_range = [x.strip() for x in entry.split(",")] if isinstance(entry, str) else entry
 
         if not self.test_plan_key:
-            self.test_plan_key = self.cfg.get("test_plan_key", None)
+            self.test_plan_key = self.cfg.get("test_plan_key")
         if not self.test_plan_folder:
-            self.test_plan_folder = self.cfg.get("test_plan_folder", None)
+            self.test_plan_folder = self.cfg.get("test_plan_folder")
         if not self.test_plan_suffix:
-            self.test_plan_suffix = self.cfg.get("test_plan_suffix", None)
+            self.test_plan_suffix = self.cfg.get("test_plan_suffix")
         if not self.test_run_key:
-            self.test_run_key = self.cfg.get("test_run_key", None)
+            self.test_run_key = self.cfg.get("test_run_key")
         if not self.test_run_folder:
-            self.test_run_folder = self.cfg.get("test_run_folder", None)
+            self.test_run_folder = self.cfg.get("test_run_folder")
         if not self.test_run_suffix:
-            self.test_run_suffix = self.cfg.get("test_run_suffix", "test run " + datetime.now().strftime("%Y%m%d%H%M"))
+            self.test_run_suffix = self.cfg.get("test_run_suffix", f"test run {datetime.now().strftime('%Y%m%d%H%M')}")
 
     @pytest.hookimpl(trylast=True)
     def pytest_collection_modifyitems(

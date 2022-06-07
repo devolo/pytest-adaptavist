@@ -1,5 +1,4 @@
 """Test compatibility with pytest-xdist."""
-
 from unittest.mock import patch
 
 import pytest

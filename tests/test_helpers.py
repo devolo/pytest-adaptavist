@@ -1,5 +1,4 @@
 """Test helper functions."""
-
 from adaptavist.const import STATUS_BLOCKED, STATUS_FAIL, STATUS_IN_PROGRESS, STATUS_NOT_EXECUTED, STATUS_PASS
 from bs4 import BeautifulSoup
 

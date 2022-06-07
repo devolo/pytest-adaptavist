@@ -1,5 +1,4 @@
 """Test decorator usage."""
-
 import pytest
 from adaptavist import Adaptavist
 
@@ -48,9 +47,7 @@ class TestDecoratorUnit:
                     assert True
         """
         )
-        outcome = pytester.runpytest().parseoutcomes()
-        assert outcome["skipped"] == 2
-        assert "passed" not in outcome
+        pytester.runpytest().assert_outcomes(skipped=2)
 
     @pytest.mark.usefixtures("adaptavist_mock", "configure")
     def test_block_decorator_with_class_skipif_decorator(self, pytester: pytest.Pytester):
@@ -178,9 +175,7 @@ class TestDecoratorUnit:
         """
         )
         _, etrs, _ = adaptavist_mock
-        report = pytester.runpytest("--adaptavist")
-        outcome = report.parseoutcomes()
-        assert outcome["passed"] == 1
+        pytester.runpytest("--adaptavist").assert_outcomes(passed=1)
         assert etrs.call_count == 1
         assert etrs.call_args.kwargs["test_case_key"] == "TEST-T121"
 
@@ -216,10 +211,7 @@ class TestDecoratorUnit:
                 assert True
         """
         )
-        report = pytester.runpytest("--adaptavist")
-        outcome = report.parseoutcomes()
-        assert outcome["skipped"] == 1
-        assert "passed" not in outcome
+        pytester.runpytest("--adaptavist").assert_outcomes(skipped=1)
 
     def test_project_decorator(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Test project decorator."""

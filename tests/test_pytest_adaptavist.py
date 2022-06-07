@@ -1,5 +1,4 @@
 """Test connection between pytest and Adaptavist."""
-
 import getpass
 import re
 from io import BytesIO
@@ -63,8 +62,7 @@ class TestPytestAdaptavistUnit:
         )
         with open("config/global_config.json", "w", encoding="utf8") as file:
             file.write('{"skip_ntc_methods": true}')
-        report = pytester.runpytest("--adaptavist")
-        assert report.parseoutcomes()["skipped"] == 1
+        pytester.runpytest("--adaptavist").assert_outcomes(skipped=1)
 
     def test_early_return_on_no_config(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Test the early return in create_report if config is not valid."""
@@ -179,23 +177,17 @@ class TestPytestAdaptavistUnit:
         # Test that test cases skipped if append-to-cycle is off and test_case_keys are set
         with open("config/global_config.json", "w", encoding="utf8") as file:
             file.write('{"project_key": "TEST", "test_run_key":"TEST-C1", "test_case_keys": ["TEST-T123"]}')
-        outcome = pytester.runpytest("--adaptavist", "-vv").parseoutcomes()
-        assert outcome["passed"] == 1
-        assert outcome["skipped"] == 2
+        pytester.runpytest("--adaptavist").assert_outcomes(passed=1, skipped=2)
 
         # Test that test cases which are not defined in test_case_keys are skipped if append-to-cycle is on
         with open("config/global_config.json", "w", encoding="utf8") as file:
             file.write('{"project_key": "TEST", "test_run_key":"TEST-C1", "test_case_keys": ["TEST-T125"]}')
-        outcome = pytester.runpytest("--adaptavist", "-vv", "--append-to-cycle").parseoutcomes()
-        assert outcome["failed"] == 1
-        assert outcome["skipped"] == 2
+        pytester.runpytest("--adaptavist", "--append-to-cycle").assert_outcomes(failed=1, skipped=2)
 
         # Test that test cases run if append-to-cycle is on and test_case_keys are not set
         with open("config/global_config.json", "w", encoding="utf8") as file:
             file.write('{"project_key": "TEST", "test_run_key":"TEST-C1", "test_case_keys": []}')
-        outcome = pytester.runpytest("--adaptavist", "-vv", "--append-to-cycle").parseoutcomes()
-        assert outcome["passed"] == 2
-        assert outcome["failed"] == 1
+        pytester.runpytest("--adaptavist", "--append-to-cycle").assert_outcomes(passed=2, failed=1)
 
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_xfail(self, pytester: pytest.Pytester):
@@ -209,8 +201,7 @@ class TestPytestAdaptavistUnit:
                 assert False
         """
         )
-        outcome = pytester.runpytest().parseoutcomes()
-        assert outcome["xfailed"] == 1
+        pytester.runpytest("--adaptavist").assert_outcomes(xfailed=1)
 
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_correct_stacktrace(self, pytester: pytest.Pytester):

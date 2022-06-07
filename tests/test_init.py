@@ -1,5 +1,4 @@
 """ Test init file of pytest_adaptavist"""
-
 import pytest
 
 

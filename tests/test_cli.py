@@ -1,7 +1,4 @@
 """Test CLI behavior."""
-
-import os
-
 import pytest
 from _pytest.config import ExitCode
 
@@ -31,7 +28,7 @@ class TestCliUnit:
         assert config.getini("adaptavist")
 
     @pytest.mark.usefixtures("adaptavist_mock")
-    def test_invalid_branch(self, pytester: pytest.Pytester):
+    def test_invalid_branch(self, pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch):
         """Test the correct behavior of an invalid branch."""
         pytester.makepyfile(
             """
@@ -41,13 +38,13 @@ class TestCliUnit:
                 assert True
         """
         )
-        os.environ["GIT_BRANCH"] = "test"
+        monkeypatch.setenv("GIT_BRANCH", "test")
         report = pytester.runpytest("--adaptavist", "--restrict-branch")
         assert report.ret == ExitCode.INTERNAL_ERROR
         report = pytester.runpytest("--restrict-branch")
         assert report.ret == ExitCode.OK
         report = pytester.runpytest("--adaptavist", "--restrict-branch", "--restrict-branch-name=test")
         assert report.ret == ExitCode.OK
-        os.environ["GIT_BRANCH"] = "origin/master"
+        monkeypatch.setenv("GIT_BRANCH", "origin/master")
         report = pytester.runpytest("--adaptavist", "--restrict-branch")
         assert report.ret == ExitCode.OK

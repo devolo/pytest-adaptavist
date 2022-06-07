@@ -28,7 +28,7 @@ def system_test_preconditions() -> bool:
 
     try:
         requests.adapters.DEFAULT_RETRIES = 1
-        requests.get(atmcfg.global_config.get("jira_server"), timeout=1)
+        requests.get(atmcfg.global_config.get("jira_server"), timeout=1)  # type: ignore
         return True
     except Exception:  # pylint: disable=broad-except
         return False
