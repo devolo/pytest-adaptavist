@@ -1,10 +1,8 @@
 """Test pytest.ini configuration."""
-import getpass
 from adaptavist import Adaptavist
 import pytest
 
 from tests import get_test_values, read_global_config, system_test_preconditions
-from tests.conftest import adaptavist
 
 
 @pytest.mark.usefixtures("adaptavist_mock")
