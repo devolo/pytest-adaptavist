@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
-* Jira cycle settings are build correctly again
+* Jira cycle information are build correctly again
 
 ## [5.7.2] - 2022/06/07
 
