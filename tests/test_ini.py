@@ -46,14 +46,20 @@ class TestIniConfigUnit:
         )
 
         report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
-        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) in ("C1", ["C1"])  # pylint: disable=protected-access
+        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) in (  # pylint: disable=protected-access
+            "C1",
+            ["C1"],
+        )
 
         result = pytester.runpytest("--adaptavist", plugins=["adaptavist", "assume"])
         assert "warnings" not in result.parseoutcomes()
 
         monkeypatch.setenv(option, "C2")
         report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
-        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) in ("C2", ["C2"])  # pylint: disable=protected-access
+        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) in (  # pylint: disable=protected-access
+            "C2",
+            ["C2"],
+        )
 
     def test_jira_settings(self, pytester: pytest.Pytester):
         """Test that jira settings in pytest.ini are correctly used and recognized by pytest."""
