@@ -1,9 +1,15 @@
 """Test pytest.ini configuration."""
+import os
+
 import pytest
+from adaptavist import Adaptavist
+
+from pytest_adaptavist import PytestAdaptavist
+from tests import get_test_values, read_global_config, system_test_preconditions
 
 
 @pytest.mark.usefixtures("adaptavist_mock")
-class TestIniConfig:
+class TestIniConfigUnit:
     """Test pytest.ini configuration on unit test level."""
 
     @pytest.mark.parametrize(
@@ -27,10 +33,10 @@ class TestIniConfig:
         monkeypatch.setenv("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
         pytester.makepyfile(
             """
-                def test_T1(meta_block):
-                    with meta_block(1) as mb_1:
-                        mb_1.check(True)
-            """
+            def test_T1(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(True)
+        """
         )
         pytester.makeini(
             f"""
@@ -40,17 +46,73 @@ class TestIniConfig:
         )
 
         report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
-        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) in (
+        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) in (  # pylint: disable=protected-access
             "C1",
             ["C1"],
-        )  # pylint: disable=protected-access
+        )
 
         result = pytester.runpytest("--adaptavist", plugins=["adaptavist", "assume"])
         assert "warnings" not in result.parseoutcomes()
 
         monkeypatch.setenv(option, "C2")
         report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
-        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) in (
+        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) in (  # pylint: disable=protected-access
             "C2",
             ["C2"],
-        )  # pylint: disable=protected-access
+        )
+
+    def test_jira_settings(self, pytester: pytest.Pytester):
+        """Test that jira settings in pytest.ini are correctly used and recognized by pytest."""
+        pytester.makepyfile(
+            """
+            def test_T1(meta_block):
+            with meta_block(1) as mb_1:
+            mb_1.check(True)
+        """
+        )
+        pytester.makeini(
+            """
+            [pytest]
+            jira_server = https://jira.test
+            jira_username = username
+            jira_password = password
+        """
+        )
+        report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
+        adaptavist: PytestAdaptavist = report._pluginmanager.get_plugin("_adaptavist")  # pylint: disable=protected-access
+        assert adaptavist.adaptavist.jira_server == "https://jira.test"
+        assert adaptavist.adaptavist._authentication.username == "username"  # pylint: disable=protected-access
+        assert adaptavist.adaptavist._authentication.password == "password"  # pylint: disable=protected-access
+
+
+@pytest.mark.system
+@pytest.mark.skipif(not system_test_preconditions(), reason="Preconditions for system tests not met. Please see README.md")
+class TestIniConfigSystem:
+    """Test pytest.ini configuration on system test level."""
+
+    def test_T1(self, pytester: pytest.Pytester, adaptavist: Adaptavist):
+        """Test passing a test."""
+        pytester.makepyfile(
+            """
+            def test_T1(meta_block):
+                with meta_block():
+                    with meta_block(1) as mb_1:
+                        mb_1.check(True)
+        """
+        )
+        config = read_global_config()
+        pytester.makeini(
+            f"""
+            [pytest]
+            project_key = {config["project_key"]}
+            jira_server = {config["jira_server"]}
+            jira_username = {config["jira_username"]}
+            jira_password = {config["jira_password"]}
+        """
+        )
+        os.remove("config/global_config.json")
+        report = pytester.inline_run("--adaptavist")
+        test_run_key, test_name = get_test_values(report)
+        test_result = adaptavist.get_test_result(test_run_key, test_name)
+        assert test_result["status"] == "Pass"
+        assert test_result["scriptResults"][0]["status"] == "Pass"
