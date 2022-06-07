@@ -1,8 +1,10 @@
 """Test pytest.ini configuration."""
 import os
+
 import pytest
 from adaptavist import Adaptavist
 
+from pytest_adaptavist import PytestAdaptavist
 from tests import get_test_values, read_global_config, system_test_preconditions
 
 
@@ -31,10 +33,10 @@ class TestIniConfigUnit:
         monkeypatch.setenv("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
         pytester.makepyfile(
             """
-                def test_T1(meta_block):
-                    with meta_block(1) as mb_1:
-                        mb_1.check(True)
-            """
+            def test_T1(meta_block):
+                with meta_block(1) as mb_1:
+                    mb_1.check(True)
+        """
         )
         pytester.makeini(
             f"""
@@ -44,69 +46,37 @@ class TestIniConfigUnit:
         )
 
         report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
-        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) in (
-            "C1",
-            ["C1"],
-        )  # pylint: disable=protected-access
+        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) in ("C1", ["C1"])  # pylint: disable=protected-access
 
         result = pytester.runpytest("--adaptavist", plugins=["adaptavist", "assume"])
         assert "warnings" not in result.parseoutcomes()
 
         monkeypatch.setenv(option, "C2")
         report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
-        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) in (
-            "C2",
-            ["C2"],
-        )  # pylint: disable=protected-access
+        assert getattr(report._pluginmanager.get_plugin("_adaptavist"), option) in ("C2", ["C2"])  # pylint: disable=protected-access
 
-    @pytest.mark.parametrize(
-        "option",
-        [
-            "jira_username",
-            "jira_password",
-        ],
-    )
-    def test_jira_username_and_password(self, pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch, option: str):
-        """Test that jira username and password string values in pytest.ini are correctly used and recognized by pytest."""
+    def test_jira_settings(self, pytester: pytest.Pytester):
+        """Test that jira settings in pytest.ini are correctly used and recognized by pytest."""
         pytester.makepyfile(
             """
-                def test_T1(meta_block):
-                    with meta_block(1) as mb_1:
-                        mb_1.check(True)
-            """
+            def test_T1(meta_block):
+            with meta_block(1) as mb_1:
+            mb_1.check(True)
+        """
         )
         pytester.makeini(
-            f"""
+            """
             [pytest]
-            {option} = C1
-            """
+            jira_server = https://jira.test
+            jira_username = username
+            jira_password = password
+        """
         )
-        report = pytester.inline_run("--adaptavist")
-        adaptavist = report._pluginmanager.get_plugin("_adaptavist")
-        assert (
-            getattr(adaptavist.adaptavist._authentication, option.split("_")[-1]) == "C1"
-        )  # pylint: disable=protected-access
-
-    def test_jira_server(self, pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch):
-        """Test that the jira_server string values in pytest.ini is correctly used and recognized by pytest."""
-        option = "jira_server"
-
-        pytester.makepyfile(
-            """
-                def test_T1(meta_block):
-                    with meta_block(1) as mb_1:
-                        mb_1.check(True)
-            """
-        )
-        pytester.makeini(
-            f"""
-            [pytest]
-            {option} = C1
-            """
-        )
-        report = pytester.inline_run("--adaptavist")
-        adaptavist = report._pluginmanager.get_plugin("_adaptavist")
-        assert getattr(adaptavist.adaptavist, option) == "C1"  # pylint: disable=protected-access
+        report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
+        adaptavist: PytestAdaptavist = report._pluginmanager.get_plugin("_adaptavist")  # pylint: disable=protected-access
+        assert adaptavist.adaptavist.jira_server == "https://jira.test"
+        assert adaptavist.adaptavist._authentication.username == "username"  # pylint: disable=protected-access
+        assert adaptavist.adaptavist._authentication.password == "password"  # pylint: disable=protected-access
 
 
 @pytest.mark.system
