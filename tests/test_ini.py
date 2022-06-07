@@ -128,8 +128,9 @@ class TestIniConfigSystem:
         pytester.makeini(
             f"""
             [pytest]
+            project_key = {config["project_key"]}
             jira_server = {config["jira_server"]}
-            jira_user = {config["jira_username"]}
+            jira_username = {config["jira_username"]}
             jira_password = {config["jira_password"]}
         """
         )
