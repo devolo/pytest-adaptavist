@@ -112,6 +112,10 @@ def pytest_addoption(parser: Parser):
     parser.addini("test_case_order", help="Specify test case order.")
     parser.addini("test_case_range", help="Specify test case range.")
 
+    parser.addini("jira_server", help="Specify your jira server.")
+    parser.addini("jira_username", help="Specify your jira username.")
+    parser.addini("jira_password", help="Specify your jira password.")
+
 
 @pytest.hookimpl(trylast=True)
 def pytest_configure(config: Config):

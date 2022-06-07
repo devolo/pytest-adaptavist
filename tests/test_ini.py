@@ -20,6 +20,9 @@ class TestIniConfig:
             "test_run_folder",
             "test_run_key",
             "test_run_suffix",
+            "jira_server",
+            "jira_username",
+            "jira_password",
         ],
     )
     def test_ini_config_strings(self, pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch, option: str):
