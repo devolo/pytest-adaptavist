@@ -741,11 +741,7 @@ class PytestAdaptavist:
         traceability = None
         test_summary = None
         score_matrix = None
-        if (
-            (base_url := ATMConfiguration().get("jira_server", ""))
-            and getattr(self, "project_key", None)
-            and getattr(self, "test_run_key", None)
-        ):
+        if (base_url := self.adaptavist.jira_server) and self.project_key and self.test_run_key:
             # pylint: disable=line-too-long
             cycle_string = (
                 "%22%2C%20%22".join(self.test_run_keys) if getattr(self, "test_run_keys", None) else self.test_run_key or ""
