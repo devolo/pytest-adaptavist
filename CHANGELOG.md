@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
-* Allow attaching StingIO objects
+* Allow attaching StringIO objects
 
 ## [5.7.3] - 2022/06/07
 

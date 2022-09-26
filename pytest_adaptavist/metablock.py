@@ -313,6 +313,7 @@ def _(attachment: BufferedReader) -> Tuple[BytesIO, str]:
     """Read content of an attachment given as file pointer."""
     return BytesIO(attachment.read()), attachment.name
 
+
 @_read_attachment.register  # type: ignore
 def _(attachment: StringIO) -> Tuple[BytesIO, str]:
     """Read content of an attachment given as in-memory text buffer."""
