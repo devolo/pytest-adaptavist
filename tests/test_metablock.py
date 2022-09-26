@@ -119,6 +119,37 @@ class TestMetaBlockUnit:
             pytester.runpytest("--adaptavist")
             assert "first_file.txt" in atsa.call_args.kwargs["filename"]
 
+        # Test attaching with a file handle
+        pytester.makepyfile(
+            """
+            import pytest
+
+            def test_TEST_T123(meta_block):
+                with meta_block(1) as mb_1, open("first_file.txt", "rb") as fh:
+                    mb_1.check(False, attachment=fh)
+        """
+        )
+        with patch("adaptavist.Adaptavist.add_test_script_attachment") as atsa:
+            pytester.runpytest("--adaptavist")
+            assert "first_file.txt" in atsa.call_args.kwargs["filename"]
+
+        # Test attaching a StringIO object
+        pytester.makepyfile(
+            """
+            import pytest
+            from io import StringIO
+
+            def test_TEST_T123(meta_block):
+                with meta_block(1) as mb_1:
+                    attachment = StringIO()
+                    attachment.name = "first_file.txt"
+                    mb_1.check(False, attachment=attachment)
+        """
+        )
+        with patch("adaptavist.Adaptavist.add_test_script_attachment") as atsa:
+            pytester.runpytest("--adaptavist")
+            assert "first_file.txt" in atsa.call_args.kwargs["filename"]
+
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_description_of_test_steps_printed(self, pytester: pytest.Pytester):
         """Test if the description of testcases is printed, if pytest is started with high verbosity."""

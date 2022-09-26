@@ -6,7 +6,7 @@ import signal
 from datetime import datetime
 from enum import IntEnum
 from functools import singledispatch
-from io import BufferedReader, BytesIO
+from io import BufferedReader, BytesIO, StringIO
 from types import FrameType, TracebackType
 from typing import Any, Literal, NoReturn, Tuple
 
@@ -312,3 +312,11 @@ def _(attachment: str) -> Tuple[BytesIO, str]:
 def _(attachment: BufferedReader) -> Tuple[BytesIO, str]:
     """Read content of an attachment given as file pointer."""
     return BytesIO(attachment.read()), attachment.name
+
+
+@_read_attachment.register  # type: ignore
+def _(attachment: StringIO) -> Tuple[BytesIO, str]:
+    """Read content of an attachment given as in-memory text buffer."""
+    if not hasattr(attachment, "name"):
+        raise ValueError("Please give your attachment a name.")
+    return BytesIO(bytes(attachment.getvalue(), encoding="utf-8")), attachment.name
