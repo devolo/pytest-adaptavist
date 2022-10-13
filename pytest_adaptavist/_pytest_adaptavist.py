@@ -936,8 +936,13 @@ class PytestAdaptavist:
                     )
                     and test_case_keys
                     and f"{project_key}-{test_case_key}" not in test_case_keys
+                    or (self.test_run_key and not test_run)
                 ):
-                    item.add_marker(pytest.mark.skip(reason="skipped as requested"))
+                    item.add_marker(
+                        pytest.mark.skip(
+                            reason="Skipped as the test case is not in the given test cycle or could not login to Jira."
+                        )
+                    )
                 else:
                     collected_items.setdefault(f"{project_key}-{test_case_key}", []).append(item)
             elif self.cfg.get_bool("skip_ntc_methods", False):
