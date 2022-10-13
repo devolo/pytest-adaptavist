@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
-* Tests are skipped, if a invalid test cycle is configured
+* Tests are skipped, if an invalid test cycle is configured
 * Tests are skipped, if the Jira credentials are wrong
 
 ## [5.7.3] - 2022/06/07
