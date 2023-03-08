@@ -1,5 +1,6 @@
 """Test pytest.ini configuration."""
 import os
+from importlib.metadata import version
 
 import pytest
 from adaptavist import Adaptavist
@@ -61,7 +62,11 @@ class TestIniConfigUnit:
             ["C2"],
         )
 
-    def test_jira_settings(self, pytester: pytest.Pytester):
+    @pytest.mark.xfail(
+        version("adaptavist") < "2.3.1",
+        reason="Session usage was introduced in version 2.3.1.",
+    )
+    def test_jira_settings(self, pytester: pytest.Pytester) -> None:
         """Test that jira settings in pytest.ini are correctly used and recognized by pytest."""
         pytester.makepyfile(
             """
@@ -81,8 +86,8 @@ class TestIniConfigUnit:
         report = pytester.inline_run("--adaptavist", plugins=["adaptavist", "assume"])
         adaptavist: PytestAdaptavist = report._pluginmanager.get_plugin("_adaptavist")  # pylint: disable=protected-access
         assert adaptavist.adaptavist.jira_server == "https://jira.test"
-        assert adaptavist.adaptavist._authentication.username == "username"  # pylint: disable=protected-access
-        assert adaptavist.adaptavist._authentication.password == "password"  # pylint: disable=protected-access
+        assert adaptavist.adaptavist._session.auth.username == "username"  # pylint: disable=protected-access
+        assert adaptavist.adaptavist._session.auth.password == "password"  # pylint: disable=protected-access
 
 
 @pytest.mark.system
