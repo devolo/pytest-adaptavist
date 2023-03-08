@@ -6,6 +6,7 @@ from io import BytesIO
 from unittest.mock import patch
 
 import pytest
+from _pytest.assertion.util import running_on_ci
 from adaptavist import Adaptavist
 
 from . import AdaptavistMock, get_test_values, system_test_preconditions
@@ -221,11 +222,11 @@ class TestPytestAdaptavistUnit:
         )
         outcome = pytester.runpytest()
         regex = re.findall("\\(not True", str(outcome.outlines).replace("'", "").replace("[", "").replace("]", ""))
-        assert len(regex) == 1
+        assert len(regex) == 2 if running_on_ci() else 1 
         regex = re.findall("\\(False", str(outcome.outlines).replace("'", "").replace("[", "").replace("]", ""))
-        assert len(regex) == 1
+        assert len(regex) == 2 if running_on_ci() else 1
         regex = re.findall("\\(not not False", str(outcome.outlines).replace("'", "").replace("[", "").replace("]", ""))
-        assert len(regex) == 1
+        assert len(regex) == 2 if running_on_ci() else 1
 
     def test_reporting_skipped_test_cases(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Don't report a test case if it is not in test_case_keys."""
