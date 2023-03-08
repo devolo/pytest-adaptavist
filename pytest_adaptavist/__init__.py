@@ -38,7 +38,7 @@ def pytest_addoption(parser: Parser):
     def add_option_ini(
         option: str, dest: str, default: str | None = None, option_type: Literal["bool"] | None = None, **kwargs: Any
     ):
-
+        """Add option to command line and to ini."""
         group.addoption(option, dest=dest, **kwargs)
         kwargs.pop("store", "")
         parser.addini(dest, default=default, type=option_type, help=f"default value for {option}")
