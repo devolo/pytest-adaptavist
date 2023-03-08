@@ -168,7 +168,6 @@ class MetaBlock:
 
         marker = self.item.get_closest_marker("testcase")
         if marker is not None:
-
             test_case_key = marker.kwargs["test_case_key"]
             test_step_key = marker.kwargs["test_step_key"]
 

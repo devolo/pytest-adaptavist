@@ -289,7 +289,6 @@ class PytestAdaptavist:
             )
 
         if test_step_key:
-
             # in case of parameterization or repetition the status will be Fail if one iteration failed
             last_result: dict[str, str] = next(
                 (result for result in test_result.get("scriptResults", []) if result["index"] == test_step_key - 1), {}

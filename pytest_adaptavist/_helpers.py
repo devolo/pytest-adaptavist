@@ -154,7 +154,6 @@ def build_terminal_report(
     terminal_writer: TerminalWriter = item.config.get_terminal_writer()
 
     if terminal_reporter and item.config.option.verbose > 1:
-
         # extract doc string from source
         (frame, _, line, _, _) = inspect.stack()[level][0:5]
         source_list = inspect.getsourcelines(frame)

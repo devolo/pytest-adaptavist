@@ -1,11 +1,12 @@
 """Test connection between pytest and Adaptavist."""
 import getpass
 import re
+from importlib.metadata import version
 from io import BytesIO
 from unittest.mock import patch
 
-import pkg_resources
 import pytest
+from _pytest.assertion.util import running_on_ci
 from adaptavist import Adaptavist
 
 from . import AdaptavistMock, get_test_values, system_test_preconditions
@@ -84,10 +85,10 @@ class TestPytestAdaptavistUnit:
         assert etss.call_count == 0
 
     @pytest.mark.xfail(
-        pkg_resources.get_distribution("adaptavist").version == "2.0.0",
+        version("adaptavist") == "2.0.0",
         reason="As long as adaptavist package didn't release the constant fix, this test will fail.",
     )
-    def test_skipped_test_cases(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
+    def test_skipped_test_cases(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock) -> None:
         """Test that a skipped test case is reported as 'Not Executed'."""
         pytester.makepyfile(
             """
@@ -220,12 +221,12 @@ class TestPytestAdaptavistUnit:
         """
         )
         outcome = pytester.runpytest()
-        regex = re.findall("not True", str(outcome.outlines).replace("'", "").replace("[", "").replace("]", ""))
-        assert len(regex) == 1
+        regex = re.findall("\\(not True", str(outcome.outlines).replace("'", "").replace("[", "").replace("]", ""))
+        assert len(regex) == 2 if running_on_ci() else 1
         regex = re.findall("\\(False", str(outcome.outlines).replace("'", "").replace("[", "").replace("]", ""))
-        assert len(regex) == 1
-        regex = re.findall("not not False", str(outcome.outlines).replace("'", "").replace("[", "").replace("]", ""))
-        assert len(regex) == 1
+        assert len(regex) == 2 if running_on_ci() else 1
+        regex = re.findall("\\(not not False", str(outcome.outlines).replace("'", "").replace("[", "").replace("]", ""))
+        assert len(regex) == 2 if running_on_ci() else 1
 
     def test_reporting_skipped_test_cases(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Don't report a test case if it is not in test_case_keys."""
