@@ -1,11 +1,11 @@
 from setuptools import setup
 
 setup(
-    name="pytest-adaptavist",
+    name="pytest-adaptavist-fixed",
     description="pytest plugin for generating test execution results within Jira Test Management (tm4j)",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    use_scm_version=True,
+    version="0.1",
     url="https://github.com/devolo/pytest-adaptavist",
     author="Stephan Steinberg, Markus Bong, Guido Schmitz",
     author_email="markus.bong@devolo.de, guido.schmitz@devolo.de",
@@ -17,7 +17,7 @@ setup(
     entry_points={"pytest11": ["adaptavist = pytest_adaptavist"]},
     platforms="any",
     python_requires=">=3.8",
-    install_requires=["adaptavist>=2.1.0", "pytest>=5.4.0", "pytest-assume>=2.3.2", "pytest-metadata>=1.6.0"],
+    install_requires=["adaptavist-fixed==0.1", "pytest>=5.4.0", "pytest-assume>=2.3.2", "pytest-metadata>=1.6.0"],
     extras_require={"test": ["beautifulsoup4", "lxml", "requests"]},
     setup_requires=["setuptools_scm"],
     keywords="python pytest adaptavist kanoah tm4j jira test testmanagement report",
