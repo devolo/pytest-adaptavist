@@ -11,7 +11,7 @@ jobs:
     - name: Checkout sources
       uses: actions/checkout@v4.0.0
     - name: Set up Python
-      uses: actions/setup-python@v4.7.0
+      uses: actions/setup-python@v4
       with:
         python-version: "3.8"
     - name: Check formatting
@@ -24,7 +24,7 @@ jobs:
     - name: Checkout sources
       uses: actions/checkout@v4.0.0
     - name: Set up Python
-      uses: actions/setup-python@v4.7.0
+      uses: actions/setup-python@v4
       with:
         python-version: "3.8"
     - name: Lint with flake8
@@ -57,7 +57,7 @@ jobs:
     - name: Checkout sources
       uses: actions/checkout@v4.0.0
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4.7.0
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
         allow-prereleases: true
