@@ -35,12 +35,12 @@ jobs:
         flake8 . --count --exit-zero --statistics
     - name: Lint with pylint
       run: |
-        python -m pip install pylint pytest pylint-pytest
+        python -m pip install pylint pytest
         python -m pip install -e .[test]
         pylint --errors-only --score=n pytest_adaptavist
         pylint --exit-zero --score=n --disable=E,R --max-line-length=160 --enable=useless-suppression pytest_adaptavist
-        pylint --errors-only --score=n --load-plugins pylint_pytest tests
-        pylint --exit-zero --score=n --disable=E,R,C0103 --max-line-length=160 --enable=useless-suppression --load-plugins pylint_pytest tests
+        pylint --errors-only --score=n tests
+        pylint --exit-zero --score=n --disable=E,R,C0103 --max-line-length=160 --enable=useless-suppression tests
     - name: Lint with mypy
       run: |
         python -m pip install mypy types-requests types-setuptools
