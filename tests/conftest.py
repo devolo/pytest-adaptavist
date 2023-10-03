@@ -1,5 +1,5 @@
 """Fixtures for tests."""
-#pylint: disable=redefined-outer-name,unused-argument
+# pylint: disable=redefined-outer-name,unused-argument
 from __future__ import annotations
 
 import shutil

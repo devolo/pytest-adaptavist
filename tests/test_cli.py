@@ -41,7 +41,7 @@ class TestCliUnit:
         report = pytester.runpytest("--adaptavist")
         matcher = LineMatcher(report.outlines)
 
-        #pylint: disable=line-too-long
+        # pylint: disable=line-too-long
         matcher.fnmatch_lines(
             [
                 "traceability:  https://jira.test/secure/Tests.jspa#/reports/traceability/report/view?tql=testResult.projectKey%20IN%20%28%22TEST%22%29%20AND%20testRun.key%20IN%20%28%22TEST-C1%22%29%20AND%20testRun.onlyLastTestResult%20IS%20true&jql=&title=REPORTS.TRACEABILITY_REPORT.TITLE&traceabilityReportOption=COVERAGE_TEST_CASES&traceabilityTreeOption=COVERAGE_TEST_CASES&traceabilityMatrixOption=COVERAGE_TEST_CASES&period=MONTH&scorecardOption=EXECUTION_RESULTS",
