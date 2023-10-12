@@ -5,7 +5,7 @@ setup(
     description="pytest plugin for generating test execution results within Jira Test Management (tm4j)",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    version="0.1",
+    version="0.12",
     url="https://github.com/devolo/pytest-adaptavist",
     author="Stephan Steinberg, Markus Bong, Guido Schmitz",
     author_email="markus.bong@devolo.de, guido.schmitz@devolo.de",
