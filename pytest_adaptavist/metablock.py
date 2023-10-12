@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import signal
 from datetime import datetime
 from enum import IntEnum
@@ -84,12 +85,14 @@ class MetaBlock:
             build_terminal_report(when="setup", item=self.item, step=self.step, level=2)
         self.start = datetime.now().timestamp()
         self.adaptavist.failed_assumptions_step = []
-        signal.signal(signal.SIGALRM, self._timeout_handler)
-        signal.alarm(self.timeout)
+        if not sys.platform == 'win32':
+            signal.signal(signal.SIGALRM, self._timeout_handler)
+            signal.alarm(self.timeout)
         return self
 
     def __exit__(self, exc_type: type, exc_value: Exception, traceback: TracebackType) -> bool:
-        signal.alarm(0)
+        if not sys.platform == 'win32':
+            signal.alarm(0)
         self.stop = datetime.now().timestamp()
         fullname = get_item_nodeid(self.item)
         if exc_type is TimeoutError:
@@ -169,7 +172,10 @@ class MetaBlock:
         marker = self.item.get_closest_marker("testcase")
         if marker is not None:
             test_case_key = marker.kwargs["test_case_key"]
-            test_step_key = marker.kwargs["test_step_key"]
+            try:
+                test_step_key = marker.kwargs["test_step_key"]
+            except KeyError:
+                test_step_key = None
 
             if test_step_key or not self.step:
                 # if it's a test step method, we should not be here
