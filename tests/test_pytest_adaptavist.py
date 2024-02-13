@@ -45,7 +45,7 @@ class TestPytestAdaptavistUnit:
         """
         )
         with open("config/global_config.json", "w", encoding="utf8") as file:
-            file.write('{"test_run_key":"TEST-C1"}')
+            file.write('{"test_cycle_key":"TEST-C1"}')
         hook_record = pytester.inline_run("--adaptavist")
         assert hook_record.matchreport().head_line == "test_T123"
 
@@ -177,17 +177,17 @@ class TestPytestAdaptavistUnit:
         )
         # Test that test cases skipped if append-to-cycle is off and test_case_keys are set
         with open("config/global_config.json", "w", encoding="utf8") as file:
-            file.write('{"project_key": "TEST", "test_run_key":"TEST-C1", "test_case_keys": ["TEST-T123"]}')
+            file.write('{"project_key": "TEST", "test_cycle_key":"TEST-C1", "test_case_keys": ["TEST-T123"]}')
         pytester.runpytest("--adaptavist").assert_outcomes(passed=1, skipped=2)
 
         # Test that test cases which are not defined in test_case_keys are skipped if append-to-cycle is on
         with open("config/global_config.json", "w", encoding="utf8") as file:
-            file.write('{"project_key": "TEST", "test_run_key":"TEST-C1", "test_case_keys": ["TEST-T125"]}')
+            file.write('{"project_key": "TEST", "test_cycle_key":"TEST-C1", "test_case_keys": ["TEST-T125"]}')
         pytester.runpytest("--adaptavist", "--append-to-cycle").assert_outcomes(failed=1, skipped=2)
 
         # Test that test cases run if append-to-cycle is on and test_case_keys are not set
         with open("config/global_config.json", "w", encoding="utf8") as file:
-            file.write('{"project_key": "TEST", "test_run_key":"TEST-C1", "test_case_keys": []}')
+            file.write('{"project_key": "TEST", "test_cycle_key":"TEST-C1", "test_case_keys": []}')
         pytester.runpytest("--adaptavist", "--append-to-cycle").assert_outcomes(passed=2, failed=1)
 
     @pytest.mark.usefixtures("adaptavist_mock")
@@ -222,11 +222,11 @@ class TestPytestAdaptavistUnit:
         )
         outcome = pytester.runpytest()
         regex = re.findall("\\(not True", str(outcome.outlines).replace("'", "").replace("[", "").replace("]", ""))
-        assert len(regex) == 2 if running_on_ci() else 1
+        assert len(regex) == 3 if running_on_ci() else 1
         regex = re.findall("\\(False", str(outcome.outlines).replace("'", "").replace("[", "").replace("]", ""))
-        assert len(regex) == 2 if running_on_ci() else 1
+        assert len(regex) == 3 if running_on_ci() else 1
         regex = re.findall("\\(not not False", str(outcome.outlines).replace("'", "").replace("[", "").replace("]", ""))
-        assert len(regex) == 2 if running_on_ci() else 1
+        assert len(regex) == 3 if running_on_ci() else 1
 
     def test_reporting_skipped_test_cases(self, pytester: pytest.Pytester, adaptavist_mock: AdaptavistMock):
         """Don't report a test case if it is not in test_case_keys."""
@@ -248,28 +248,6 @@ class TestPytestAdaptavistUnit:
         pytester.runpytest("--adaptavist")
         assert etrs.call_args_list[0].kwargs["test_case_key"] == "TEST-T123"
         assert etrs.call_count == 1
-
-    @pytest.mark.filterwarnings("default")
-    @pytest.mark.usefixtures("adaptavist_mock")
-    def test_deprecated_options(self, pytester: pytest.Pytester):
-        """Test deprecated options."""
-        pytester.makepyfile(
-            """
-            def test_dummy():
-                assert True
-            """
-        )
-        result = pytester.runpytest("--test_run_name=abc", "--adaptavist")
-        assert any(
-            "PytestDeprecationWarning: test_run_name is deprecated. Please use --test-cycle-name" in line
-            for line in result.outlines
-        )
-
-        result = pytester.runpytest("--test_plan_name=abc", "--adaptavist")
-        assert any(
-            "PytestDeprecationWarning: test_plan_name is deprecated. Please use --test-plan-name" in line
-            for line in result.outlines
-        )
 
     @pytest.mark.usefixtures("adaptavist_mock")
     def test_test_run_name(self, pytester: pytest.Pytester):
@@ -298,7 +276,7 @@ class TestPytestAdaptavistUnit:
             pytester.makeini(
                 """
             [pytest]
-            test_run_name = Change test_run_name %(project_key)
+            test_cycle_name = Change test_run_name %(project_key)
             """
             )
             pytester.runpytest("--adaptavist")
@@ -360,7 +338,7 @@ class TestPytestAdaptavistUnit:
             pytester.makeini(
                 """
                 [pytest]
-                test_run_name = Change test_run_name %(project_ey)
+                test_cycle_name = Change test_run_name %(project_ey)
             """
             )
             outcome = pytester.runpytest("--adaptavist")
