@@ -264,14 +264,14 @@ class MetaBlock:
         elif action_on_fail == self.Action.STOP_METHOD:
             # STOP_METHOD: skip execution of this block/test, set it to 'Blocked' and continue with next test
             self.data["blocked"] = True
-            pytest.skip(msg=f"Blocked. {self.item_name} failed: {message_on_fail}")
+            pytest.skip(reason=f"Blocked. {self.item_name} failed: {message_on_fail}")
         elif action_on_fail == self.Action.STOP_SESSION:
             # STOP_SESSION: skip execution of this block/test, set it to 'Blocked' and block following tests as well
             for item in self.items:
                 item.add_marker("block")
                 self.adaptavist.test_result_data[fullname]["blocked"] = True
                 self.adaptavist.test_result_data[fullname]["comment"] = f"Blocked. {self.item_name} failed: {message_on_fail}"
-            pytest.block(msg=message_on_fail)  # type:ignore
+            pytest.block(reason=message_on_fail)  # type:ignore
         elif action_on_fail == self.Action.FAIL_SESSION:
             # FAIL_SESSION: skip execution of this block/test, set it to 'Fail' and block following tests
             for item in self.items:
@@ -285,10 +285,10 @@ class MetaBlock:
         elif action_on_fail == self.Action.STOP_EXIT_SESSION:
             # EXIT_SESSION: skip execution of this block/test, set it to 'Blocked' and exit session
             self.item.add_marker("block")
-            pytest.exit(msg=f"Exiting pytest. {self.item_name} failed: {message_on_fail}", returncode=1)
+            pytest.exit(reason=f"Exiting pytest. {self.item_name} failed: {message_on_fail}", returncode=1)
         elif action_on_fail == self.Action.FAIL_EXIT_SESSION:
             # EXIT_SESSION: skip execution of this block/test, set it to 'Blocked' and exit session
-            pytest.exit(msg=f"Exiting pytest. {self.item_name} failed: {message_on_fail}")
+            pytest.exit(reason=f"Exiting pytest. {self.item_name} failed: {message_on_fail}")
         else:
             # CONTINUE: try to collect failed assumption, set result to 'Fail' and continue
             pytest.assume(expr=False, msg=message_on_fail)  # type:ignore

@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Breaking change
+
+* Parameters test_run_name and test_plan_name deprecated in 5.6.0 are removed now. Please use test-cycle-name and test-plan-name instead.
+* [Following pytest 7](https://docs.pytest.org/en/stable/deprecations.html#passing-msg-to-pytest-skip-pytest-fail-or-pytest-exit), pytest.block needs the keyword argument reason now instead of msg.
+
+### Changed
+
+* pytest 7 is now needed as minimum.
+* pytest 8 is supported.
+
 ## [5.8.0] - 2022/10/13
 
 ### Added

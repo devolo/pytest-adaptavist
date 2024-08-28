@@ -15,7 +15,6 @@ from typing import Any
 import pytest
 from _pytest._io.saferepr import saferepr
 from _pytest.config import Config
-from _pytest.deprecated import PytestDeprecationWarning
 from _pytest.mark.structures import Mark
 from _pytest.outcomes import fail
 from _pytest.reports import TestReport
@@ -35,7 +34,6 @@ from ._helpers import (
     html_row,
     intersection,
 )
-from .constants import TEST_CYCLE_NAME_DEFAULT, TEST_PLAN_NAME_DEFAULT
 
 
 class PytestAdaptavist:
@@ -50,17 +48,6 @@ class PytestAdaptavist:
 
     def __init__(self, config: Config):
         self.config = config
-        if get_option_ini(config, "test_run_name") != TEST_CYCLE_NAME_DEFAULT:  # TODO: Remove in pytest-adaptavist 6
-            config.issue_config_time_warning(
-                PytestDeprecationWarning("test_run_name is deprecated. Please use --test-cycle-name"), stacklevel=2
-            )
-        if (
-            get_option_ini(config, "test_plan_name_deprecated") != TEST_PLAN_NAME_DEFAULT
-        ):  # TODO: Remove in pytest-adaptavist 6
-            config.issue_config_time_warning(
-                PytestDeprecationWarning("test_plan_name is deprecated. Please use --test-plan-name"), stacklevel=2
-            )
-
         self.item_status_info: dict[str, Any] = {}
         self.test_refresh_info: dict[str, Any] = {}
         self.test_result_data: dict[str, Any] = {}
@@ -173,7 +160,7 @@ class PytestAdaptavist:
             if not skip_status.kwargs.get("reason", ""):
                 fail("You need to specify a reason when blocking conditionally.", pytrace=False)
             elif any(skip_status.args):
-                pytest.block(msg=skip_status.kwargs["reason"])  # type: ignore
+                pytest.block(reason=skip_status.kwargs["reason"])  # type: ignore
 
         if skip_status := item.get_closest_marker("block"):
             fullname = get_item_nodeid(item)
@@ -183,7 +170,7 @@ class PytestAdaptavist:
             ):
                 skip_reason = self.test_result_data[fullname].get("comment", "")
             if skip_status.name == "block":
-                pytest.block(msg=skip_reason)  # type: ignore
+                pytest.block(reason=skip_reason)  # type: ignore
 
     @pytest.hookimpl()
     def pytest_runtest_logreport(self, report: TestReport):
@@ -612,20 +599,8 @@ class PytestAdaptavist:
             * New test plans are named like "<project key> <test plan suffix>" (where test plan suffix must be unique)
             * New test runs are named like "<test plan name or project key> <test run suffix> <datetime now>"
         """
-        test_run_name = self._eval_format(
-            str(
-                self.config.getini("test_cycle_name")
-                if self.config.getini("test_cycle_name") != TEST_CYCLE_NAME_DEFAULT
-                else self.config.getini("test_run_name")
-            )
-        )  # TODO: Remove 'if' in pytest-adaptavist 6. Hint for future-me ;)   self._eval_format(str(self.config.getini("test_cycle_name")))
-        test_plan_name = self._eval_format(
-            str(
-                self.config.getini("test_plan_name")
-                if self.config.getini("test_plan_name") != TEST_PLAN_NAME_DEFAULT
-                else self.config.getini("test_plan_name_deprecated")
-            )
-        )  # TODO: Remove 'if' in pytest-adaptavist 6
+        test_run_name = self._eval_format(str(self.config.getini("test_cycle_name")))
+        test_plan_name = self._eval_format(str(self.config.getini("test_plan_name")))
 
         if self.project_key:
             if not self.test_plan_key and self.test_plan_suffix:

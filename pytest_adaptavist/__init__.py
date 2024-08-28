@@ -67,18 +67,6 @@ def pytest_addoption(parser: Parser):
         help="Branch to restrict to (default: origin/master).",
     )
     add_option_ini(
-        "--test_run_name",
-        dest="test_run_name",
-        default=TEST_CYCLE_NAME_DEFAULT,
-        help="Specify test run name (default: <project_key> <test_run_suffix>).",
-    )  # deprecated
-    add_option_ini(
-        "--test_plan_name",
-        dest="test_plan_name_deprecated",
-        default=TEST_PLAN_NAME_DEFAULT,
-        help="Specify test plan name (default: <project_key> <test_plan_suffix>).",
-    )  # deprecated
-    add_option_ini(
         "--test-cycle-name",
         dest="test_cycle_name",
         default=TEST_CYCLE_NAME_DEFAULT,
@@ -138,9 +126,9 @@ def pytest_configure(config: Config):
 
     # Support for pytest.block
     @_with_exception(Blocked)
-    def block(msg="") -> NoReturn:
+    def block(reason="") -> NoReturn:
         __tracebackhide__ = True  # pylint: disable=unused-variable
-        raise Blocked(msg=msg)
+        raise Blocked(msg=reason)
 
     pytest.block = block  # type: ignore
 
